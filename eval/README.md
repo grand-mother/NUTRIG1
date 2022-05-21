@@ -1,1 +1,1 @@
-Set of scripts to eval and compare different algorthim for first level trigger
+Set of scripts to eval and compare different algorithm for first level trigger
