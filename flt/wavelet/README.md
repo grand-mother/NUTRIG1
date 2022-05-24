@@ -1,0 +1,1 @@
+First level trigger with wavelet approach
