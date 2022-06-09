@@ -74,6 +74,7 @@ docs/_build/
 
 # eclipse
 .project
+.pydevproject
 
 # PyBuilder
 target/
