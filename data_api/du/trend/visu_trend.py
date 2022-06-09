@@ -19,7 +19,7 @@ data_title = suffixe.split('/')[-1]
 print(data_title)
 
 
-def read_raw_data(f_name, event_size=1024): 
+def read_slow_raw_data(f_name, event_size=1024): 
     filesize = os.path.getsize(f_name)
     nb_ev = int(filesize / event_size)
     signal = np.zeros((nb_ev, event_size))
