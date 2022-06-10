@@ -4,22 +4,16 @@ import struct
 import matplotlib
 import matplotlib.pyplot as plt
 
-suffixe = "MLP6hybrid/MLP6hybrid_selected.bin"
-suffixe = "MLhybrid/MLhybrid_selected.bin"
-suffixe = "MLP6/MLP6_selected.bin"
-suffixe = "MLP6/MLP6_transient.bin"
-# suffixe = "R003562/R003562_A0158_time.bin"
+import nutrig.data_api.du.trend.io as tio
+
+# CCIN2P3
+PATH_DATA = "/sps/trend/slecoz/"
+# local
+PATH_DATA = "/home/jcolley/projet/nutrig_wk/data/"
 
 
-signalfilename = '/sps/trend/slecoz/' + suffixe
-# noisefilename = '/sps/trend/slecoz/MLP6SIM/MLP6SIM_transient.bin'
 
-data_title = suffixe.split('/')[-1]
-
-print(data_title)
-
-
-def read_slow_raw_data(f_name, event_size=1024): 
+def read_trend_ref(f_name, event_size=1024): 
     filesize = os.path.getsize(f_name)
     nb_ev = int(filesize / event_size)
     signal = np.zeros((nb_ev, event_size))
@@ -33,11 +27,8 @@ def read_slow_raw_data(f_name, event_size=1024):
     return signal
 
 
-def read_numpy_raw_data(f_name, event_size=1024): 
-    return np.fromfile(f_name, np.uint8).reshape((-1, event_size))
 
-
-def plot_all_event(a_event, data_title):
+def plot_all_event(a_event, data_title=""):
     matplotlib.use('Agg')
     nb_event = a_event.shape[0]
     x_range = np.arange(400, 600)
@@ -52,7 +43,7 @@ def plot_all_event(a_event, data_title):
         plt.close(0)
 
 
-def noise_histo(sig, idx_max=400):
+def noise_histo(sig, data_title="", idx_max=400):
     '''    
     @param sig:
     @param idx_max:
@@ -74,15 +65,14 @@ def noise_histo(sig, idx_max=400):
     plt.show()
     
 
-def plot_interactif():
+def plot_interactif(signal, data_title=""):
     # signal = read_raw_data(signalfilename)
-    plt.ioff()
-    signal = read_numpy_raw_data(signalfilename)
+    plt.ion()
     print(signal.shape)
-    x_range = np.arange(400, 600)
+    x_range = np.arange(400, 800)
     while True:
         nb = int(input("event number: "))
-        plt.figure()
+        plt.figure(nb)
         plt.title(f"{data_title} #{nb}") 
         plt.plot(x_range, signal[nb][x_range], label="signal")
         plt.grid()
@@ -90,6 +80,15 @@ def plot_interactif():
 
     
 if __name__ == "__main__":
-    signal = read_numpy_raw_data(signalfilename)
-    plot_all_event(signal, data_title)
+    # file 
+    file_trace = "MLP6hybrid/MLP6hybrid_selected.bin"
+    file_trace = "MLP6/MLP6_selected.bin"
+    file_trace = "MLP6/MLP6_transient.bin"
+    file_trace = "MLhybrid_selected.bin"
+    signalfilename = PATH_DATA + file_trace
+    data_title = signalfilename.split('/')[-1]
+    print(data_title)
+    # 
+    signal = tio.read_trace_trend(signalfilename)
+    plot_interactif(signal, data_title)
     #noise_histo(signal)
