@@ -45,8 +45,8 @@ def plot_all_event(a_event, data_title=""):
 
 def noise_histo(sig, data_title="", idx_max=400):
     '''    
-    @param sig:
-    @param idx_max:
+    :param sig:
+    :param idx_max:
     '''
     a_mean = np.mean(sig[:, 0:idx_max], 1)
     a_std = np.std(sig[:, 0:idx_max], 1)

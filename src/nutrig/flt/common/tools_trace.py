@@ -29,7 +29,7 @@ class PulsExtractor(object):
     def __init__(self, a_trace):
         '''
         
-        @param a_trace: array (nb_trace, nb sample in trace)
+        :param a_trace: array (nb_trace, nb sample in trace)
         '''        
         self.traces = a_trace
         self.nb_trace = a_trace.shape[0]

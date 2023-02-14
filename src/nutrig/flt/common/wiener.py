@@ -16,34 +16,6 @@ true_dse_s = 1
 np.random.seed(12)
 
 
-class Smoother(object):
-
-    def __init__(self, size_window=5, size_sig=2048):
-        hann = ss.hann(size_window)        
-        ker_hann = np.zeros(size_sig, dtype=np.float32)
-        half_s = size_window // 2
-        print(size_window, half_s)
-        if (size_window % 2) == 0:
-            ker_hann[0:half_s] = hann[half_s:]
-        else:
-            ker_hann[0:half_s + 1] = hann[half_s:]
-        ker_hann[-half_s:] = hann[0:half_s]
-        print(hann.sum())
-        print(ker_hann.sum())
-        self.ker_hann = ker_hann / ker_hann.sum()        
-        self.fft_ker = fft.fft(self.ker_hann)
-    
-    def hann(self, sig):
-        fft_sig = fft.fft(sig)
-        return np.real(fft.ifft(fft_sig * self.fft_ker))
-
-    
-def add_noise(a_sig, sigma):
-    print(a_sig.shape)
-    noise = np.random.normal(scale=sigma, size=a_sig.size)
-    return noise, a_sig + noise
-
-
 def create_sig_pseudo_dirac(s_sig, support_sample=5, level=1.0, pos=0.5):
     s_dirac = ss.hann(support_sample) * level
     idx_pos = int(s_sig * pos)
@@ -56,14 +28,6 @@ def create_sinc(s_sig, scale=1):
     x = np.linspace(-20, 20, s_sig , endpoint=False)
     sig = np.sinc(x) * scale
     return sig * ss.hann(s_sig)
-
-
-def kernel_exp(s_sig, t_sample, tau=1, gain=3):
-    x = np.linspace(0, t_sample * s_sig, s_sig // 2 , endpoint=False)
-    ker = np.zeros(s_sig, dtype=np.float32)
-    ker[s_sig // 2:] = gain * np.exp(-tau * x)    
-    ker /= ker.sum()
-    return ker
 
 
 def convolve_by_exp_tau(sig):
@@ -89,7 +53,7 @@ def create_convolve_nois_signal(s_sig, sigma=0.2):
     ker = kernel_exp(s_sig, 0.01, 2)
     sig_conv = convolve_sig_by_kernel(sig, ker)    
     noise, sig_conv_noise = add_noise(sig_conv, sigma)
-    if False:
+    if True:
         plt.figure()
         plt.title('Kernel')
         plt.plot(ker)
@@ -274,7 +238,7 @@ def test_smooth():
     plt.grid()
     plt.legend()
 
-
+    
 def test_add_noise():
     s_sig = 2048
     na = np.ones(s_sig, dtype=np.float32)
@@ -288,7 +252,36 @@ def test_dse():
     size_sig = 2048
     b_nor = 123 + np.random.normal(scale=2, size=size_sig)
     plot_dse(b_nor, "bruit gaussien")
-
+    
+    
+def test_convol_causal():
+    ""
+    file = "/home/jcolley/projet/grand_wk/binder/xdu/Stshp_MZS_QGS204JET_Proton_3.98_79.6_90.0_9/a0.trace"
+    a_trace = np.loadtxt(file)
+    size_sample = (a_trace.shape[0]//2)*2
+    size_signal = 50
+    hann = ss.hann(size_signal)*10    
+    #trace = np.zeros(size_sample, dtype=np.float32)
+    #trace[500:500+size_signal] = hann
+    trace = a_trace[:size_sample,1]
+    ker = kernel_exp(size_sample,1,1/10.)
+    conv_trace = convolve_sig_by_kernel(trace, ker)
+    # ===== PLOT 
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    fig.suptitle(f"convole ZHAires trace with causal kernel ")
+    ax1.set_title("trace and convolution")
+    ax1.plot(trace,label="signal")
+    ax1.plot(conv_trace,label="signal convolved")
+    ax1.grid()
+    ax1.legend()
+    ax2.set_title("kernel")
+    ax2.plot(ker,label="causal kernel")
+    ax2.grid()  
+    plt.figure()
+    plt.plot(trace,label="signal")
+    plt.plot(conv_trace,label="convol with causal kernel")
+    plt.legend()
+    plt.grid()
     
 if __name__ == "__main__":
     # plot_kernel()
@@ -299,7 +292,7 @@ if __name__ == "__main__":
     # plot_kernel()
     s_sig = 2048
     # convolve_by_exp_tau(create_sinc(s_sig, 3))
-    # create_convolve_nois_signal(s_sig)
-    perform_deconv_wiener()
-    # test_dse()
+    create_convolve_nois_signal(s_sig)
+    #perform_deconv_wiener()
+    #test_dse()
     plt.show()
