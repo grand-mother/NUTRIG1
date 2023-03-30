@@ -102,15 +102,13 @@ class Handling3dTracesOfEvent:
         assert du_id.shape[0] == t_start_ns.shape[0]
         self._define_t_samples()
 
-    def init_network(self, du_pos, du_id):
+    def init_network(self, du_pos):
         """
 
         :param du_pos:
         :type du_pos:
-        :param du_id:
-        :type du_id:
         """
-        self.network.init_pos_id(du_pos, du_id)
+        self.network.init_pos_id(du_pos, self.du_id)
 
     def set_unit_axis(self, str_unit="TBD", axis_name="idx"):
         """
