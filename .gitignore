@@ -132,3 +132,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+# exclude file data
+*.asdf
+*.root
+*.hdf5
+*.fits
