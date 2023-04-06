@@ -11,6 +11,9 @@ import sqlite3
 from sqlite3 import Error
 
 import numpy as np
+import matplotlib.pylab as plt
+
+
 
 path_scan = "/home/jcolley/projet/grand_wk/data/zhaires/list_sry.txt"
 L_primary = ["Proton", "Gamma", "Iron"]
@@ -37,7 +40,7 @@ def fill_table_shower_pars(con_db, path_simu, shower_pars):
        path TEXT,
        prim_part TEXT,
        energy REAL,
-       dist_zen REAL,
+       elevation REAL,
        azimuth REAL
     )'''
     cursor.execute(sql)
@@ -76,7 +79,7 @@ def fill_table_path(con_db, root_simu):
 def parser_scan_name(path_scan):
     l_path = []
     a_dtype = {
-            "names": ("primary", "energy", "dist_zen", "azimuth"),
+            "names": ("primary", "energy", "elevation", "azimuth"),
             "formats": ("S20", "f4", "f4", "f4"),
         }
 
@@ -97,14 +100,14 @@ def parser_scan_name(path_scan):
             if elt in L_primary:
                 primary = elt
         # print(primary)
-        f_re = fr"\w+_(?P<energy>{REAL})_(?P<dist_zen>{REAL})_(?P<azimuth>{REAL})"
+        f_re = fr"\w+_(?P<energy>{REAL})_(?P<elevation>{REAL})_(?P<azimuth>{REAL})"
         ret = re.search(f_re, name_sry)
         if not isinstance(ret, re.Match):
             print(f"Can't find parameters in: {p_sry} with re: {f_re}")
             continue
         d_pars = ret.groupdict()
         try:
-            convert = (primary, float(d_pars["energy"]), float(d_pars["dist_zen"]), float(d_pars["azimuth"]))
+            convert = (primary, float(d_pars["energy"]), float(d_pars["elevation"]), float(d_pars["azimuth"]))
             pars_sim[idx_ok] = convert
             idx_ok += 1
         except:
@@ -113,7 +116,6 @@ def parser_scan_name(path_scan):
         # path simu
         idx_f = p_sry.find(name_sry)
         l_path.append(p_sry[2:idx_f - 1])
-        print(l_path[-1])
     print(pars_sim)
     pars_sim = pars_sim[:idx_ok]
     print(f"{nb_sim-idx_ok} convert failed on {nb_sim}")
@@ -122,12 +124,31 @@ def parser_scan_name(path_scan):
     assert pars_sim.shape[0] == len(l_path)
     return pars_sim, l_path
 
+def zhaires_stat(path_scan):
+    pars_sim, l_path = parser_scan_name(path_scan)
+    plt.figure()
+    plt.title('Energy')
+    plt.hist(pars_sim["energy"],log=True)
+    plt.xlabel("EeV")
+    plt.figure()
+    plt.title('Shower direction: elevation')
+    plt.hist(pars_sim["elevation"],log=True)
+    plt.xlabel("deg")
+    plt.figure()
+    plt.title('Shower direction: azimuth')
+    plt.hist(pars_sim["azimuth"],log=True)
+    plt.xlabel("deg")
 
+
+def zhaires_master_create(path_scan, name_db, root_scan):
+    pars, l_path = parser_scan_name(path_scan)
+    con_db = create_sqlite_db(name_db)
+    fill_table_shower_pars(con_db, l_path, pars)
+    fill_table_path(con_db, root_scan)
+    con_db.close()  
         
 
 if __name__ == '__main__':
-    pars, l_path = parser_scan_name(path_scan)
-    con_db = create_sqlite_db("zhaires_tueros2.db")
-    fill_table_shower_pars(con_db, l_path, pars)
-    fill_table_path(con_db, "/sps/grand/tueros")
-    con_db.close()
+    zhaires_stat(path_scan)
+    # zhaires_master_create(path_scann, "zhaires_tueros2.db", "/sps/grand/tueros")
+    plt.show()
