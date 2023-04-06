@@ -15,8 +15,8 @@ def test_get_string_now():
 
 
 def test_get_logger_path():
-    ret = mlg._get_logger_path("/toto/NUTRIG/tutu.py")
-    assert ret == "NUTRIG.tutu"
+    ret = mlg._get_logger_path("/toto/NUTRIG1/tutu.py")
+    assert ret == "NUTRIG1.tutu"
     ret = mlg._get_logger_path("/toto/NUTRI/tutu.py")
     assert ret == "toto.NUTRI.tutu"
 

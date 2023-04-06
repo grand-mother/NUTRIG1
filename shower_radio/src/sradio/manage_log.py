@@ -72,7 +72,7 @@ from datetime import datetime
 import time
 
 # value to customize for each project
-NAME_PKG_GIT = "NUTRIG"
+NAME_PKG_GIT = "NUTRIG1"
 NAME_ROOT_LIB = "sradio"
 
 # constant value to manage logger and its features
