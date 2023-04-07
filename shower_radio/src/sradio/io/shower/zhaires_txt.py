@@ -100,9 +100,10 @@ class ZhairesSummaryFileVers28:
                     # set of values in sub dictionary with key {key}
                     d_sry[key] = d_ret
             else:
-                logger.warning(
-                    f"Can't find '{key}' information with this regular expression:\n{s_re}"
-                )
+                pass
+                # logger.warning(
+                #     f"Can't find '{key}' information with this regular expression:\n{s_re}"
+                # )
                 self.l_error.append(key)
         self.d_sry = convert_str2number(d_sry)
 
@@ -184,9 +185,9 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
                 sry.extract_all()
                 if sry.is_ok():
                     self.d_info = sry.get_dict()
-                    return
+                    return True
             logger.error("Unknown summary file version")
-            raise
+            return False
 
     def read_trace_files(self):
         trace_0 = np.loadtxt(self.add_path_traces("a0.trace"))

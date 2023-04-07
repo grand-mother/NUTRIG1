@@ -6,6 +6,7 @@ find  . -name *.sry > /sps/grand/colley/list_sry.txt &
 @author: jcolley
 """
 
+import os.path
 import re
 import sqlite3
 from sqlite3 import Error
@@ -13,8 +14,12 @@ from sqlite3 import Error
 import numpy as np
 import matplotlib.pylab as plt
 
+from sradio.io.shower.zhaires_txt import ZhairesSingleEventText
 
+root_path ='/sps/grand/tueros'
 path_scan = "/home/jcolley/projet/grand_wk/data/zhaires/list_sry.txt"
+path_scan = "/sps/grand/colley/db/list_sry.txt"
+
 L_primary = ["Proton", "Gamma", "Iron"]
 # approximative regular expression of string float
 REAL = "[+-]?[0-9][0-9.eE+-]*"
@@ -86,7 +91,7 @@ def parser_scan_name(path_scan):
 
     with open(path_scan) as f_scan:
         l_path_sry = f_scan.readlines()
-    f_err = open("no_primary.txt", "w")
+    f_err = open("error.txt", "w")
     nb_sim = len(l_path_sry)
     pars_sim = np.zeros(nb_sim, dtype=a_dtype)
     print(pars_sim)
@@ -100,30 +105,52 @@ def parser_scan_name(path_scan):
         for elt in s_elt:
             if elt in L_primary:
                 primary = elt
-        if primary == "" and name_sry.find("_") > 0:
-            # TODO : read sry file to extract information
-            print(f"don't find primary in {name_sry[:-2]}")
-            f_err.write(name_sry)
-        # print(primary)
-        f_re = fr"\w+_(?P<energy>{REAL})_(?P<elevation>{REAL})_(?P<azimuth>{REAL})"
-        ret = re.search(f_re, name_sry)
-        if not isinstance(ret, re.Match):
-            # TODO : read sry file to extract information
-            # print(f"Can't find parameters in: {p_sry} with re: {f_re}")
-            continue
-        d_pars = ret.groupdict()
-        try:
+        if primary == "":
+            # TODO : read sry file to extract AuthorityInformationAccess
+            idx_sry = p_sry.find(name_sry)
+            abs_dir = os.path.join(root_path, p_sry[2:idx_sry])
+            print(f"Read  {abs_dir}")
+            zh_txt =ZhairesSingleEventText(abs_dir)
+            if not zh_txt.read_summary_file():
+                f_err.write(f"\n{abs_dir} nok read")
+                continue
+            #print(zh_txt.d_info)
+            unit = zh_txt.d_info["energy"]["unit"] 
+            if  unit == 'PeV':
+                energy = 1e-3*zh_txt.d_info["energy"]["value"]
+            elif unit == 'EeV':
+                energy = zh_txt.d_info["energy"]["value"]
+            else:
+                f_err.write(f"\n{abs_dir} pb unit {unit}")
+                energy = -2
+
             convert = (
-                primary,
-                float(d_pars["energy"]),
-                float(d_pars["elevation"]),
-                float(d_pars["azimuth"]),
-            )
-            pars_sim[idx_ok] = convert
-            idx_ok += 1
-        except:
-            print(f"Can't convert {convert}")
-            continue
+                    zh_txt.d_info["primary"],
+                    energy,
+                    zh_txt.d_info["zenith_angle"],
+                    (zh_txt.d_info["azimuth_angle"]%360)-180,
+                )
+        else:
+            f_re = fr"\w+_(?P<energy>{REAL})_(?P<elevation>{REAL})_(?P<azimuth>{REAL})"
+            ret = re.search(f_re, name_sry)
+            if not isinstance(ret, re.Match):
+                # TODO : read sry file to extract information
+                # print(f"Can't find parameters in: {p_sry} with re: {f_re}")
+                f_err.write(f"\n{abs_dir} re file NOK")
+                continue
+            d_pars = ret.groupdict()
+            try:
+                convert = (
+                    primary,
+                    float(d_pars["energy"]),
+                    float(d_pars["elevation"]),
+                    float(d_pars["azimuth"]),
+                )
+            except:
+                f_err.write(f"\n{abs_dir}: to float nok {d_pars}")
+                continue
+        pars_sim[idx_ok] = convert
+        idx_ok += 1
         # path simu
         idx_f = p_sry.find(name_sry)
         l_path.append(p_sry[2 : idx_f - 1])
@@ -163,6 +190,6 @@ def zhaires_master_create(path_scan, name_db, root_scan):
 
 
 if __name__ == "__main__":
-    zhaires_stat(path_scan)
-    # zhaires_master_create(path_scan, "zhaires_tueros.db", "/sps/grand/tueros")
+    #haires_stat(path_scan)
+    zhaires_master_create(path_scan, "zhaires_tueros2.db", "/sps/grand/tueros")
     plt.show()
