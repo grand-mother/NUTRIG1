@@ -52,7 +52,7 @@ class Handling3dTracesOfEvent:
         nb_du = 0
         nb_sample = 0
         self.traces = np.zeros((nb_du, 3, nb_sample))
-        self.du_id = np.arange(nb_du)
+        self.du_id = range(nb_du)
         self.t_start_ns = np.zeros((nb_du), dtype=np.int64)
         self.t_samples = np.zeros((nb_du, nb_sample), dtype=np.float64)
         self.f_samp_mhz = 0.0
@@ -218,7 +218,7 @@ class Handling3dTracesOfEvent:
         :return: number of DU
         :rtype: int
         """
-        return self.du_id.shape[0]
+        return len(self.du_id)
 
     def get_size_trace(self):
         """
@@ -336,7 +336,7 @@ class Handling3dTracesOfEvent:
         col_log = colors.LogNorm(clip=False)
         im_traces = plt.imshow(norm, cmap="Blues", norm=col_log)
         plt.colorbar(im_traces)
-        plt.xlabel(fr"Index sample\nFile: {self.name}")
+        plt.xlabel(f"Index sample\nFile: {self.name}")
         plt.ylabel("Index DU")
 
         def on_click(event):

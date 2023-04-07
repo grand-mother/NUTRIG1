@@ -98,9 +98,7 @@ logger = logging.getLogger(__name__)
 #############################
 
 
-def create_output_for_logger(
-    log_level="info", log_file=None, log_stdout=True, log_root=NAME_PKG_GIT
-):
+def create_output_for_logger(log_level="info", log_file=None, log_stdout=True, log_root=None):
     """Create a logger with handler for grand
 
     :param log_level: standard python logger level define in DICT_LOG_LEVELS
@@ -108,10 +106,10 @@ def create_output_for_logger(
     :param log_stdout: enable standard output
     :param log_root: define a log_root logger str or list of str
     """
+
+    l_log_root = [NAME_PKG_GIT, NAME_ROOT_LIB]
     if isinstance(log_root, str):
-        l_log_root = [log_root]
-    else:
-        l_log_root = log_root
+        l_log_root.append(log_root)
     if SCRIPT_ROOT_LOGGER != "":
         l_log_root.append(SCRIPT_ROOT_LOGGER)
     ret_level = _check_logger_level(log_level)

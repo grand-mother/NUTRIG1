@@ -29,7 +29,6 @@ class ZhairesSingleEventHdf5:
             self.traces[idx][2] = trace["Ez"]
             self.t_start[idx] = trace["Time"][0]
         self.t_sample_ns = trace["Time"][1] - trace["Time"][0]
-        print(self.t_sample_ns)
 
     def _get_antspos(self):
         self.ants_pos = np.empty((self.nb_ants, 3), dtype=np.float32)

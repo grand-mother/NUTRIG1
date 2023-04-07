@@ -11,14 +11,17 @@ Read ZHAires Outputs simulation, can be convert:
 """
 
 import re
-import os
 import os.path
 from logging import getLogger
+import tarfile
+import tempfile
 
 import numpy as np
-import asdf
+
 
 from sradio.basis.traces_event import Handling3dTracesOfEvent
+from .zhaires_master import ZhairesSingleEventBase
+
 
 logger = getLogger(__name__)
 
@@ -84,7 +87,7 @@ class ZhairesSummaryFileVers28:
                     # set of values in sub dictionary with key {key}
                     d_sry[key] = d_ret
             else:
-                logger.error(
+                logger.warning(
                     f"Can't find '{key}' information with this regular expression:\n{s_re}"
                 )
                 self.l_error.append(key)
@@ -109,35 +112,38 @@ class ZhairesSummaryFileVers28b(ZhairesSummaryFileVers28):
 L_SRY_VERS = [ZhairesSummaryFileVers28b, ZhairesSummaryFileVers28]
 
 
-class ZhairesSingleEventBase:
-    def get_dict(self):
-        d_gen = self.d_info.copy()
-        d_gen["traces"] = self.traces
-        d_gen["t_start"] = self.t_start
-        d_gen["ant_pos"] = self.ants
-        return d_gen
-
-    def write_asdf_file(self, p_file):
-        df_simu = asdf.AsdfFile(self.get_dict())
-        df_simu.write_to(p_file, all_array_compression="zlib")
-
-
 class ZhairesSingleEventText(ZhairesSingleEventBase):
     def __init__(self, path_zhaires):
         self.path = path_zhaires
         self.read_summary_file()
+        self.extract_trace()
         self.read_antpos_file()
         self.read_trace_files()
+        if self.path != self.path_traces:
+            self.path_traces.cleanup()
 
     def add_path(self, file):
         return os.path.join(self.path, file)
+
+    def add_path_traces(self, file):
+        return os.path.join(self.path_traces, file)
+
+    def extract_trace(self):
+        if os.path.exists(self.add_path("antpos.dat")):
+            self.path_traces = self.path
+            return
+        tar_file = os.path.join(self.path, self.path.split("/")[-1] + "_trace.tar.gz")
+        self.path_traces = tempfile.TemporaryDirectory()
+        my_tar = tarfile.open(tar_file)
+        my_tar.extractall(self.path_traces)
+        my_tar.close()
 
     def read_antpos_file(self):
         a_dtype = {
             "names": ("idx", "name", "x", "y", "z"),
             "formats": ("i4", "S20", "f4", "f4", "f4"),
         }
-        self.ants = np.loadtxt(self.add_path("antpos.dat"), dtype=a_dtype)
+        self.ants = np.loadtxt(self.add_path_traces("antpos.dat"), dtype=a_dtype)
         self.nb_ant = self.ants.shape[0]
 
     def read_summary_file(self):
@@ -167,7 +173,7 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
             raise
 
     def read_trace_files(self):
-        trace_0 = np.loadtxt(self.add_path("a0.trace"))
+        trace_0 = np.loadtxt(self.add_path_traces("a0.trace"))
         nb_sample = trace_0.shape[0]
         self.traces = np.empty((self.nb_ant, 3, nb_sample), dtype=np.float32)
         self.t_start = np.empty(self.nb_ant, dtype=np.float64)
@@ -181,7 +187,7 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
 
     def get_object_3dtraces(self):
         o_tevent = Handling3dTracesOfEvent(f"ZHAIRES simulation")
-        du_id = range(self.nb_ant)
+        du_id = self.ants["name"].tolist()
         #  MHz/ns: 1e-6/1e-9 = 1e3
         sampling_freq_mhz = 1e3 / self.d_info["t_sample_ns"]
         o_tevent.init_traces(
@@ -194,6 +200,6 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
         ants[:, 0] = self.ants["x"]
         ants[:, 1] = self.ants["y"]
         ants[:, 2] = self.ants["z"]
-        o_tevent.init_network(self.ants)
+        o_tevent.init_network(ants)
         o_tevent.set_unit_axis(r"$\mu$V/m", "cart")
         return o_tevent

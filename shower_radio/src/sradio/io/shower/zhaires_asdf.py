@@ -38,7 +38,7 @@ class ZhairesSingleEventAsdf:
     def get_object_3dtraces(self):
         o_tevent = Handling3dTracesOfEvent(f"ZHAIRES simulation")
         nb_ant = self.d_zh["ant_pos"].shape[0]
-        du_id = np.arange(nb_ant)
+        du_id = range(nb_ant)
         #  MHz/ns: 1e-6/1e-9 = 1e3
         sampling_freq_mhz = 1e3 / self.d_zh["t_sample_ns"]
         o_tevent.init_traces(
@@ -51,6 +51,6 @@ class ZhairesSingleEventAsdf:
         ants[:, 0] = self.ants["x"]
         ants[:, 1] = self.ants["y"]
         ants[:, 2] = self.ants["z"]
-        o_tevent.init_network(self.ants)
+        o_tevent.init_network(ants)
         o_tevent.set_unit_axis("$\mu$V/m", "cart")
         return o_tevent
