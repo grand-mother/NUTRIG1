@@ -73,7 +73,7 @@ class ZhairesSummaryFileVers28:
             "vers_zhaires": r"With ZHAireS version (?P<vers_zhaires>\w+\.\w+\.\w+) \(",
             "primary": r"Primary particle:\s+(?P<primary>\w+)\s+",
             "site": fr"Site:\s+(?P<name>\w+)\s+\(Lat:\s+(?P<lat>{REAL})\s+deg. Long:\s+(?P<lon>{REAL})\s+deg",
-            "geo_mag": fr"Geomagnetic field: Intensity:\s+(?P<norm>{REAL})\s+(?P<unit>\w+)\s+I:\s+(?P<inc>{REAL})\s+deg. D:\s+(?P<dec>{REAL})\s+deg",
+            #"geo_mag": fr"Geomagnetic field: Intensity:\s+(?P<norm>{REAL})\s+[(D)\s+(?P<unit>\w+)\s+I:\s+(?P<inc>{REAL})\s+deg. D:\s+(?P<dec>{REAL})\s+deg",
             "energy": fr"Primary energy:\s+(?P<value>{REAL})\s+(?P<unit>\w+)",
             "zenith_angle": fr"Primary zenith angle:\s+(?P<zenith_angle>{REAL})\s+deg",
             "azimuth_angle": fr"Primary azimuth angle:\s+(?P<azimuth_angle>{REAL})\s+deg",
@@ -128,6 +128,7 @@ L_SRY_VERS = [ZhairesSummaryFileVers28b, ZhairesSummaryFileVers28]
 class ZhairesSingleEventText(ZhairesSingleEventBase):
     def __init__(self, path_zhaires):
         self.path = path_zhaires
+        self.dir_simu  = path_zhaires.split('/')[-1]
         self.read_summary_file()
         self.extract_trace()
         self.read_antpos_file()
@@ -199,8 +200,8 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
             self.t_start[idx] = trace[0, 0]
 
     def get_object_3dtraces(self):
-        o_tevent = Handling3dTracesOfEvent(f"ZHAIRES simulation")
-        du_id = self.ants["name"].tolist()
+        o_tevent = Handling3dTracesOfEvent(self.dir_simu )
+        du_id = [str(iddu, "UTF-8") for iddu in self.ants["name"].tolist()]
         #  MHz/ns: 1e-6/1e-9 = 1e3
         sampling_freq_mhz = 1e3 / self.d_info["t_sample_ns"]
         o_tevent.init_traces(

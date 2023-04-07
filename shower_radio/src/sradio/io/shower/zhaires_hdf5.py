@@ -14,6 +14,7 @@ class ZhairesSingleEventHdf5:
         f_zh = h5py.File(path_hdf5)
         name_data = f_zh["RunInfo"]["EventName"][0]
         self.data = f_zh[name_data]
+        self.dir_simu = str(name_data, "UTF-8")
 
     def _get_traces(self):
         self.ants_id = list(self.data["AntennaTraces"])
@@ -49,7 +50,7 @@ class ZhairesSingleEventHdf5:
         """
         self._get_traces()
         self._get_antspos()
-        o_tevent = Handling3dTracesOfEvent(f"ZHAIRES simulation")
+        o_tevent = Handling3dTracesOfEvent(self.dir_simu)
         #  MHz/ns: 1e-6/1e-9 = 1e3
         sampling_freq_mhz = 1e3 / self.t_sample_ns
         o_tevent.init_traces(
