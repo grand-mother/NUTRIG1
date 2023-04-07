@@ -17,16 +17,29 @@ import tarfile
 import tempfile
 
 import numpy as np
-
+import asdf
 
 from sradio.basis.traces_event import Handling3dTracesOfEvent
-from .zhaires_master import ZhairesSingleEventBase
+
 
 
 logger = getLogger(__name__)
 
 # approximative regular expression of string float
 REAL = r"[+-]?[0-9][0-9.eE+-]*"
+
+
+class ZhairesSingleEventBase:
+    def get_dict(self):
+        d_gen = self.d_info.copy()
+        d_gen["traces"] = self.traces
+        d_gen["t_start"] = self.t_start
+        d_gen["ant_pos"] = self.ants
+        return d_gen
+
+    def write_asdf_file(self, p_file):
+        df_simu = asdf.AsdfFile(self.get_dict())
+        df_simu.write_to(p_file, all_array_compression="zlib")
 
 
 def convert_str2number(elmt):
