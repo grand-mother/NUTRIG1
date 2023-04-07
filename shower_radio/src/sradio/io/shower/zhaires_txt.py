@@ -129,6 +129,8 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
     def __init__(self, path_zhaires):
         self.path = path_zhaires
         self.dir_simu  = path_zhaires.split('/')[-1]
+        
+    def read_all(self):
         self.read_summary_file()
         self.extract_trace()
         self.read_antpos_file()
