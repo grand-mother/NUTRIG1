@@ -91,6 +91,7 @@ def test_sry():
 
 def try_zhaires_convert():
     simu_zh = zh.ZhairesSingleEventText(path_simu)
+    simu_zh.read_all()
     pprint.pprint(simu_zh.d_info)
     simu = simu_zh.get_object_3dtraces()
     simu.plot_footprint_val_max()

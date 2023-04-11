@@ -68,7 +68,7 @@ class ZhairesSummaryFileVers28:
         self.d_sry = {}
         self.l_error = []
         self.d_re = {
-            "x_max": rf"Location of max\.\((?P<unit>\w+)\):\s+{REAL}\s+{REAL}\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+",
+            "x_max": rf"Location of max\.\((?P<unit>\w+)\):\s+(?P<alt>{REAL})\s+(?P<dist>{REAL})\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+",
             "vers_aires": r"This is AIRES version\s+(?P<vers_aires>\w+\.\w+\.\w+)\s+\(",
             "vers_zhaires": r"With ZHAireS version (?P<vers_zhaires>\w+\.\w+\.\w+) \(",
             "primary": r"Primary particle:\s+(?P<primary>\w+)\s+",

@@ -45,7 +45,8 @@ def fill_table_shower_pars(con_db, path_simu, shower_pars):
        prim_part TEXT,
        energy REAL,
        elevation REAL,
-       azimuth REAL
+       azimuth REAL,
+       altitude UNSIGNED TINYINT, 
     )"""
     cursor.execute(sql)
 
@@ -85,8 +86,8 @@ def fill_table_path(con_db, root_simu):
 def parser_scan_name(path_scan):
     l_path = []
     a_dtype = {
-        "names": ("primary", "energy", "elevation", "azimuth"),
-        "formats": ("S20", "f4", "f4", "f4"),
+        "names": ("primary", "energy", "elevation", "azimuth", "dist"),
+        "formats": ("S20", "f4", "f4", "f4", "unit8"),
     }
 
     with open(path_scan) as f_scan:
@@ -123,12 +124,14 @@ def parser_scan_name(path_scan):
             else:
                 f_err.write(f"\n{abs_dir} pb unit {unit}")
                 energy = -2
-
+            dist_xm = zh_txt.d_info["x_max"]["dist"]
+            assert dist_xm < 255
             convert = (
                 zh_txt.d_info["primary"],
                 energy,
                 zh_txt.d_info["zenith_angle"],
-                (zh_txt.d_info["azimuth_angle"] % 360) - 180,
+                (zh_txt.d_info["azimuth_angle"] % 360),
+                int(dist_xm)
             )
         else:
             f_re = rf"\w+_(?P<energy>{REAL})_(?P<elevation>{REAL})_(?P<azimuth>{REAL})"
@@ -144,7 +147,8 @@ def parser_scan_name(path_scan):
                     primary,
                     float(d_pars["energy"]),
                     float(d_pars["elevation"]),
-                    float(d_pars["azimuth"]),
+                    float(d_pars["azimuth"],
+                    0),
                 )
             except:
                 f_err.write(f"\n{abs_dir}: to float nok {d_pars}")
