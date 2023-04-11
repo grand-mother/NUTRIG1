@@ -17,8 +17,8 @@ import matplotlib.pylab as plt
 from sradio.io.shower.zhaires_txt import ZhairesSingleEventText
 
 root_path = "/sps/grand/tueros"
-path_scan = "/home/jcolley/projet/grand_wk/data/zhaires/list_sry.txt"
-#path_scan = "/sps/grand/colley/db/list_sry.txt"
+#path_scan = "/home/jcolley/projet/grand_wk/data/zhaires/list_sry.txt"
+path_scan = "/sps/grand/colley/db/list_sry.txt"
 
 L_primary = ["Proton", "Gamma", "Iron"]
 # approximative regular expression of string float
@@ -108,7 +108,6 @@ def parser_scan_name(path_scan):
             if elt in L_primary:
                 primary = elt
         if primary == "":
-            continue
             # TODO : read sry file to extract AuthorityInformationAccess
             idx_sry = p_sry.find(name_sry)
             abs_dir = os.path.join(root_path, p_sry[2:idx_sry])
@@ -161,9 +160,9 @@ def parser_scan_name(path_scan):
         # path simu
         idx_f = p_sry.find(name_sry)
         l_path.append(p_sry[2 : idx_f - 1])
-        if idx_sry_ok > 10:
-            break
-        print(name_sry)
+        # if idx_sry_ok > 10:
+        #     break
+        # print(name_sry)
     print(pars_sim)
     pars_sim = pars_sim[:idx_ok]
     print(f"{nb_sim-idx_ok} convert failed on {nb_sim}")

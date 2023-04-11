@@ -119,7 +119,7 @@ class ZhairesSummaryFileVers28b(ZhairesSummaryFileVers28):
         super().__init__(file_sry, str_sry)
         self.d_re[
             "x_max"
-        ] = rf"Pos. Max.:\s+{REAL}\s+{REAL}\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+"
+        ] = rf"Pos. Max.:\s+(?P<alt>{REAL})\s+(?P<dist>{REAL})\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+"
 
 
 # add here all version of ZHaireS summary file
