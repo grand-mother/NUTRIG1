@@ -100,9 +100,6 @@ class ZhairesSummaryFileVers28:
                     # set of values in sub dictionary with key {key}
                     d_sry[key] = d_ret
             else:
-                # logger.warning(
-                #     f"Can't find '{key}' information with this regular expression:\n{s_re}"
-                # )
                 self.l_error.append(key)
                 break
         self.d_sry = convert_str2number(d_sry)
@@ -130,6 +127,7 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
     def __init__(self, path_zhaires):
         self.path = path_zhaires
         self.dir_simu = path_zhaires.split("/")[-1]
+        self.d_info = {}
 
     def read_all(self):
         self.read_summary_file()
@@ -165,7 +163,11 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
 
     def read_summary_file(self):
         # l_files = list(filter(os.path.isfile, os.listdir(self.path)))
-        l_files = os.listdir(self.path)
+        try:
+            l_files = os.listdir(self.path)
+        except:
+            logger.error(f"Unknown path {self.path}")
+            return False
         # print(l_files)
         l_sry = []
         for m_file in l_files:
