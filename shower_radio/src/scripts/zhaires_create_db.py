@@ -18,7 +18,7 @@ from sradio.io.shower.zhaires_txt import ZhairesSingleEventText
 
 root_path = "/sps/grand/tueros"
 path_scan = "/home/jcolley/projet/grand_wk/data/zhaires/list_sry.txt"
-path_scan = "/sps/grand/colley/db/list_sry.txt"
+#path_scan = "/sps/grand/colley/db/list_sry.txt"
 
 L_primary = ["Proton", "Gamma", "Iron"]
 # approximative regular expression of string float
@@ -46,7 +46,7 @@ def fill_table_shower_pars(con_db, path_simu, shower_pars):
        energy REAL,
        elevation REAL,
        azimuth REAL,
-       altitude UNSIGNED TINYINT, 
+       altitude UNSIGNED TINYINT
     )"""
     cursor.execute(sql)
 
@@ -57,7 +57,7 @@ def fill_table_shower_pars(con_db, path_simu, shower_pars):
     for idx, c_path in enumerate(path_simu):
         pars = shower_pars[idx]
         type_p = str(pars[0], "UTF-8")
-        data = rf"('{c_path}','{type_p}',{pars[1]},{pars[2]},{pars[3]})"
+        data = rf"('{c_path}','{type_p}',{pars[1]},{pars[2]},{pars[3]},{pars[4]})"
         if idx % 100 == 0:
             print(idx)
         cursor.execute(f"INSERT INTO Shower VALUES {data}")
@@ -87,7 +87,7 @@ def parser_scan_name(path_scan):
     l_path = []
     a_dtype = {
         "names": ("primary", "energy", "elevation", "azimuth", "dist"),
-        "formats": ("S20", "f4", "f4", "f4", "unit8"),
+        "formats": ("S20", "f4", "f4", "f4", "uint8"),
     }
 
     with open(path_scan) as f_scan:
@@ -107,6 +107,7 @@ def parser_scan_name(path_scan):
             if elt in L_primary:
                 primary = elt
         if primary == "":
+            continue
             # TODO : read sry file to extract AuthorityInformationAccess
             idx_sry = p_sry.find(name_sry)
             abs_dir = os.path.join(root_path, p_sry[2:idx_sry])
@@ -133,6 +134,7 @@ def parser_scan_name(path_scan):
                 (zh_txt.d_info["azimuth_angle"] % 360),
                 int(dist_xm)
             )
+            pars_sim[idx_ok] = convert
         else:
             f_re = rf"\w+_(?P<energy>{REAL})_(?P<elevation>{REAL})_(?P<azimuth>{REAL})"
             ret = re.search(f_re, name_sry)
@@ -147,17 +149,17 @@ def parser_scan_name(path_scan):
                     primary,
                     float(d_pars["energy"]),
                     float(d_pars["elevation"]),
-                    float(d_pars["azimuth"],
-                    0),
-                )
+                    float(d_pars["azimuth"]),
+                    )
+                pars_sim[idx_ok] = convert
             except:
-                f_err.write(f"\n{abs_dir}: to float nok {d_pars}")
+                f_err.write(f"\n{p_sry}: to float nok {d_pars}")
                 continue
-        pars_sim[idx_ok] = convert
         idx_ok += 1
         # path simu
         idx_f = p_sry.find(name_sry)
         l_path.append(p_sry[2 : idx_f - 1])
+        print(name_sry)
     print(pars_sim)
     pars_sim = pars_sim[:idx_ok]
     print(f"{nb_sim-idx_ok} convert failed on {nb_sim}")
@@ -194,6 +196,6 @@ def zhaires_master_create(path_scan, name_db, root_scan):
 
 
 if __name__ == "__main__":
-    zhaires_stat(path_scan)
-    #zhaires_master_create(path_scan, "zhaires_tueros2.db", "/sps/grand/tueros")
+    #zhaires_stat(path_scan)
+    zhaires_master_create(path_scan, "zhaires_tueros3.db", "/sps/grand/tueros")
     plt.show()
