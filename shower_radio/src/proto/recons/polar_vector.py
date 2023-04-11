@@ -9,12 +9,23 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from scipy.optimize import Bounds
 from scipy.spatial.transform import Rotation
+from astropy.units import nPa
+
+a_inc = np.deg2rad( 62.27)
+a_inc = np.deg2rad( 60.79)
+v_b= np.array([np.cos(a_inc), 0, -np.sin(a_inc)])
 
 
 def load_file_trace(path_data=""):
+    '''
+    return (n,3)
+    
+    :param path_data:
+    '''
     path_data = "/home/jcolley/projet/grand_wk/data/a2.trace"
-    path_data = "/home/jcolley/projet/grand_wk/data/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1/GP300_Proton_3.97_74.8_0.0_1.traces/"
-    path_data = f"{path_data}/a80.trace"
+    #path_data = "/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1/GP300_Proton_3.97_74.8_0.0_1.traces/"
+    path_data = "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
+    path_data = f"{path_data}/a24.trace"
     t_trace = np.loadtxt(path_data)
     trace = t_trace[:, 1:]
     return trace
@@ -93,11 +104,15 @@ def loss_function_lin_pol(v_pol, data):
     # constraint = 1 - np.sqrt((v_pol * v_pol).sum())
     # constraint = 100000 * constraint ** 2
     # print(f'loss : {s_residu}, {constraint} {v_pol[2]}')
-    print(f"loss : {s_residu}")
+    #print(f"loss : {s_residu}")
     return s_residu
 
 
 def fit_linear_polar(efield_3d):
+    '''
+    
+    :param efield_3d: (n,3)
+    '''
     plot_trace(efield_3d)
     n_elec = np.linalg.norm(efield_3d, axis=1)
     sum_n = np.sum(n_elec)
@@ -110,10 +125,17 @@ def fit_linear_polar(efield_3d):
     #                args=data,bounds=bounds,
     #                options={'disp': True, 'xtol': 1e-6})
     res = minimize(loss_function_lin_pol, guess, method="BFGS", args=data, options={"disp": True})
-    print(res.x, np.linalg.norm(res.x))
     print(res.message)
     residu = data[4]
-    print(residu.shape)
+    print(residu.shape)    
+    norm_p =  np.linalg.norm(res.x)
+    print(f"polar vec: p = {res.x}, norm={norm_p:.5f}")
+    print(f"mag field: B = {v_b}")
+    p_vb = np.dot(res.x/norm_p, v_b)
+    print(f"B.p = {p_vb}")
+    a_pB = np.rad2deg(np.arccos(p_vb))
+    print(f"angle(B,p)= {a_pB} deg")
+    
     plt.figure()
     n_bin = 50
     plt.hist(residu[:, 0], n_bin)
@@ -121,6 +143,30 @@ def fit_linear_polar(efield_3d):
     plt.hist(residu[:, 1], n_bin)
     plt.figure()
     plt.hist(residu[:, 2], n_bin)
+    
+    plt.figure()
+    plt.title("Trace in polarization frame")
+    plt.plot(np.dot(efield_3d, -res.x), label="Polar E (3D => 1D)")
+    plt.plot(n_elec, label="Norm E")
+    plt.legend()
+    plt.grid()
+
+
+def test_polar_geo_mag(efield_3d):
+    '''
+    
+    :param efield_3d: (n_s,3)
+    '''
+    print("===========================")
+    n_elec = np.linalg.norm(efield_3d, axis=1)
+    print(efield_3d.shape, n_elec.shape)
+    sum_n = np.sum(n_elec)
+    print(sum_n)
+    num_dot = np.sum(np.dot(efield_3d, v_b))
+    b_e = num_dot/sum_n
+    print(f"B.E_u = {b_e}")
+    a_pB = np.rad2deg(np.arccos(b_e))
+    print(f"angle(B,E)= {a_pB} deg")
 
 
 if __name__ == "__main__":
@@ -131,4 +177,5 @@ if __name__ == "__main__":
     # fit_linear_polar(r_ef)
     trace = load_file_trace()
     fit_linear_polar(trace)
+    test_polar_geo_mag(trace)
     plt.show()

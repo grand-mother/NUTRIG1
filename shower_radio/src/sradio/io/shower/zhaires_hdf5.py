@@ -1,15 +1,18 @@
 from logging import getLogger
+import os.path
 
 import h5py
 import numpy as np
 
 from sradio.basis.traces_event import Handling3dTracesOfEvent
+from .zhaires_txt import ZhairesSingleEventText, ZhairesSingleEventBase
 
 logger = getLogger(__name__)
 
 
-class ZhairesSingleEventHdf5:
+class ZhairesSingleEventHdf5(ZhairesSingleEventBase):
     def __init__(self, path_hdf5):
+        super().__init__(os.path.dirname(path_hdf5))
         self.d_zh = None
         f_zh = h5py.File(path_hdf5)
         name_data = f_zh["RunInfo"]["EventName"][0]
@@ -40,6 +43,16 @@ class ZhairesSingleEventHdf5:
             self.ants_pos[a_idx][0] = ant_pos["X"]
             self.ants_pos[a_idx][1] = ant_pos["Y"]
             self.ants_pos[a_idx][2] = ant_pos["Z"]
+
+    def get_simu_info(self):
+        """
+        PATH HDF5 simu info with sry file ...
+        #TODO: extract simu info from HDF5 file
+        :param self:
+        """
+        zha = ZhairesSingleEventText(self.path)
+        zha.read_summary_file()
+        self.d_info = zha.d_info
 
     def get_object_3dtraces(self):
         """

@@ -233,10 +233,10 @@ def _get_logger_path(pfile):
     """
     l_sep = osp.sep
     r_str = l_sep + NAME_PKG_GIT + l_sep
-    p_grand = pfile.find(r_str)
-    if p_grand > 0:
+    p_name = pfile.find(r_str)
+    if p_name > 0:
         # -3 for size of ".py"
-        g_str = pfile[p_grand + 1 : -3].replace(l_sep, ".")
+        g_str = pfile[p_name + 1 : -3].replace(l_sep, ".")
     else:
         # out package git
         # -3 for size of ".py"

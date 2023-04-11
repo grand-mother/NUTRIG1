@@ -15,6 +15,7 @@ import os.path
 from logging import getLogger
 import tarfile
 import tempfile
+import pprint
 
 import numpy as np
 import asdf
@@ -29,6 +30,11 @@ REAL = r"[+-]?[0-9][0-9.eE+-]*"
 
 
 class ZhairesSingleEventBase:
+    def __init__(self, path_zhaires):
+        self.path = path_zhaires
+        self.dir_simu = path_zhaires.split("/")[-1]
+        self.d_info = {}
+
     def get_dict(self):
         d_gen = self.d_info.copy()
         d_gen["traces"] = self.traces
@@ -63,7 +69,6 @@ def convert_str2number(elmt):
         return elmt
 
 
-
 class ZhairesSummaryFileVers28:
     def __init__(self, file_sry="", str_sry=""):
         self.d_sry = {}
@@ -74,7 +79,8 @@ class ZhairesSummaryFileVers28:
             "vers_zhaires": r"With ZHAireS version (?P<vers_zhaires>\w+\.\w+\.\w+) \(",
             "primary": r"Primary particle:\s+(?P<primary>\w+)\s+",
             "site": rf"Site:\s+(?P<name>\w+)\s+\(Lat:\s+(?P<lat>{REAL})\s+deg. Long:\s+(?P<lon>{REAL})\s+deg",
-            # "geo_mag": fr"Geomagnetic field: Intensity:\s+(?P<norm>{REAL})\s+[(D)\s+(?P<unit>\w+)\s+I:\s+(?P<inc>{REAL})\s+deg. D:\s+(?P<dec>{REAL})\s+deg",
+            "geo_mag1": fr"Geomagnetic field: Intensity:\s+(?P<norm>{REAL})\s+(?P<unit>\w+)",
+            "geo_mag2": fr"\s+I:\s+(?P<inc>{REAL})\s+deg. D:\s+(?P<dec>{REAL})\s+deg",
             "energy": rf"Primary energy:\s+(?P<value>{REAL})\s+(?P<unit>\w+)",
             "zenith_angle": rf"Primary zenith angle:\s+(?P<zenith_angle>{REAL})\s+deg",
             "azimuth_angle": rf"Primary azimuth angle:\s+(?P<azimuth_angle>{REAL})\s+deg",
@@ -90,7 +96,6 @@ class ZhairesSummaryFileVers28:
         d_sry = {}
         for key, s_re in self.d_re.items():
             ret = re.search(s_re, self.str_sry)
-            logger.debug(ret)
             if ret:
                 d_ret = ret.groupdict()
                 if key in d_ret.keys():
@@ -100,9 +105,11 @@ class ZhairesSummaryFileVers28:
                     # set of values in sub dictionary with key {key}
                     d_sry[key] = d_ret
             else:
+                logger.warning(f"Can't find {key}")
                 self.l_error.append(key)
                 break
         self.d_sry = convert_str2number(d_sry)
+        logger.debug(pprint.pformat(self.d_sry))
 
     def get_dict(self):
         return self.d_sry
@@ -125,9 +132,7 @@ L_SRY_VERS = [ZhairesSummaryFileVers28b, ZhairesSummaryFileVers28]
 
 class ZhairesSingleEventText(ZhairesSingleEventBase):
     def __init__(self, path_zhaires):
-        self.path = path_zhaires
-        self.dir_simu = path_zhaires.split("/")[-1]
-        self.d_info = {}
+        super().__init__(path_zhaires)
 
     def read_all(self):
         self.read_summary_file()
