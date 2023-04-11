@@ -87,7 +87,7 @@ def parser_scan_name(path_scan):
     l_path = []
     a_dtype = {
         "names": ("primary", "energy", "elevation", "azimuth", "dist"),
-        "formats": ("S20", "f4", "f4", "f4", "unit8"),
+        "formats": ("S20", "f4", "f4", "f4", "uint8"),
     }
 
     with open(path_scan) as f_scan:
@@ -97,6 +97,7 @@ def parser_scan_name(path_scan):
     pars_sim = np.zeros(nb_sim, dtype=a_dtype)
     print(pars_sim)
     idx_ok = 0
+    idx_sry_ok = 0
     for idx, p_sry in enumerate(l_path_sry):
         # if idx == 10: break
         s_path = p_sry.split("/")
@@ -115,7 +116,7 @@ def parser_scan_name(path_scan):
             if not zh_txt.read_summary_file():
                 f_err.write(f"\n{abs_dir} nok read")
                 continue
-            # print(zh_txt.d_info)
+            print(zh_txt.d_info)
             unit = zh_txt.d_info["energy"]["unit"]
             if unit == "PeV":
                 energy = 1e-3 * zh_txt.d_info["energy"]["value"]
@@ -133,6 +134,7 @@ def parser_scan_name(path_scan):
                 (zh_txt.d_info["azimuth_angle"] % 360),
                 int(dist_xm)
             )
+            idx_sry_ok += 1
         else:
             f_re = rf"\w+_(?P<energy>{REAL})_(?P<elevation>{REAL})_(?P<azimuth>{REAL})"
             ret = re.search(f_re, name_sry)
@@ -151,13 +153,15 @@ def parser_scan_name(path_scan):
                     0),
                 )
             except:
-                f_err.write(f"\n{abs_dir}: to float nok {d_pars}")
+                f_err.write(f"\n{name_sry}: to float nok {d_pars}")
                 continue
         pars_sim[idx_ok] = convert
         idx_ok += 1
         # path simu
         idx_f = p_sry.find(name_sry)
         l_path.append(p_sry[2 : idx_f - 1])
+        if idx_sry_ok > 10:
+                break
     print(pars_sim)
     pars_sim = pars_sim[:idx_ok]
     print(f"{nb_sim-idx_ok} convert failed on {nb_sim}")
