@@ -16,7 +16,7 @@ import matplotlib.pylab as plt
 
 from sradio.io.shower.zhaires_txt import ZhairesSingleEventText
 
-root_path ='/sps/grand/tueros'
+root_path = "/sps/grand/tueros"
 path_scan = "/home/jcolley/projet/grand_wk/data/zhaires/list_sry.txt"
 path_scan = "/sps/grand/colley/db/list_sry.txt"
 
@@ -56,7 +56,7 @@ def fill_table_shower_pars(con_db, path_simu, shower_pars):
     for idx, c_path in enumerate(path_simu):
         pars = shower_pars[idx]
         type_p = str(pars[0], "UTF-8")
-        data = fr"('{c_path}','{type_p}',{pars[1]},{pars[2]},{pars[3]})"
+        data = rf"('{c_path}','{type_p}',{pars[1]},{pars[2]},{pars[3]})"
         if idx % 100 == 0:
             print(idx)
         cursor.execute(f"INSERT INTO Shower VALUES {data}")
@@ -110,28 +110,28 @@ def parser_scan_name(path_scan):
             idx_sry = p_sry.find(name_sry)
             abs_dir = os.path.join(root_path, p_sry[2:idx_sry])
             print(f"Read  {abs_dir}")
-            zh_txt =ZhairesSingleEventText(abs_dir)
+            zh_txt = ZhairesSingleEventText(abs_dir)
             if not zh_txt.read_summary_file():
                 f_err.write(f"\n{abs_dir} nok read")
                 continue
-            #print(zh_txt.d_info)
-            unit = zh_txt.d_info["energy"]["unit"] 
-            if  unit == 'PeV':
-                energy = 1e-3*zh_txt.d_info["energy"]["value"]
-            elif unit == 'EeV':
+            # print(zh_txt.d_info)
+            unit = zh_txt.d_info["energy"]["unit"]
+            if unit == "PeV":
+                energy = 1e-3 * zh_txt.d_info["energy"]["value"]
+            elif unit == "EeV":
                 energy = zh_txt.d_info["energy"]["value"]
             else:
                 f_err.write(f"\n{abs_dir} pb unit {unit}")
                 energy = -2
 
             convert = (
-                    zh_txt.d_info["primary"],
-                    energy,
-                    zh_txt.d_info["zenith_angle"],
-                    (zh_txt.d_info["azimuth_angle"]%360)-180,
-                )
+                zh_txt.d_info["primary"],
+                energy,
+                zh_txt.d_info["zenith_angle"],
+                (zh_txt.d_info["azimuth_angle"] % 360) - 180,
+            )
         else:
-            f_re = fr"\w+_(?P<energy>{REAL})_(?P<elevation>{REAL})_(?P<azimuth>{REAL})"
+            f_re = rf"\w+_(?P<energy>{REAL})_(?P<elevation>{REAL})_(?P<azimuth>{REAL})"
             ret = re.search(f_re, name_sry)
             if not isinstance(ret, re.Match):
                 # TODO : read sry file to extract information
@@ -190,6 +190,6 @@ def zhaires_master_create(path_scan, name_db, root_scan):
 
 
 if __name__ == "__main__":
-    #haires_stat(path_scan)
-    zhaires_master_create(path_scan, "zhaires_tueros2.db", "/sps/grand/tueros")
+    zhaires_stat(path_scan)
+    #zhaires_master_create(path_scan, "zhaires_tueros2.db", "/sps/grand/tueros")
     plt.show()
