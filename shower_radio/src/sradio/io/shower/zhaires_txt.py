@@ -99,9 +99,6 @@ class ZhairesSummaryFileVers28:
                     # set of values in sub dictionary with key {key}
                     d_sry[key] = d_ret
             else:
-                # logger.warning(
-                #     f"Can't find '{key}' information with this regular expression:\n{s_re}"
-                # )
                 self.l_error.append(key)
                 break
         self.d_sry = convert_str2number(d_sry)
@@ -118,7 +115,7 @@ class ZhairesSummaryFileVers28b(ZhairesSummaryFileVers28):
         super().__init__(file_sry, str_sry)
         self.d_re[
             "x_max"
-        ] = rf"Pos. Max.:\s+{REAL}\s+{REAL}\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+"
+        ] = rf"Pos. Max.:\s+(?P<alt>{REAL})\s+(?P<dist>{REAL})\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+"
 
 
 # add here all version of ZHaireS summary file
@@ -129,6 +126,7 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
     def __init__(self, path_zhaires):
         self.path = path_zhaires
         self.dir_simu = path_zhaires.split("/")[-1]
+        self.d_info = {}
 
     def read_all(self):
         self.read_summary_file()
@@ -164,7 +162,11 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
 
     def read_summary_file(self):
         # l_files = list(filter(os.path.isfile, os.listdir(self.path)))
-        l_files = os.listdir(self.path)
+        try:
+            l_files = os.listdir(self.path)
+        except:
+            logger.error(f"Unknown path {self.path}")
+            return False
         # print(l_files)
         l_sry = []
         for m_file in l_files:

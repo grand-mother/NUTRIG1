@@ -18,7 +18,7 @@ from sradio.io.shower.zhaires_txt import ZhairesSingleEventText
 
 root_path = "/sps/grand/tueros"
 path_scan = "/home/jcolley/projet/grand_wk/data/zhaires/list_sry.txt"
-#path_scan = "/sps/grand/colley/db/list_sry.txt"
+# path_scan = "/sps/grand/colley/db/list_sry.txt"
 
 L_primary = ["Proton", "Gamma", "Iron"]
 # approximative regular expression of string float
@@ -40,13 +40,14 @@ def fill_table_shower_pars(con_db, path_simu, shower_pars):
     cursor.execute("DROP TABLE IF EXISTS Shower")
 
     # Creating table as per requirement
+    # altitude UNSIGNED TINYINT
     sql = """CREATE TABLE Shower(
        path TEXT,
        prim_part TEXT,
        energy REAL,
        elevation REAL,
        azimuth REAL,
-       altitude UNSIGNED TINYINT
+       altitude REAL
     )"""
     cursor.execute(sql)
 
@@ -107,7 +108,6 @@ def parser_scan_name(path_scan):
             if elt in L_primary:
                 primary = elt
         if primary == "":
-            continue
             # TODO : read sry file to extract AuthorityInformationAccess
             idx_sry = p_sry.find(name_sry)
             abs_dir = os.path.join(root_path, p_sry[2:idx_sry])
@@ -125,14 +125,12 @@ def parser_scan_name(path_scan):
             else:
                 f_err.write(f"\n{abs_dir} pb unit {unit}")
                 energy = -2
-            dist_xm = zh_txt.d_info["x_max"]["dist"]
-            assert dist_xm < 255
             convert = (
                 zh_txt.d_info["primary"],
                 energy,
                 zh_txt.d_info["zenith_angle"],
                 (zh_txt.d_info["azimuth_angle"] % 360),
-                int(dist_xm)
+                zh_txt.d_info["x_max"]["dist"],
             )
             pars_sim[idx_ok] = convert
         else:
@@ -150,7 +148,8 @@ def parser_scan_name(path_scan):
                     float(d_pars["energy"]),
                     float(d_pars["elevation"]),
                     float(d_pars["azimuth"]),
-                    )
+                    0,
+                )
                 pars_sim[idx_ok] = convert
             except:
                 f_err.write(f"\n{p_sry}: to float nok {d_pars}")
@@ -159,7 +158,6 @@ def parser_scan_name(path_scan):
         # path simu
         idx_f = p_sry.find(name_sry)
         l_path.append(p_sry[2 : idx_f - 1])
-        print(name_sry)
     print(pars_sim)
     pars_sim = pars_sim[:idx_ok]
     print(f"{nb_sim-idx_ok} convert failed on {nb_sim}")
@@ -196,6 +194,6 @@ def zhaires_master_create(path_scan, name_db, root_scan):
 
 
 if __name__ == "__main__":
-    #zhaires_stat(path_scan)
-    zhaires_master_create(path_scan, "zhaires_tueros3.db", "/sps/grand/tueros")
+    zhaires_stat(path_scan)
+    # zhaires_master_create(path_scan, "zhaires_tueros3.db", "/sps/grand/tueros")
     plt.show()
