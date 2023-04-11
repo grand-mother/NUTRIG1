@@ -22,7 +22,6 @@ import asdf
 from sradio.basis.traces_event import Handling3dTracesOfEvent
 
 
-
 logger = getLogger(__name__)
 
 # approximative regular expression of string float
@@ -69,16 +68,16 @@ class ZhairesSummaryFileVers28:
         self.d_sry = {}
         self.l_error = []
         self.d_re = {
+            "x_max": rf"Location of max\.\((?P<unit>\w+)\):\s+{REAL}\s+{REAL}\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+",
             "vers_aires": r"This is AIRES version\s+(?P<vers_aires>\w+\.\w+\.\w+)\s+\(",
             "vers_zhaires": r"With ZHAireS version (?P<vers_zhaires>\w+\.\w+\.\w+) \(",
             "primary": r"Primary particle:\s+(?P<primary>\w+)\s+",
-            "site": fr"Site:\s+(?P<name>\w+)\s+\(Lat:\s+(?P<lat>{REAL})\s+deg. Long:\s+(?P<lon>{REAL})\s+deg",
-            #"geo_mag": fr"Geomagnetic field: Intensity:\s+(?P<norm>{REAL})\s+[(D)\s+(?P<unit>\w+)\s+I:\s+(?P<inc>{REAL})\s+deg. D:\s+(?P<dec>{REAL})\s+deg",
-            "energy": fr"Primary energy:\s+(?P<value>{REAL})\s+(?P<unit>\w+)",
-            "zenith_angle": fr"Primary zenith angle:\s+(?P<zenith_angle>{REAL})\s+deg",
-            "azimuth_angle": fr"Primary azimuth angle:\s+(?P<azimuth_angle>{REAL})\s+deg",
-            "x_max": fr"Location of max\.\((?P<unit>\w+)\):\s+{REAL}\s+{REAL}\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+",
-            "t_sample_ns": fr"Time bin size:\s+(?P<t_sample_ns>{REAL})ns",
+            "site": rf"Site:\s+(?P<name>\w+)\s+\(Lat:\s+(?P<lat>{REAL})\s+deg. Long:\s+(?P<lon>{REAL})\s+deg",
+            # "geo_mag": fr"Geomagnetic field: Intensity:\s+(?P<norm>{REAL})\s+[(D)\s+(?P<unit>\w+)\s+I:\s+(?P<inc>{REAL})\s+deg. D:\s+(?P<dec>{REAL})\s+deg",
+            "energy": rf"Primary energy:\s+(?P<value>{REAL})\s+(?P<unit>\w+)",
+            "zenith_angle": rf"Primary zenith angle:\s+(?P<zenith_angle>{REAL})\s+deg",
+            "azimuth_angle": rf"Primary azimuth angle:\s+(?P<azimuth_angle>{REAL})\s+deg",
+            "t_sample_ns": rf"Time bin size:\s+(?P<t_sample_ns>{REAL})ns",
         }
         self.str_sry = str_sry
         if file_sry != "":
@@ -100,11 +99,11 @@ class ZhairesSummaryFileVers28:
                     # set of values in sub dictionary with key {key}
                     d_sry[key] = d_ret
             else:
-                pass
                 # logger.warning(
                 #     f"Can't find '{key}' information with this regular expression:\n{s_re}"
                 # )
                 self.l_error.append(key)
+                break
         self.d_sry = convert_str2number(d_sry)
 
     def get_dict(self):
@@ -119,7 +118,7 @@ class ZhairesSummaryFileVers28b(ZhairesSummaryFileVers28):
         super().__init__(file_sry, str_sry)
         self.d_re[
             "x_max"
-        ] = fr"Pos. Max.:\s+{REAL}\s+{REAL}\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+"
+        ] = rf"Pos. Max.:\s+{REAL}\s+{REAL}\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+"
 
 
 # add here all version of ZHaireS summary file
@@ -129,8 +128,8 @@ L_SRY_VERS = [ZhairesSummaryFileVers28b, ZhairesSummaryFileVers28]
 class ZhairesSingleEventText(ZhairesSingleEventBase):
     def __init__(self, path_zhaires):
         self.path = path_zhaires
-        self.dir_simu  = path_zhaires.split('/')[-1]
-        
+        self.dir_simu = path_zhaires.split("/")[-1]
+
     def read_all(self):
         self.read_summary_file()
         self.extract_trace()
@@ -203,7 +202,7 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
             self.t_start[idx] = trace[0, 0]
 
     def get_object_3dtraces(self):
-        o_tevent = Handling3dTracesOfEvent(self.dir_simu )
+        o_tevent = Handling3dTracesOfEvent(self.dir_simu)
         du_id = [str(iddu, "UTF-8") for iddu in self.ants["name"].tolist()]
         #  MHz/ns: 1e-6/1e-9 = 1e3
         sampling_freq_mhz = 1e3 / self.d_info["t_sample_ns"]
