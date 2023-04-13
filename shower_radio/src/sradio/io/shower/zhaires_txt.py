@@ -82,8 +82,8 @@ class ZhairesSummaryFileVers28:
             "geo_mag1": fr"Geomagnetic field: Intensity:\s+(?P<norm>{REAL})\s+(?P<unit>\w+)",
             "geo_mag2": fr"\s+I:\s+(?P<inc>{REAL})\s+deg. D:\s+(?P<dec>{REAL})\s+deg",
             "energy": rf"Primary energy:\s+(?P<value>{REAL})\s+(?P<unit>\w+)",
-            "zenith_angle": rf"Primary zenith angle:\s+(?P<zenith_angle>{REAL})\s+deg",
-            "azimuth_angle": rf"Primary azimuth angle:\s+(?P<azimuth_angle>{REAL})\s+deg",
+            "shower_zenith": rf"Primary zenith angle:\s+(?P<shower_zenith>{REAL})\s+deg",
+            "shower_azimuth": rf"Primary azimuth angle:\s+(?P<shower_azimuth>{REAL})\s+deg",
             "t_sample_ns": rf"Time bin size:\s+(?P<t_sample_ns>{REAL})ns",
         }
         self.str_sry = str_sry

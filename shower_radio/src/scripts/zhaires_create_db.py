@@ -21,9 +21,10 @@ root_path = "/sps/grand/tueros"
 path_scan = "/sps/grand/colley/db/list_sry.txt"
 path_scan = "/home/jcolley/projet/grand_wk/data/zhaires/list_sry.txt"
 
-L_primary = ["Proton", "Gamma", "Iron"]
+
 # approximative regular expression of string float
 REAL = "[+-]?[0-9][0-9.eE+-]*"
+L_primary = ["Proton", "Gamma", "Iron"]
 
 
 def create_sqlite_db(path_db):
@@ -86,6 +87,11 @@ def fill_table_path(con_db, root_simu):
 
 
 def parser_scan_name(path_scan):
+    '''
+    Return list on path simulation and numpy structured array of parameters simulation
+    
+    :param path_scan:
+    '''
     l_path = []
     a_dtype = {
         "names": ("primary", "energy", "elevation", "azimuth", "dist"),
@@ -130,8 +136,8 @@ def parser_scan_name(path_scan):
             convert = (
                 zh_txt.d_info["primary"],
                 energy,
-                zh_txt.d_info["zenith_angle"],
-                (zh_txt.d_info["azimuth_angle"] % 360),
+                zh_txt.d_info["shower_zenith"],
+                (zh_txt.d_info["shower_azimuth"] % 360),
                 zh_txt.d_info["x_max"]["dist"],
             )
             idx_sry_ok += 1
