@@ -52,7 +52,9 @@ class ZhairesSingleEventHdf5(ZhairesSingleEventBase):
         """
         zha = ZhairesSingleEventText(self.path)
         zha.read_summary_file()
+        self.status = zha.status
         self.d_info = zha.d_info
+        return self.d_info 
 
     def get_object_3dtraces(self):
         """

@@ -9,6 +9,7 @@ Created on 6 avr. 2023
 import argparse
 import matplotlib.pylab as plt
 from pathlib import Path
+import pprint
 
 import sradio.manage_log as mlg
 from sradio.io.shower.zhaires_master import ZhairesMaster
@@ -28,7 +29,7 @@ def manage_args():
     parser.add_argument(
         "-f",
         "--footprint",
-        help="interactive plot (double click) of footprint, max value for each DU",
+        help="interactive plot (double click) of footprint, time max value and value for each DU",
         action="store_true",
         required=False,
     )
@@ -41,9 +42,8 @@ def manage_args():
     parser.add_argument(
         "-t",
         "--trace",
-        type=int,
         help="plot trace x,y,z and power spectrum of detector unit (DU)",
-        default=-100,
+        default="",
     )
     parser.add_argument(
         "--trace_image",
@@ -59,8 +59,7 @@ def manage_args():
     )
     parser.add_argument(
         "--dump",
-        type=int,
-        default=-100,
+        default="",
         help="dump trace of DU",
     )  # retrieve argument
     parser.add_argument(
@@ -79,26 +78,29 @@ def main():
     d_event = ZhairesMaster(str(args.path))
     o_tevent = d_event.get_object_3dtraces()
     if args.info:
-        print(f"Nb DU         : {d_event.get_nb_du()}")
-        print(f"Size trace    : {d_event.get_size_trace()}")
+        print(f"Nb DU         : {o_tevent.get_nb_du()}")
+        print(f"Size trace    : {o_tevent.get_size_trace()}")
+        pprint.pprint(d_event.get_simu_info())
     if args.list_du:
-        print(f"Identifier DU : {o_tevent.d_idxdu.keys()}")
+        print(f"\nIdentifier DU : ")
+        s_id = ""
+        for id_du in o_tevent.d_idxdu.keys():
+            s_id += f" {id_du} ," 
+        print(s_id[1:-1]) 
     if args.trace_image:
         o_tevent.plot_all_traces_as_image()
     if args.footprint:
         o_tevent.plot_footprint_val_max()
-        a_time, a_values = o_tevent.get_extended_traces()
+        o_tevent.plot_footprint_4d()
     if args.time_val:
         o_tevent.plot_footprint_time_max()
-        a_time, a_values = o_tevent.get_extended_traces()
-        o_tevent.network.plot_footprint_time(a_time, a_values, "test")
-    if args.trace != -100:
+    if args.trace != "":
         if not args.trace in o_tevent.d_idxdu.keys():
             logger.error(f"ERROR: unknown DU identifer")
             return
         o_tevent.plot_trace_du(args.trace)
         o_tevent.plot_ps_trace_du(args.trace)
-    if args.dump != -100:
+    if args.dump != "":
         if not args.dump in o_tevent.d_idxdu.keys():
             logger.error(f"ERROR: unknown DU identifer")
             return

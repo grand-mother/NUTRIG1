@@ -36,9 +36,12 @@ class ZhairesMaster:
         self.f_zhaires = ZhairesSingleEventText(path_zhaires)
         self.f_zhaires.read_all()
 
-        
+    
+    def get_status(self):
+        return self.f_zhaires.status
+    
     def get_simu_info(self):
-        return self.f_zhaires.d_info
+        return self.f_zhaires.get_simu_info()
         
 
     def get_object_3dtraces(self):

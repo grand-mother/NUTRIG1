@@ -8,6 +8,13 @@ import pprint
 import matplotlib.pyplot as plt
 
 import sradio.io.shower.zhaires_txt as zh
+import sradio.manage_log as mlg
+
+# specific logger definition for script because __mane__ is "__main__" !
+logger = mlg.get_logger_for_script(__file__)
+
+# define a handler for logger : standard only
+mlg.create_output_for_logger("debug", log_stdout=True, log_root="proto")
 
 
 tt_sry = """
@@ -98,11 +105,20 @@ def try_zhaires_convert():
     simu.plot_footprint_time_max()
     simu.plot_footprint_4d()
 
+def test_file_sry(file_sry):
+    simu_zh = zh.ZhairesSingleEventText(file_sry)
+    simu_zh.read_summary_file()
+    logger.info(simu_zh.d_info)
+    
+    
 
 if __name__ == "__main__":
     # test_version()
     # test_xmax()
     # test_zenith()
     # test_sry()
-    try_zhaires_convert()
+    #try_zhaires_convert()
+    file= "/sps/grand/tueros/DiscreteStshpLibraryDunhuang2020/XmaxOutbox/Iron_1.0_82.7_0.0_1"
+    file= "/sps/grand/tueros/DiscreteStshpLibraryDunhuang2022/StshpOutbox/Stshp_DH_S23d_Iron_2.0_83.9_0.0_10"
+    test_file_sry(file)
     plt.show()
