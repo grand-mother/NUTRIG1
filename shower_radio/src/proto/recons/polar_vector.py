@@ -7,9 +7,7 @@ Created on 17 mars 2023
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from scipy.optimize import Bounds
 from scipy.spatial.transform import Rotation
-from astropy.units import nPa
 
 a_inc = np.deg2rad( 62.27)
 a_inc = np.deg2rad( 60.79)
