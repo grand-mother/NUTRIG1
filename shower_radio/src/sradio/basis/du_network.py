@@ -177,9 +177,10 @@ class DetectorUnitNetwork:
         vmax = a_values.max()
         norm_user = colors.LogNorm(vmin=vmin, vmax=vmax)
         if scale == "log":
-            pass
+            my_cmaps = "Reds"
         elif scale == "lin":
             norm_user = colors.Normalize(vmin=vmin, vmax=vmax)
+            my_cmaps = "Blues"
         else:
             logger.error(f'scale must be in ["log","lin"]')
         scm = ax1.scatter(
@@ -189,11 +190,12 @@ class DetectorUnitNetwork:
             s=size_circle,
             c=a_values,
             edgecolors="k",
-            cmap="Reds",
+            cmap=my_cmaps,
         )
         fig.colorbar(scm)
-        plt.ylabel("[m]")
-        plt.xlabel("[m]")
+        plt.xlabel("[m] => North")
+        plt.ylabel(r"[m] => West (azi= +90 deg)")
+        ax1.grid()
         anch_du = AnchoredText("DU", prop=dict(size=10), frameon=False, loc="upper left")
         anch_val = AnchoredText("Value max", prop=dict(size=10), frameon=False, loc="upper right")
         ax1.axis("equal")
@@ -244,6 +246,7 @@ class DetectorUnitNetwork:
                 cmap=my_cmaps,
             )
             ax1.axis("equal")
+            ax1.grid()
             # plt.ylabel("[m]")
             # plt.xlabel("[m]")
             return scm
@@ -301,8 +304,8 @@ class DetectorUnitNetwork:
         )
         ax1.axis("equal")
         fig.colorbar(scat)
-        plt.ylabel("[m]")
-        plt.xlabel("[m]")
+        plt.ylabel("[m] => West")
+        plt.xlabel("[m] => North")
         fig.subplots_adjust(left=0.2, bottom=0.2)
         # Make a horizontal slider to control the frequency.
         axe_idx = fig.add_axes([0.15, 0.05, 0.7, 0.05])
