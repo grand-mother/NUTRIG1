@@ -34,6 +34,8 @@ class ZhairesSingleEventBase:
         self.path = path_zhaires
         self.dir_simu = path_zhaires.split("/")[-1]
         self.d_info = {}
+        # 0 is ok Blues
+        self.status = -1
 
     def get_dict(self):
         d_gen = self.d_info.copy()
@@ -71,20 +73,22 @@ def convert_str2number(elmt):
 
 class ZhairesSummaryFileVers28:
     def __init__(self, file_sry="", str_sry=""):
+        logger.debug(file_sry)
         self.d_sry = {}
         self.l_error = []
+        #  Location of max.(Km):
         self.d_re = {
-            "x_max": rf"Location of max\.\((?P<unit>\w+)\):\s+(?P<alt>{REAL})\s+(?P<dist>{REAL})\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})\s+",
+            "t_sample_ns": rf"Time bin size:\s+(?P<t_sample_ns>{REAL})ns",
+            "x_max": rf"Location of max\.\((?P<unit>\w+)\):\s+(?P<alt>{REAL})\s+(?P<dist>{REAL})\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})",
             "vers_aires": r"This is AIRES version\s+(?P<vers_aires>\w+\.\w+\.\w+)\s+\(",
             "vers_zhaires": r"With ZHAireS version (?P<vers_zhaires>\w+\.\w+\.\w+) \(",
-            "primary": r"Primary particle:\s+(?P<primary>\w+)\s+",
+            "primary": r"Primary particle:\s+(?P<primary>[\w^0-9]*)\s+",
             "site": rf"Site:\s+(?P<name>\w+)\s+\(Lat:\s+(?P<lat>{REAL})\s+deg. Long:\s+(?P<lon>{REAL})\s+deg",
-            "geo_mag1": fr"Geomagnetic field: Intensity:\s+(?P<norm>{REAL})\s+(?P<unit>\w+)",
-            "geo_mag2": fr"\s+I:\s+(?P<inc>{REAL})\s+deg. D:\s+(?P<dec>{REAL})\s+deg",
+            "geo_mag1": rf"Geomagnetic field: Intensity:\s+(?P<norm>{REAL})\s+(?P<unit>\w+)",
+            "geo_mag2": rf"\s+I:\s+(?P<inc>{REAL})\s+deg. D:\s+(?P<dec>{REAL})\s+deg",
             "energy": rf"Primary energy:\s+(?P<value>{REAL})\s+(?P<unit>\w+)",
             "shower_zenith": rf"Primary zenith angle:\s+(?P<shower_zenith>{REAL})\s+deg",
             "shower_azimuth": rf"Primary azimuth angle:\s+(?P<shower_azimuth>{REAL})\s+deg",
-            "t_sample_ns": rf"Time bin size:\s+(?P<t_sample_ns>{REAL})ns",
         }
         self.str_sry = str_sry
         if file_sry != "":
@@ -105,11 +109,11 @@ class ZhairesSummaryFileVers28:
                     # set of values in sub dictionary with key {key}
                     d_sry[key] = d_ret
             else:
-                logger.warning(f"Can't find {key}")
+                # logger.warning(f"Can't find {key} with {s_re}")
                 self.l_error.append(key)
                 break
         self.d_sry = convert_str2number(d_sry)
-        logger.debug(pprint.pformat(self.d_sry))
+        # logger.debug(pprint.pformat(self.d_sry))
 
     def get_dict(self):
         return self.d_sry
@@ -137,10 +141,11 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
     def read_all(self):
         self.read_summary_file()
         self.extract_trace()
-        self.read_antpos_file()
-        self.read_trace_files()
-        if self.path != self.path_traces:
-            self.path_traces.cleanup()
+        if self.status == 0:
+            self.read_antpos_file()
+            self.read_trace_files()
+            if self.path != self.path_traces:
+                self.path_traces.cleanup()
 
     def add_path(self, file):
         return os.path.join(self.path, file)
@@ -154,17 +159,26 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
             return
         tar_file = os.path.join(self.path, self.path.split("/")[-1] + "_trace.tar.gz")
         self.path_traces = tempfile.TemporaryDirectory()
-        my_tar = tarfile.open(tar_file)
-        my_tar.extractall(self.path_traces)
-        my_tar.close()
+        try:
+            my_tar = tarfile.open(tar_file)
+            my_tar.extractall(self.path_traces)
+            my_tar.close()
+        except:
+            # 3 pb tar file
+            self.status = 3
 
     def read_antpos_file(self):
         a_dtype = {
             "names": ("idx", "name", "x", "y", "z"),
             "formats": ("i4", "S20", "f4", "f4", "f4"),
         }
-        self.ants = np.loadtxt(self.add_path_traces("antpos.dat"), dtype=a_dtype)
-        self.nb_ant = self.ants.shape[0]
+        f_ant = self.add_path_traces("antpos.dat")
+        if os.path.exists(f_ant):
+            self.ants = np.loadtxt(f_ant, dtype=a_dtype)
+            self.nb_ant = self.ants.shape[0]
+        else:
+            # 4 pb with antpos.dat
+            self.status = 4
 
     def read_summary_file(self):
         # l_files = list(filter(os.path.isfile, os.listdir(self.path)))
@@ -192,9 +206,10 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
                 sry.extract_all()
                 if sry.is_ok():
                     self.d_info = sry.get_dict()
-                    return True
-            logger.error("Unknown summary file version")
-            return False
+                    self.status = 0
+                    return
+            logger.error(f"Unknown summary file version {sry.l_error}")
+            self.status = 1
 
     def read_trace_files(self):
         trace_0 = np.loadtxt(self.add_path_traces("a0.trace"))
@@ -208,6 +223,9 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
             assert trace.shape[0] == nb_sample
             self.traces[idx] = trace.transpose()[1:]
             self.t_start[idx] = trace[0, 0]
+
+    def get_simu_info(self):
+        return self.d_info
 
     def get_object_3dtraces(self):
         o_tevent = Handling3dTracesOfEvent(self.dir_simu)
