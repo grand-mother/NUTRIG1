@@ -307,10 +307,11 @@ class Handling3dTracesOfEvent:
                     noverlap=noverlap,
                     scaling="spectrum",
                 )
-                plt.semilogy(freq * 1e-6, pxx_den, self._color[idx_axis], label=axis)
+                #plt.semilogy(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
+                plt.plot(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
         plt.ylabel(f"({self.unit_trace})^2")
         plt.xlabel(f"MHz\nFile: {self.name}")
-        plt.xlim([0, 300])
+        plt.xlim([0, 400])
         plt.grid()
         plt.legend()
 

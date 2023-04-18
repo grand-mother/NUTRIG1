@@ -9,37 +9,51 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from scipy.spatial.transform import Rotation
 
-a_inc = np.deg2rad( 62.27)
-a_inc = np.deg2rad( 60.79)
-v_b= np.array([np.cos(a_inc), 0, -np.sin(a_inc)])
+from sradio.num.signal import filter_butter_band_lfilter
+from sradio.num.signal import filter_butter_band_causal
+from sradio.basis.traces_event import Handling3dTracesOfEvent
+
+
+a_inc = np.deg2rad(62.27)
+a_inc = np.deg2rad(60.79)
+v_b = np.array([np.cos(a_inc), 0, -np.sin(a_inc)])
 
 
 def load_file_trace(path_data=""):
-    '''
+    """
     return (n,3)
-    
+
     :param path_data:
-    '''
+    """
     path_data = "/home/jcolley/projet/grand_wk/data/a2.trace"
-    #path_data = "/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1/GP300_Proton_3.97_74.8_0.0_1.traces/"
-    path_data = "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
+    # path_data = "/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1/GP300_Proton_3.97_74.8_0.0_1.traces/"
+    path_data = (
+        "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
+    )
     path_data = f"{path_data}/a24.trace"
+    #path_data = f"{path_data}/a44.trace"
     t_trace = np.loadtxt(path_data)
     trace = t_trace[:, 1:]
-    return trace
+    delta_ns = t_trace[1, 0] - t_trace[0, 0]
+    f_sample_mhz = 1e-6 / (delta_ns * 1e-9)
+    print(f_sample_mhz)
+    return trace, f_sample_mhz
 
 
-def plot_trace(t_3d, plt_tilte=""):
-    plt.figure()
-    plt.title(plt_tilte)
-    plt.plot(t_3d[:, 0], label="col 1")
-    plt.plot(t_3d[:, 1], label="col 2")
-    plt.plot(t_3d[:, 2], label="col 3")
-    plt.legend()
-    plt.grid()
+def plot_trace(t_3d, plt_tilte="", f_sample=1):
+    h3dt = Handling3dTracesOfEvent(plt_tilte)
+    s_tr = t_3d.shape[0]
+    t_3d_a = np.zeros((1, 3, s_tr), dtype=np.float32)
+    t_3d_a[0] = t_3d.transpose()
+    print(t_3d_a.shape)
+    h3dt.init_traces(t_3d_a, [0], np.array([0]), f_sample)
+    h3dt.set_unit_axis(r"uV/m", "cart")
+    h3dt.plot_trace_idx(0)
+    if f_sample != 1:
+        h3dt.plot_ps_trace_idx(0)
 
 
-def test_fit_simu():
+def test_fit_simu(plt_tilte):
     nb_sample = 500
     a_time_ns = np.arange(nb_sample)
     max_ef = 100
@@ -102,16 +116,16 @@ def loss_function_lin_pol(v_pol, data):
     # constraint = 1 - np.sqrt((v_pol * v_pol).sum())
     # constraint = 100000 * constraint ** 2
     # print(f'loss : {s_residu}, {constraint} {v_pol[2]}')
-    #print(f"loss : {s_residu}")
+    # print(f"loss : {s_residu}")
     return s_residu
 
 
 def fit_linear_polar(efield_3d):
-    '''
-    
+    """
+
     :param efield_3d: (n,3)
-    '''
-    plot_trace(efield_3d)
+    """
+    print("============fit_linear_polar===============")
     n_elec = np.linalg.norm(efield_3d, axis=1)
     sum_n = np.sum(n_elec)
     data = [efield_3d, n_elec, sum_n, n_elec.shape[0], 0]
@@ -125,23 +139,23 @@ def fit_linear_polar(efield_3d):
     res = minimize(loss_function_lin_pol, guess, method="BFGS", args=data, options={"disp": True})
     print(res.message)
     residu = data[4]
-    print(residu.shape)    
-    norm_p =  np.linalg.norm(res.x)
+    print(residu.shape)
+    norm_p = np.linalg.norm(res.x)
     print(f"polar vec: p = {res.x}, norm={norm_p:.5f}")
     print(f"mag field: B = {v_b}")
-    p_vb = np.dot(res.x/norm_p, v_b)
+    p_vb = np.dot(res.x / norm_p, v_b)
     print(f"B.p = {p_vb}")
     a_pB = np.rad2deg(np.arccos(p_vb))
     print(f"angle(B,p)= {a_pB} deg")
-    
+
     plt.figure()
     n_bin = 50
-    plt.hist(residu[:, 0], n_bin)
-    plt.figure()
-    plt.hist(residu[:, 1], n_bin)
-    plt.figure()
-    plt.hist(residu[:, 2], n_bin)
-    
+    plt.hist(residu[:, 0], n_bin, label="x", ls="dashed", lw=3, alpha=0.5, color="k")
+    plt.hist(residu[:, 1], n_bin, label="y", ls="dashed", lw=3, alpha=0.5, color="y")
+    plt.hist(residu[:, 2], n_bin, label="Z", ls="dashed", lw=3, alpha=0.5, color="b")
+    plt.grid()
+    plt.legend()
+
     plt.figure()
     plt.title("Trace in polarization frame")
     plt.plot(np.dot(efield_3d, -res.x), label="Polar E (3D => 1D)")
@@ -151,29 +165,40 @@ def fit_linear_polar(efield_3d):
 
 
 def test_polar_geo_mag(efield_3d):
-    '''
-    
+    """
+
     :param efield_3d: (n_s,3)
-    '''
-    print("===========================")
+    """
+    print("=========test_polar_geo_mag==================")
     n_elec = np.linalg.norm(efield_3d, axis=1)
     print(efield_3d.shape, n_elec.shape)
     sum_n = np.sum(n_elec)
     print(sum_n)
     num_dot = np.sum(np.dot(efield_3d, v_b))
-    b_e = num_dot/sum_n
+    b_e = num_dot / sum_n
     print(f"B.E_u = {b_e}")
     a_pB = np.rad2deg(np.arccos(b_e))
     print(f"angle(B,E)= {a_pB} deg")
 
 
-if __name__ == "__main__":
-    np.random.seed(100)
-    # ef = test_fit_simu()
-    # fit_wave_vector(ef)
-    # r_ef = test_fit_simu_rot()
-    # fit_linear_polar(r_ef)
-    trace = load_file_trace()
+def test_raw_efield():
+    trace, f_mhz = load_file_trace()
+    plot_trace(trace, "raw", f_mhz)
     fit_linear_polar(trace)
     test_polar_geo_mag(trace)
+
+
+def test_band_filter_efield():
+    trace_raw, f_mhz = load_file_trace()
+    plot_trace(trace_raw, "raw", f_mhz)
+    trace = filter_butter_band_causal(trace_raw, 50, 250, f_mhz, True)
+    plot_trace(trace, "band filter", f_mhz)
+    fit_linear_polar(trace)
+    test_polar_geo_mag(trace)
+
+
+if __name__ == "__main__":
+    np.random.seed(100)
+    test_raw_efield()
+    test_band_filter_efield()
     plt.show()

@@ -5,29 +5,91 @@
 from logging import getLogger
 
 import numpy as np
-from scipy.signal import hilbert, butter, lfilter
+from scipy.signal import hilbert, butter, lfilter, freqz, filtfilt
 import scipy.fft as sf
 from scipy import interpolate
+import matplotlib.pylab as plt
 
 logger = getLogger(__name__)
 
 
-def filter_butter_band(t_series, fr_min, fr_max, f_sample):
+def filter_butter_band_fft(t_series, fr_min, fr_max, f_sample):
     """
-    band filter with butterfly window
-
-    :param fr_min (float): [Hz] The minimal frequency of the bandpass filter
-    :param fr_max (float): [Hz] The maximal frequency of the bandpass filter
+    band filter with butterfly window with fft method, seems equivalent to
+        filtered = filtfilt(coeff_b, coeff_a, t_series, axis=0)
 
     :return: filtered trace in time domain
     """
-    nyq = 0.5 * f_sample
-    low = fr_min / nyq
-    high = fr_max / nyq
-    order = 5
-    coeff_b, coeff_a = butter(order, [low, high], btype="band")
-    filtered = lfilter(coeff_b, coeff_a, t_series)
+    low = fr_min * 1e6
+    high = fr_max * 1e6
+    f_hz = f_sample * 1e6
+    print(f_hz, low, high)
+    order = 6
+    coeff_b, coeff_a = butter(order, [low, high], btype="bandpass", fs=f_hz)
+    fastest_size_fft, freqs_mhz = get_fastest_size_fft(t_series.shape[0], f_sample)
+    plt.figure()
+    w, h = freqz(coeff_b, coeff_a, fs=f_hz, worN=freqs_mhz.shape[0])
+    print(w.shape)
+    plt.plot(w * 1e-6, abs(h), ".")
+    plt.grid()
+    abs_h = abs(h)
+    # abs_h /= abs_h.sum()
+    # filtered = lfilter(coeff_b, coeff_a, t_series, axis=0)
+    # filtered = filtfilt(coeff_b, coeff_a, t_series, axis=0)
+    f_fft = sf.rfft(t_series.T, fastest_size_fft) * abs_h
+    filtered = sf.irfft(f_fft)[:, : t_series.shape[0]]
+    print("filtered")
+    print(filtered.shape)
+    return filtered.T
+
+
+def filter_butter_band_lfilter(t_series, fr_min, fr_max, f_sample):
+    """
+    band filter with butterfly window
+
+    :return: filtered trace in time domain
+    """
+    low = fr_min * 1e6
+    high = fr_max * 1e6
+    f_hz = f_sample * 1e6
+    print(f_hz, low, high)
+    order = 6
+    coeff_b, coeff_a = butter(order, [low, high], btype="bandpass", fs=f_hz)
+    filtered = lfilter(coeff_b, coeff_a, t_series, axis=0)
+    print(filtered.shape)
     return filtered
+
+
+def filter_butter_band_causal(t_series, fr_min, fr_max, f_sample, f_plot=False):
+    """
+    passband filter **causal** with butterfly window with fft
+
+    :return: filtered trace in time domain
+    """
+    low = fr_min * 1e6
+    high = fr_max * 1e6
+    f_hz = f_sample * 1e6
+    print(f_hz, low, high)
+    order = 6
+    coeff_b, coeff_a = butter(order, [low, high], btype="bandpass", fs=f_hz)
+    w, h = freqz(coeff_b, coeff_a, fs=f_hz, worN=t_series.shape[0])
+    if f_plot:
+        plt.figure()
+        plt.title(f"Power sprectum of Butterworth band filter [{fr_min}, {fr_max}]")
+        plt.plot(w * 1e-6, abs(h), label="no causal")
+        plt.xlabel("MHz")
+    # add causality condition
+    #    add minus to have the signal in right direction, why ?
+    h.imag = -hilbert(np.real(h)).imag
+    if f_plot:
+        print(w.shape)
+        plt.plot(w * 1e-6, abs(h), ".", label="causal")
+        plt.grid()
+        plt.legend()
+    f_fft = sf.fft(t_series.T) * h
+    filtered = sf.ifft(f_fft)
+    print("filtered:", filtered.shape)
+    return np.real(filtered.T)
 
 
 def get_peakamptime_norm_hilbert(a2_time, a3_trace):
