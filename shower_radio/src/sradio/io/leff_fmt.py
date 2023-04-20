@@ -8,7 +8,7 @@ import numpy as np
 logger = getLogger(__name__)
 
 
-class AntennaLengthEffective:
+class AntennaLeffStorage:
     """
     Angle convention
         phi : 0 for nord, 90 for west
@@ -27,13 +27,13 @@ class AntennaLengthEffective:
         # complex values of TF leff in theta direction
         self.leff_theta = 1
 
-    def load_npz_file(self, path_leff):
+    def load(self, path_leff):
         f_leff = np.load(path_leff)
         if f_leff["version"][0] == "1.0":
-            self.freq_mhz = (f_leff["freq_mhz"],)
-            self.theta_deg = (np.arange(91).astype(float),)
-            self.phi_deg = (np.arange(361).astype(float),)
-            self.leff_phi = (f_leff["leff_phi"],)
-            self.leff_theta = (f_leff["leff_theta"],)
+            self.freq_mhz = f_leff["freq_mhz"]
+            self.theta_deg = np.arange(91).astype(float)
+            self.phi_deg = np.arange(361).astype(float)
+            self.leff_phi = f_leff["leff_phi"]
+            self.leff_theta = f_leff["leff_theta"]
         else:
             raise
