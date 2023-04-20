@@ -71,13 +71,13 @@ class SimuDetectorUnitForEvent:
        * manage only one event
     """
 
-    def __init__(self, path_leff, path_gal):
+    def __init__(self, path_leff, path_gal=""):
         """
         Constructor
         """
         # Parameters
-        self.params = {"flag_add_noise": False, 
-                       "flag_add_rf": False, 
+        self.params = {"flag_add_gal": True, 
+                       "flag_add_rf": True, 
                        "lst": 18.0}
         # object contents Efield and network information
         self.o_efield = Handling3dTracesOfEvent()
@@ -85,7 +85,10 @@ class SimuDetectorUnitForEvent:
         self.rf_chain = None
         self.o_ant3d = DetectorUnitAntenna3Axis()
         self.o_ant3d.set_dict_leff(get_leff_from_files(path_leff))
-        #self.o_gal = GalaxySignalThroughGp300(path_gal)
+        if path_gal == "":
+            self.o_gal = GalaxySignalThroughGp300(path_gal)
+        else:
+            self.params["flag_add_gal"] = False
         # object of class ShowerEvent
         self.o_shower = None
         # FFT info
@@ -100,32 +103,6 @@ class SimuDetectorUnitForEvent:
         self.v_out = None
 
     ### SETTER
-
-    def set_flag_add_noise(self, flag=True):
-        """
-        :param flag: True to add noise to antenna response
-        :type flag: bool
-        """
-        self.params["flag_add_noise"] = flag
-
-    def set_local_sideral_time(self, f_hour):
-        """
-        Define local sideral time
-
-        :param file_out: between 0h and 24h
-        :type file_out: float
-        """
-        logger.debug(f"{f_hour}")
-        self.params["lst"] = f_hour
-
-    def set_flag_rf_chain(self, flag=True):
-        """
-        add RF chain
-
-        :param flag: True to add noise to antenna response
-        :type flag: bool
-        """
-        self.params["flag_add_rf"] = flag
 
     def set_data_efield(self, tr_evt):
         """
@@ -155,7 +132,7 @@ class SimuDetectorUnitForEvent:
         if self.params["flag_add_noise"]:
             # lst: local sideral time, galactic noise max at 18h
             logger.info("Compute galaxy noise for all traces")
-            self.fft_noise_gal_3d = self.galaxy.get_volt_all_du(
+            self.fft_noise_gal_3d = self.o_gal.get_volt_all_du(
                 self.params["lst"],
                 self.fft_size,
                 self.freqs_out_mhz,
