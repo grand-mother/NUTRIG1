@@ -20,18 +20,19 @@ from sradio.simu.galaxy import GalaxySignalThroughGp300
 logger = getLogger(__name__)
 
 
-def get_leff_from_files(self, path_leff):
+def get_leff_from_files(path_leff):
     """Return dictionary with 3 antenna Leff
 
     :param path_leff: path to file Leff
     :type path_leff: string
     """
-    path_ant = os.path(path_leff, "Light_GP300Antenna_EWarm_leff.npz")
-    leff_ew = AntennaLeffStorage.load(path_ant)
-    path_ant = os.path(path_leff, "Light_GP300Antenna_SNarm_leff.npz")
-    leff_sn = AntennaLeffStorage.load(path_ant)
-    path_ant = os.path(path_leff, "Light_GP300Antenna_Zarm_leff.npz")
-    leff_up = AntennaLeffStorage.load(path_ant)
+    file_leff = AntennaLeffStorage()
+    path_ant = os.path.join(path_leff, "Light_GP300Antenna_EWarm_leff.npz")
+    leff_ew = file_leff.load(path_ant)
+    path_ant = os.path.join(path_leff, "Light_GP300Antenna_SNarm_leff.npz")
+    leff_sn = file_leff.load(path_ant)
+    path_ant = os.path.join(path_leff, "Light_GP300Antenna_Zarm_leff.npz")
+    leff_up = file_leff.load(path_ant)
     d_leff = {"sn": leff_sn, "ew": leff_ew, "up": leff_up}
     return d_leff
 
@@ -85,7 +86,7 @@ class SimuDetectorUnitForEvent:
         self.rf_chain = None
         self.o_ant3d = DetectorUnitAntenna3Axis()
         self.o_ant3d.set_dict_leff(get_leff_from_files(path_leff))
-        if path_gal == "":
+        if path_gal != "":
             self.o_gal = GalaxySignalThroughGp300(path_gal)
         else:
             self.params["flag_add_gal"] = False

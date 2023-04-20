@@ -187,7 +187,7 @@ class DetectorUnitAntenna3Axis:
         set object LengthEffProcessing
         """
         # all l_eff share frequency precompute o_pre
-        self.l_leff = []
+        self.l_leff = [1,2,3]
         axis = "sn"
         self.l_leff[0] = LengthEffProcessing(axis, d_leff[axis], self.o_pre)
         axis = "ew"
