@@ -3,11 +3,7 @@ Created on 4 avr. 2023
 
 @author: jcolley
 
-
-[DU] is the frame associated to a DU :
-          * X: North mag, Y: West mag, Z: Up
-          * azi_w (phi_du) = angle between X and azi_w(West)=90 degree
-          * d_zen (theta_du) = angle from zenith , d_zen(horizon)=90 degree
+Hypothesis: small network  (20-30km ) so => [N]~[DU] for vector/direction
 
 """
 
@@ -15,26 +11,12 @@ Created on 4 avr. 2023
 from logging import getLogger
 
 import numpy as np
-
+import sradio.basis.coord as coord
 
 
 
 logger = getLogger(__name__)
 
-
-def du_cart_to_sph(xyz_n):
-    """Return [DU] spherical angle in rad from cartesian
-            x to y  : azi_w = + 90
-            z to x  : d_zen = + 90
-
-    :param xyz_n:
-    :type xyz_n:
-    """
-    # TODO: rewrite for vector input like (n,3)
-    azi_w = np.arctan2(xyz_n[1], xyz_n[0])
-    rho = np.sqrt(xyz_n[0] ** 2 + xyz_n[1] ** 2)
-    d_zen = np.arctan2(rho, xyz_n[2])
-    return np.array([azi_w, d_zen])
 
 
 class PreComputeInterpolLeff:
@@ -170,28 +152,14 @@ class LengthEffProcessing:
 
     def get_fft_leff_pol(self):
         l_p, l_t = self.get_fft_leff_tan()
-        return np.cos(self.angle_pol)*l_p + np.sin(self.angle_pol)*l_t
+        return np.cos(self.angle_pol) * l_p + np.sin(self.angle_pol) * l_t
 
 
 class DetectorUnitAntenna3Axis:
     """
     Compute DU response at efield
 
-    [N] is the frame of network stations, for small network [N]~[DU] for vector/direction
 
-
-    [DU] is the frame associated to a DU :
-          * X: North mag, Y: West mag, Z: Up
-          * azi_w (phi_du) = angle between X and azi_w(West)=90 degree
-          * d_zen (theta_du) = angle from zenith , d_zen(horizon)=90 degree
-
-    [TAN] is the frame associated to a DU tangential at source direction
-          * e_phi ?? , e_theta???, e_up
-
-
-    Notation:
-       convention xxx_yy variable means position of xxx is in [yy] frame.
-       exemple : efield_tan is E field in tangential frame of antenna
 
     """
 
@@ -248,7 +216,8 @@ class DetectorUnitAntenna3Axis:
         :type self:
         """
         diff_n = self.pos_src_n - self.pos_du_n
-        self.dir_src_du = du_cart_to_sph(diff_n)
+        # Hypothesis: small network  (20-30km ) => [N]~[DU] for vector/direction             
+        self.dir_src_du = coord.frame_du_cart_to_sph(diff_n)
         logger.debug(f"phi, d_zen = {np.rad2deg(self.dir_src_du)}")
 
     def get_resp_3d_efield_du(self, efield_du):
