@@ -19,6 +19,7 @@ def proto_simu_voc():
     d_info = event.get_simu_info()
     print(data)
     print(d_info)
+    dus.set_data_efield(data)
 
 if __name__ == "__main__":
     proto_simu_voc()

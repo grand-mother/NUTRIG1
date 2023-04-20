@@ -26,13 +26,15 @@ def get_leff_from_files(path_leff):
     :param path_leff: path to file Leff
     :type path_leff: string
     """
-    file_leff = AntennaLeffStorage()
+    leff_ew = AntennaLeffStorage()
     path_ant = os.path.join(path_leff, "Light_GP300Antenna_EWarm_leff.npz")
-    leff_ew = file_leff.load(path_ant)
+    leff_ew.load(path_ant)
     path_ant = os.path.join(path_leff, "Light_GP300Antenna_SNarm_leff.npz")
-    leff_sn = file_leff.load(path_ant)
+    leff_sn = AntennaLeffStorage()
+    leff_sn.load(path_ant)
     path_ant = os.path.join(path_leff, "Light_GP300Antenna_Zarm_leff.npz")
-    leff_up = file_leff.load(path_ant)
+    leff_up = AntennaLeffStorage()
+    leff_up.load(path_ant)
     d_leff = {"sn": leff_sn, "ew": leff_ew, "up": leff_up}
     return d_leff
 
@@ -129,8 +131,8 @@ class SimuDetectorUnitForEvent:
         assert self.fft_efield.shape[0] == self.o_efield.traces.shape[0]
         assert self.fft_efield.shape[1] == self.o_efield.traces.shape[1]
         # compute total transfer function of RF chain
-        self.rf_chain.compute_for_freqs(self.freqs_out_mhz)
-        if self.params["flag_add_noise"]:
+        #self.rf_chain.compute_for_freqs(self.freqs_out_mhz)
+        if self.params["flag_add_gal"]:
             # lst: local sideral time, galactic noise max at 18h
             logger.info("Compute galaxy noise for all traces")
             self.fft_noise_gal_3d = self.o_gal.get_volt_all_du(

@@ -12,7 +12,7 @@ from logging import getLogger
 
 import numpy as np
 import sradio.basis.coord as coord
-
+from sradio.io.leff_fmt import AntennaLeffStorage
 
 
 logger = getLogger(__name__)
@@ -72,6 +72,7 @@ class PreComputeInterpolLeff:
 class LengthEffProcessing:
     def __init__(self, name, leff_sampling, o_pre):
         self.name = name
+        assert isinstance(leff_sampling, AntennaLeffStorage)
         self.data = leff_sampling
         self.o_pre = o_pre
 
@@ -197,6 +198,7 @@ class DetectorUnitAntenna3Axis:
 
     def set_freq_out_mhz(self, a_freq):
         self.freq_out_mhz = a_freq
+        print(type(self.l_leff[0].data))
         freq_in_mhz = self.l_leff[0].data.freq_mhz
         self.o_pre.init_linear_interpol(freq_in_mhz, a_freq)
 
