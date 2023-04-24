@@ -7,9 +7,10 @@ see frame.py module to have frame definition and specific convention of axis and
 
 import numpy as np
 
+G_2PI = 2 * np.pi
 
 #
-# [DU]
+# [DU] see convention of this frame in module frame.py
 #
 
 
@@ -23,6 +24,8 @@ def cart_to_dir_du(xyz):
     :rtype: float (2,)
     """
     azi_w = np.arctan2(xyz[1], xyz[0])
+    if azi_w < 0:
+        azi_w += G_2PI
     rho = np.sqrt(xyz[0] ** 2 + xyz[1] ** 2)
     d_zen = np.arctan2(rho, xyz[2])
     return np.array([azi_w, d_zen])
@@ -39,6 +42,8 @@ def cart_to_sph_du(xyz):
     """
     # TODO: rewrite for vector input like (n,3)
     azi_w = np.arctan2(xyz[1], xyz[0])
+    if azi_w < 0:
+        azi_w += G_2PI
     rho_2 = xyz[0] ** 2 + xyz[1] ** 2
     rho = np.sqrt(rho_2)
     d_zen = np.arctan2(rho, xyz[2])

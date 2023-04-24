@@ -11,11 +11,11 @@ Hypothesis: small network  (20-30km ) so => [N]~[DU] for vector/direction
 from logging import getLogger
 
 import matplotlib.pyplot as plt
-
 import numpy as np
+
 import sradio.basis.coord as coord
 from sradio.io.leff_fmt import AntennaLeffStorage
-
+import sradio.num.signal as ssr
 
 logger = getLogger(__name__)
 
@@ -51,6 +51,7 @@ class PreComputeInterpolLeff:
         self.freq_out_mhz = freq_out_mhz
         self.size_out = freq_out_mhz.shape[0]
         d_freq_out = freq_out_mhz[1]
+        logger.debug(d_freq_out)
         # index of freq in first in band, + 1 to have first in band
         idx_first = int(freq_in_mhz[0] / d_freq_out) + 1
         # index of freq in last plus one, + 1 to have first out band
@@ -160,6 +161,8 @@ class LengthEffProcessing:
         l_t[pre.idx_first : pre.idx_lastp1] = leff_itp[0]
         l_p = np.zeros(self.o_pre.size_out, dtype=np.complex64)
         l_p[pre.idx_first : pre.idx_lastp1] = leff_itp[1]
+        self.l_phi = l_p
+        self.l_theta = l_t
         return l_p, l_t
 
     def get_fft_leff_pol(self):
@@ -169,18 +172,25 @@ class LengthEffProcessing:
     def plot_leff_tan(self):
         plt.figure()
         plt.title(
-            f"Leff {self.name} for phi={self.dir_src_deg[0]:.1f}, theta={self.dir_src_deg[1]:.1f}"
+            f"Interpolated Leff {self.name} at phi={self.dir_src_deg[0]:.1f}, theta={self.dir_src_deg[1]:.1f}"
         )
-        l_p, l_t = self.get_fft_leff_tan()
-        plt.plot(self.o_pre.freq_out_mhz, l_p.real, label="Leff phi real")
-        plt.plot(self.o_pre.freq_out_mhz, l_p.imag, label="Leff phi imag")
-        plt.plot(self.o_pre.freq_out_mhz, l_t.real, label="Leff theta real")
-        plt.plot(self.o_pre.freq_out_mhz, l_t.imag, label="Leff theta imag")
+        plt.plot(self.o_pre.freq_out_mhz, self.l_phi.real, label="Leff phi real")
+        plt.plot(self.o_pre.freq_out_mhz, self.l_phi.imag, label="Leff phi imag")
+        plt.plot(self.o_pre.freq_out_mhz, self.l_theta.real, ".-.", label="Leff theta real")
+        plt.plot(self.o_pre.freq_out_mhz, self.l_theta.imag, label="Leff theta imag")
+        idx_phi = int(self.dir_src_deg[0])
+        idx_theta = int(self.dir_src_deg[1])
         plt.plot(
-            self.data.freq_mhz, self.data.leff_theta.real[90, 56], "*", label="Leff theta real REF"
+            self.data.freq_mhz,
+            self.data.leff_theta.real[idx_phi, idx_theta],
+            "*",
+            label="RAW Leff theta real",
         )
         plt.plot(
-            self.data.freq_mhz, self.data.leff_theta.real[90, 57], "*", label="Leff theta real REF"
+            self.data.freq_mhz,
+            self.data.leff_theta.real[idx_phi, (idx_theta + 1) % 90],
+            "*",
+            label="RAW Leff theta real",
         )
         plt.grid()
         plt.xlabel("MHz")
@@ -249,6 +259,7 @@ class DetectorUnitAntenna3Axis:
         diff_n = self.pos_src_n - self.pos_du_n
         # Hypothesis: small network  (20-30km ) => [N]~[DU] for vector/direction
         self.dir_src_du = coord.cart_to_dir_du(diff_n)
+        self.dir_src_du[0] = self.dir_src_du[0]
         logger.debug(f"phi, d_zen = {np.rad2deg(self.dir_src_du)}")
         self.leff_sn.set_dir_source(self.dir_src_du)
         self.leff_ew.set_dir_source(self.dir_src_du)
@@ -266,24 +277,11 @@ class DetectorUnitAntenna3Axis:
         logger.debug(f"aa {aa.shape}")
         bb = np.sum(fft_leff * efield_du, axis=0)
         logger.debug(f"bb {bb.shape}")
-        # resp[0] = np.sum(fft_leff*efield_du, axis=0)
-        # fft_leff = self.leff_ew.get_fft_leff_du()
-        # resp[1] = np.sum(fft_leff*efield_du, axis=0)
-        # fft_leff = self.leff_up.get_fft_leff_du()
-        # resp[2] = np.sum(fft_leff*efield_du, axis=0)
-        resp[0] = (
-            fft_leff[0] * efield_du[0] + fft_leff[1] * efield_du[1] + fft_leff[2] * efield_du[2]
-        )
+        resp[0] = np.sum(fft_leff * efield_du, axis=0)
         fft_leff = self.leff_ew.get_fft_leff_du()
-        resp[1] = (
-            fft_leff[0] * efield_du[0] + fft_leff[1] * efield_du[1] + fft_leff[2] * efield_du[2]
-        )
+        resp[1] = np.sum(fft_leff * efield_du, axis=0)
         fft_leff = self.leff_up.get_fft_leff_du()
-        resp[2] = (
-            fft_leff[0] * efield_du[0] + fft_leff[1] * efield_du[1] + fft_leff[2] * efield_du[2]
-        )
-
-        # resp = efield_du.copy()
+        resp[2] = np.sum(fft_leff * efield_du, axis=0)
         return resp
 
     def get_resp_2d_efield_tan(self, efield_tan):

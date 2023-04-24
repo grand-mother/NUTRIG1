@@ -26,8 +26,8 @@ Frame available:
         * Cartesian: NWU ie tangential to the surface of the earth
           * X: North mag, Y: West mag, Z: normal up to earth 
         * Spherical
-          * azi_w (phi_nw) = angle between X and azi_w(West)=90 degree
-          * d_zen (theta_nw) = angle from zenith , d_zen(horizon)=90 degree
+          * azi_w (phi_n)[0,360] = angle between X and azi_w(West)=90 degree
+          * d_zen (theta_n) = angle from zenith , d_zen(horizon)=90 degree
         * Remark : so in fact it's a familly of frame 
         * Example: ZHaireS simulation 
         
@@ -39,7 +39,7 @@ Frame available:
         * Cartesian: NWU ie tangential to the surface of the earth
           * X: North mag, Y: West mag, Z: Up
         * Spherical
-          * azi_w (phi_du) = angle between X and azi_w(West)=90 degree
+          * azi_w (phi_du) [0,360] = angle between X and azi_w(West)=90 degree
           * d_zen (theta_du) = angle from zenith , d_zen(horizon)=90 degree
 
 

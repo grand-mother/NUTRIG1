@@ -11,6 +11,7 @@ from scipy.spatial.transform import Rotation
 
 from sradio.num.signal import filter_butter_band_lfilter
 from sradio.num.signal import filter_butter_band_causal
+from sradio.num.signal import filter_butter_band_causal_hc
 from sradio.basis.traces_event import Handling3dTracesOfEvent
 
 
@@ -147,21 +148,21 @@ def fit_linear_polar(efield_3d):
     print(f"B.p = {p_vb}")
     a_pB = np.rad2deg(np.arccos(p_vb))
     print(f"angle(B,p)= {a_pB} deg")
-
-    plt.figure()
-    n_bin = 50
-    plt.hist(residu[:, 0], n_bin, label="x", ls="dashed", lw=3, alpha=0.5, color="k")
-    plt.hist(residu[:, 1], n_bin, label="y", ls="dashed", lw=3, alpha=0.5, color="y")
-    plt.hist(residu[:, 2], n_bin, label="Z", ls="dashed", lw=3, alpha=0.5, color="b")
-    plt.grid()
-    plt.legend()
-
-    plt.figure()
-    plt.title("Trace in polarization frame")
-    plt.plot(np.dot(efield_3d, -res.x), label="Polar E (3D => 1D)")
-    plt.plot(n_elec, label="Norm E")
-    plt.legend()
-    plt.grid()
+    if False:
+        plt.figure()
+        n_bin = 50
+        plt.hist(residu[:, 0], n_bin, label="x", ls="dashed", lw=3, alpha=0.5, color="k")
+        plt.hist(residu[:, 1], n_bin, label="y", ls="dashed", lw=3, alpha=0.5, color="y")
+        plt.hist(residu[:, 2], n_bin, label="Z", ls="dashed", lw=3, alpha=0.5, color="b")
+        plt.grid()
+        plt.legend()
+    
+        plt.figure()
+        plt.title("Trace in polarization frame")
+        plt.plot(np.dot(efield_3d, -res.x), label="Polar E (3D => 1D)")
+        plt.plot(n_elec, label="Norm E")
+        plt.legend()
+        plt.grid()
 
 
 def test_polar_geo_mag(efield_3d):
@@ -190,9 +191,17 @@ def test_raw_efield():
 
 def test_band_filter_efield():
     trace_raw, f_mhz = load_file_trace()
-    plot_trace(trace_raw, "raw", f_mhz)
+    #plot_trace(trace_raw, "raw", f_mhz)
     trace = filter_butter_band_causal(trace_raw, 50, 250, f_mhz, True)
     plot_trace(trace, "band filter", f_mhz)
+    fit_linear_polar(trace)
+    test_polar_geo_mag(trace)
+    
+def test_band_filter_efield_hc():
+    trace_raw, f_mhz = load_file_trace()
+    #plot_trace(trace_raw, "raw", f_mhz)
+    trace = filter_butter_band_causal_hc(trace_raw, 50, 250, f_mhz, True)
+    plot_trace(trace, "band filter hc", f_mhz)
     fit_linear_polar(trace)
     test_polar_geo_mag(trace)
 
@@ -201,4 +210,5 @@ if __name__ == "__main__":
     np.random.seed(100)
     test_raw_efield()
     test_band_filter_efield()
+    test_band_filter_efield_hc()
     plt.show()

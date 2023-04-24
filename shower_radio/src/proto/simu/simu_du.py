@@ -53,6 +53,7 @@ def proto_simu_voc():
     data.plot_footprint_val_max()
     out = copy.copy(data)
     out.traces = dus.v_out
+    out.name += " V_oc" 
     out.plot_footprint_val_max()
 
 

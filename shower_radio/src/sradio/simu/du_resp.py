@@ -41,11 +41,10 @@ def get_leff_from_files(path_leff):
 
 class SimuDetectorUnitForEvent:
     """
-    Simulation of 
-      * antenna response 
+    Simulation of
+      * antenna response
       * electronic
       * galactic signal
-    for all DU in network
 
     Processing to do:
 
@@ -79,9 +78,7 @@ class SimuDetectorUnitForEvent:
         Constructor
         """
         # Parameters
-        self.params = {"flag_add_gal": True, 
-                       "flag_add_rf": False, 
-                       "lst": 18.0}
+        self.params = {"flag_add_gal": True, "flag_add_rf": False, "lst": 18.0}
         # object contents Efield and network information
         self.o_efield = Handling3dTracesOfEvent()
         self.rf_chain = None
@@ -97,9 +94,9 @@ class SimuDetectorUnitForEvent:
         # FFT info
         self.sig_size = 0
         self.fact_padding = 1.05
-        #  s_with_pad ~ sig_size*fact_padding
-        self.s_with_pad = 0
-        # float (s_with_pad,) array of frequencies in MHz in Fourier domain
+        #  size_with_pad ~ sig_size*fact_padding
+        self.size_with_pad = 0
+        # float (size_with_pad,) array of frequencies in MHz in Fourier domain
         self.freqs_out_mhz = 0
         # outputs
         self.fft_noise_gal_3d = None
@@ -119,27 +116,27 @@ class SimuDetectorUnitForEvent:
         logger.debug(self.v_out.shape)
         self.sig_size = self.o_efield.get_size_trace()
         # common frequencies for all processing in Fourier domain
-        self.s_with_pad, self.freqs_out_mhz = get_fastest_size_fft(
+        self.size_with_pad, self.freqs_out_mhz = get_fastest_size_fft(
             self.sig_size,
             self.o_efield.f_samp_mhz,
             self.fact_padding,
         )
-        logger.debug(self.s_with_pad)
+        logger.debug(self.size_with_pad)
         logger.debug(self.sig_size)
         # precompute interpolation for all antennas
         logger.info("Precompute weight for linear interpolation of Leff in frequency")
         self.o_ant3d.set_freq_out_mhz(self.freqs_out_mhz)
-        self.fft_efield = sf.rfft(self.o_efield.traces, n=self.s_with_pad)
+        self.fft_efield = sf.rfft(self.o_efield.traces, n=self.size_with_pad)
         assert self.fft_efield.shape[0] == self.o_efield.traces.shape[0]
         assert self.fft_efield.shape[1] == self.o_efield.traces.shape[1]
         # compute total transfer function of RF chain
-        #self.rf_chain.compute_for_freqs(self.freqs_out_mhz)
+        # self.rf_chain.compute_for_freqs(self.freqs_out_mhz)
         if self.params["flag_add_gal"]:
             # lst: local sideral time, galactic noise max at 18h
             logger.info("Compute galaxy noise for all traces")
             self.fft_noise_gal_3d = self.o_gal.get_volt_all_du(
                 self.params["lst"],
-                self.s_with_pad,
+                self.size_with_pad,
                 self.freqs_out_mhz,
                 self.o_efield.get_nb_du(),
             )
@@ -176,8 +173,7 @@ class SimuDetectorUnitForEvent:
         :type  idx_du: int
         """
         logger.info(f"==============>  Processing DU with id: {self.o_efield.du_id[idx_du]}")
-        self.o_ant3d.set_name_pos(self.o_efield.du_id[idx_du], 
-                                  self.o_efield.network.du_pos[idx_du])
+        self.o_ant3d.set_name_pos(self.o_efield.du_id[idx_du], self.o_efield.network.du_pos[idx_du])
         self.o_ant3d.update_dir_source()
         ########################
         # 1) Antenna responses
