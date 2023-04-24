@@ -278,9 +278,9 @@ def test_polar_efield(path_simu):
     idx_du = 13
     event.plot_trace_idx(idx_du)
     trace = event.traces[idx_du].T
-    fit_linear_polar_fast(trace, 100,  v_b=v_b)
+    fit_linear_polar_fast(trace, 20,  v_b=v_b)
     # fit_linear_polar(trace, v_b)
-    test_polar_geo_mag_cor(trace,100,  v_b=v_b)
+    test_polar_geo_mag_cor(trace,20,  v_b=v_b)
 
 
 def test_polar_voc(f_asdf):
@@ -304,7 +304,7 @@ if __name__ == "__main__":
     np.random.seed(100)
     # test_raw_efield()
     # test_band_filter_efield()
-    # test_band_filter_efield_hc()
-    test_polar_efield(G_path_simu)
-    test_polar_voc(f_asdf)
+    test_band_filter_efield_hc()
+    #test_polar_efield(G_path_simu)
+    #test_polar_voc(f_asdf)
     plt.show()

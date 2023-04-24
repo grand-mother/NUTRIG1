@@ -9,6 +9,7 @@ import pprint
 import copy
 
 import matplotlib.pylab as plt
+import scipy.fft as fft
 
 
 from sradio.simu.du_resp import SimuDetectorUnitForEvent
@@ -34,7 +35,17 @@ mlg.create_output_for_logger("debug", log_stdout=True)
 logger.info("test")
 f_out = "out_v_oc.asdf"
 
-
+def wiener_white_noise(measure, kernel, sigma):
+    fft_m = fft.rfft(measure)
+    fft_k = fft.rfft(kernel)
+    se_k = (fft_k*np.conj(fft_k)).real
+    se_s = (fft_m*np.conj(fft_m)).real- sigma
+    idx_neg = np.where(se_s < 0)[0]
+    se_s[idx_neg] = 0
+    wiener = (np.conj(fft_k)*se_s)/(se_k*se_s + sigma)
+    sol_w = fft.irfft(fft_m*wiener)
+    return sol_w, wiener, se_s
+    
 def proto_simu_voc():
     dus = SimuDetectorUnitForEvent(G_path_leff)
     event = ZhairesMaster(G_path_simu)
@@ -60,6 +71,7 @@ def proto_simu_voc():
     out.name += " V_oc" 
     out.plot_footprint_val_max()
     fsrad.save_asdf_single_event(f_out, out, d_info)
+    
     
 def proto_read():
     event, info = fsrad.load_asdf(f_out)

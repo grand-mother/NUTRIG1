@@ -9,6 +9,8 @@ import scipy.signal as ss
 import scipy.fft as fft
 import matplotlib.pyplot as plt
 
+from nutrig.flt.common.basis import kernel_exp, add_noise, Smoother
+
 plt.ioff()
 
 true_dse_s = 1
@@ -68,6 +70,21 @@ def create_convolve_nois_signal(s_sig, sigma=0.2):
         plot_dse(noise, "noise smooth", 30)    
     return sig, sig_conv_noise, ker 
 
+
+
+def new_wiener_white_noise(measure, kernel, sigma):
+    fft_m = fft.rfft(measure)
+    fft_k = fft.rfft(kernel)
+    se_k = (fft_k*np.conj(fft_k)).real
+    se_s = (fft_m*np.conj(fft_m)).real- sigma
+    idx_neg = np.where(se_s < 0)[0]
+    se_s[idx_neg] = 0
+    wiener = (np.conj(fft_k)*se_s)/(se_k*se_s + sigma)
+    sol_w = fft.irfft(fft_m*wiener)
+    return sol_w, wiener, se_s
+    
+    
+    
 
 def deconv_wiener_white_noise(measure, kernel, sigma):
     factor = np.sqrt(measure.size)
@@ -154,15 +171,17 @@ def perform_deconv_wiener():
     sigma = 0.03
     sig, sig_conv_noise, ker = create_convolve_nois_signal(s_sig, sigma)
     # true dse of signal
-    true_dse_s = plot_dse(sig, "true DSE signal")
-    plot_dse(sig_conv_noise, "sig_conv_noise")
+    # true_dse_s = plot_dse(sig, "true DSE signal")
+    # plot_dse(sig_conv_noise, "sig_conv_noise")
     plt.figure()   
     plt.plot(sig_conv_noise, label='measure=signal*ker+noise')
     plt.plot(sig, label='signal')    
     plt.grid()
     plt.legend()
     # deconv
-    deconv = deconv_wiener_white_noise(sig_conv_noise, ker, sigma)
+    #deconv = deconv_wiener_white_noise(sig_conv_noise, ker, sigma)
+    deconv, wiener, se_s = new_wiener(sig_conv_noise, ker, sigma)
+    deconv = fft.ifftshift(deconv)
     smooth = Smoother(15, s_sig)
     plt.figure()   
     plt.plot(deconv, label='direct deconv solution')
@@ -292,7 +311,7 @@ if __name__ == "__main__":
     # plot_kernel()
     s_sig = 2048
     # convolve_by_exp_tau(create_sinc(s_sig, 3))
-    create_convolve_nois_signal(s_sig)
-    #perform_deconv_wiener()
+    #create_convolve_nois_signal(s_sig)
+    perform_deconv_wiener()
     #test_dse()
     plt.show()
