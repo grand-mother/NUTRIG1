@@ -11,9 +11,12 @@ import matplotlib.pylab as plt
 
 from sradio.io.shower.zhaires_master import ZhairesMaster
 import sradio.manage_log as mlg
- 
+from sradio.basis.traces_event import Handling3dTracesOfEvent
+import sradio.io.sradio_asdf as fsr
+
 
 CCIN2P3 = False
+
 
 
 L_path_data = []
@@ -151,10 +154,17 @@ def master_check_one_event(path_data):
     azi, angles = check_polar_one_event(evt, d_simu)
     plot_box_single_angle(azi, angles)
 
+def master_check_one_event_asdf():
+    f_asdf = "/home/jcolley/projet/nutrig_wk/NUTRIG1/shower_radio/src/proto/simu/out_v_oc.asdf"
+    evt, d_simu = fsr.load_asdf(f_asdf)
+    azi, angles = check_polar_one_event(evt, d_simu)
+    plot_box_single_angle(azi, angles)
+
 
 if __name__ == "__main__":
     # master_check_one_event(path_data)
     # master_check_multi_events(L_path_data)
     # select_simu_azimuth()
-    master_check_multi_events()
+    #master_check_multi_events()
+    master_check_one_event_asdf()
     plt.show()

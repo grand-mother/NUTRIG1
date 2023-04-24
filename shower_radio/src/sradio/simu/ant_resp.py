@@ -265,23 +265,19 @@ class DetectorUnitAntenna3Axis:
         self.leff_ew.set_dir_source(self.dir_src_du)
         self.leff_up.set_dir_source(self.dir_src_du)
 
-    def get_resp_3d_efield_du(self, efield_du):
+    def get_resp_3d_efield_du(self, fft_efield_du):
         """Return fft of antennas response for 3 axis with efield in [N] frame
 
-        :param efield_du: electric field at DU in [N]/[DU]
-        :type efield_du: float (3, n_s)
+        :param fft_efield_du: electric field at DU in [N]/[DU]
+        :type fft_efield_du: float (3, n_s)
         """
-        resp = np.empty_like(efield_du)
+        resp = np.empty_like(fft_efield_du)
         fft_leff = self.leff_sn.get_fft_leff_du()
-        aa = fft_leff * efield_du
-        logger.debug(f"aa {aa.shape}")
-        bb = np.sum(fft_leff * efield_du, axis=0)
-        logger.debug(f"bb {bb.shape}")
-        resp[0] = np.sum(fft_leff * efield_du, axis=0)
+        resp[0] = np.sum(fft_leff * fft_efield_du, axis=0)
         fft_leff = self.leff_ew.get_fft_leff_du()
-        resp[1] = np.sum(fft_leff * efield_du, axis=0)
+        resp[1] = np.sum(fft_leff * fft_efield_du, axis=0)
         fft_leff = self.leff_up.get_fft_leff_du()
-        resp[2] = np.sum(fft_leff * efield_du, axis=0)
+        resp[2] = np.sum(fft_leff * fft_efield_du, axis=0)
         return resp
 
     def get_resp_2d_efield_tan(self, efield_tan):

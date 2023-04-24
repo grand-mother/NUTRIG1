@@ -15,7 +15,7 @@ from sradio.simu.du_resp import SimuDetectorUnitForEvent
 from sradio.io.shower.zhaires_master import ZhairesMaster
 import sradio.manage_log as mlg
 from sradio.basis.traces_event import Handling3dTracesOfEvent
-
+import sradio.io.sradio_asdf as fsrad
 
 G_path_leff = "/home/jcolley/projet/grand_wk/data/model/detector"
 G_path_galaxy = ""
@@ -32,6 +32,8 @@ logger = mlg.get_logger_for_script(__file__)
 # define a handler for logger : standard only
 mlg.create_output_for_logger("debug", log_stdout=True)
 logger.info("test")
+f_out = "out_v_oc.asdf"
+
 
 def proto_simu_voc():
     dus = SimuDetectorUnitForEvent(G_path_leff)
@@ -51,12 +53,20 @@ def proto_simu_voc():
     print(data.traces[0])
     print(dus.v_out[0])
     data.plot_footprint_val_max()
+    assert isinstance(data, Handling3dTracesOfEvent)
     out = copy.copy(data)
     out.traces = dus.v_out
+    out.set_unit_axis("$\mu$V", "dir")
     out.name += " V_oc" 
     out.plot_footprint_val_max()
+    fsrad.save_asdf_single_event(f_out, out, d_info)
+    
+def proto_read():
+    event, info = fsrad.load_asdf(f_out)
+    pprint.pprint(info)
 
 
 if __name__ == "__main__":
     proto_simu_voc()
+    proto_read()
     plt.show()

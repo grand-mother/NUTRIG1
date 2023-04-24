@@ -21,6 +21,7 @@ import numpy as np
 import asdf
 
 from sradio.basis.traces_event import Handling3dTracesOfEvent
+from sradio.io import sradio_asdf as srfmt
 
 
 logger = getLogger(__name__)
@@ -45,8 +46,7 @@ class ZhairesSingleEventBase:
         return d_gen
 
     def write_asdf_file(self, p_file):
-        df_simu = asdf.AsdfFile(self.get_dict())
-        df_simu.write_to(p_file, all_array_compression="zlib")
+        srfmt.save_asdf_single_event(p_file, self.get_object_3dtraces(), self.d_info)
 
 
 def convert_str2number(elmt):

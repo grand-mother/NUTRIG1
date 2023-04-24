@@ -13,11 +13,16 @@ from sradio.num.signal import filter_butter_band_lfilter
 from sradio.num.signal import filter_butter_band_causal
 from sradio.num.signal import filter_butter_band_causal_hc
 from sradio.basis.traces_event import Handling3dTracesOfEvent
+import sradio.io.sradio_asdf as fsr
 
+from sradio.io.shower.zhaires_master import ZhairesMaster
 
 a_inc = np.deg2rad(62.27)
 a_inc = np.deg2rad(60.79)
-v_b = np.array([np.cos(a_inc), 0, -np.sin(a_inc)])
+V_B = np.array([np.cos(a_inc), 0, -np.sin(a_inc)])
+
+f_asdf = "/home/jcolley/projet/nutrig_wk/NUTRIG1/shower_radio/src/proto/simu/out_v_oc.asdf"
+G_path_simu = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
 
 
 def load_file_trace(path_data=""):
@@ -32,7 +37,7 @@ def load_file_trace(path_data=""):
         "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
     )
     path_data = f"{path_data}/a24.trace"
-    #path_data = f"{path_data}/a44.trace"
+    # path_data = f"{path_data}/a44.trace"
     t_trace = np.loadtxt(path_data)
     trace = t_trace[:, 1:]
     delta_ns = t_trace[1, 0] - t_trace[0, 0]
@@ -121,7 +126,38 @@ def loss_function_lin_pol(v_pol, data):
     return s_residu
 
 
-def fit_linear_polar(efield_3d):
+def fit_linear_polar_fast(efield_3d, threasold=20, v_b=V_B):
+    """
+
+    :param efield_3d: (n_s,3)
+    """
+    print("============fit_linear_polar FAST ===============")
+    n_elec = np.linalg.norm(efield_3d, axis=1)
+    idx_hb = np.where(n_elec > threasold)[0]
+    p_raw = efield_3d[idx_hb].T / n_elec[idx_hb]
+    a_raw_angle = np.rad2deg(np.arccos(np.dot(p_raw.T, v_b)))
+    plt.figure()
+    plt.title("angle(vec polar,B)")
+    plt.hist(a_raw_angle)
+    print(p_raw)
+    idx_zn = np.where(p_raw[2] < 0)[0]
+    print(idx_zn)
+    # print(p_raw.T)
+    p_raw = p_raw.T
+    p_raw[idx_zn] = -p_raw[idx_zn]
+    # print(p_raw.T)
+    # weigth mean
+    n_elec_s = n_elec[idx_hb] * n_elec[idx_hb]
+    pol_est = np.sum(p_raw.T * n_elec_s, axis=1) / np.sum(n_elec_s)
+    print(pol_est)
+    p_vb = np.dot(pol_est, v_b)
+    print(f"B.p = {p_vb}")
+    a_pB = np.rad2deg(np.arccos(p_vb))
+    print(f"angle(B,p)= {a_pB} deg")
+    return pol_est
+
+
+def fit_linear_polar(efield_3d, v_b=V_B):
     """
 
     :param efield_3d: (n,3)
@@ -148,7 +184,7 @@ def fit_linear_polar(efield_3d):
     print(f"B.p = {p_vb}")
     a_pB = np.rad2deg(np.arccos(p_vb))
     print(f"angle(B,p)= {a_pB} deg")
-    if False:
+    if True:
         plt.figure()
         n_bin = 50
         plt.hist(residu[:, 0], n_bin, label="x", ls="dashed", lw=3, alpha=0.5, color="k")
@@ -156,7 +192,7 @@ def fit_linear_polar(efield_3d):
         plt.hist(residu[:, 2], n_bin, label="Z", ls="dashed", lw=3, alpha=0.5, color="b")
         plt.grid()
         plt.legend()
-    
+
         plt.figure()
         plt.title("Trace in polarization frame")
         plt.plot(np.dot(efield_3d, -res.x), label="Polar E (3D => 1D)")
@@ -165,7 +201,7 @@ def fit_linear_polar(efield_3d):
         plt.grid()
 
 
-def test_polar_geo_mag(efield_3d):
+def test_polar_geo_mag(efield_3d, v_b=V_B):
     """
 
     :param efield_3d: (n_s,3)
@@ -182,6 +218,27 @@ def test_polar_geo_mag(efield_3d):
     print(f"angle(B,E)= {a_pB} deg")
 
 
+def test_polar_geo_mag_cor(efield_3d, threasold=20, v_b=V_B):
+    """
+
+    :param efield_3d: (n_s,3)
+    """
+    print("=========test_polar_geo_mag CORRECTION==================")
+    n_elec = np.linalg.norm(efield_3d, axis=1)
+    idx_hb = np.where(n_elec > threasold)[0]
+    p_raw = (efield_3d[idx_hb].T / n_elec[idx_hb]).T
+    a_cos = np.dot(p_raw, v_b)
+    print(f"B.E_u = {a_cos.mean()}  +/-{a_cos.std()}")
+    a_angle = np.rad2deg(np.arccos(a_cos))
+    print(f"angle(B,E)= {a_angle.mean()} deg +/-{a_angle.std()}")
+    test = a_angle.std() < 5
+    test = test and np.fabs(a_angle.mean()-90) <5
+    print(f"shower : {test}")
+    plt.figure()
+    plt.title("angle(B,E)")
+    plt.hist(a_angle)
+
+
 def test_raw_efield():
     trace, f_mhz = load_file_trace()
     plot_trace(trace, "raw", f_mhz)
@@ -191,24 +248,63 @@ def test_raw_efield():
 
 def test_band_filter_efield():
     trace_raw, f_mhz = load_file_trace()
-    #plot_trace(trace_raw, "raw", f_mhz)
+    # plot_trace(trace_raw, "raw", f_mhz)
     trace = filter_butter_band_causal(trace_raw, 50, 250, f_mhz, True)
     plot_trace(trace, "band filter", f_mhz)
     fit_linear_polar(trace)
     test_polar_geo_mag(trace)
-    
+
+
 def test_band_filter_efield_hc():
     trace_raw, f_mhz = load_file_trace()
-    #plot_trace(trace_raw, "raw", f_mhz)
+    # plot_trace(trace_raw, "raw", f_mhz)
     trace = filter_butter_band_causal_hc(trace_raw, 50, 250, f_mhz, True)
     plot_trace(trace, "band filter hc", f_mhz)
+    fit_linear_polar_fast(trace)
     fit_linear_polar(trace)
     test_polar_geo_mag(trace)
+    test_polar_geo_mag_cor(trace)
+
+
+def test_polar_efield(path_simu):
+    f_zh = ZhairesMaster(path_simu)
+    event = f_zh.get_object_3dtraces()
+    d_simu = f_zh.get_simu_info()
+    a_inc = d_simu["geo_mag2"]["inc"]
+    print("inc B", a_inc)
+    a_inc = np.deg2rad(a_inc)
+    v_b = np.array([np.cos(a_inc), 0, -np.sin(a_inc)])
+    print(a_inc, v_b)
+    idx_du = 13
+    event.plot_trace_idx(idx_du)
+    trace = event.traces[idx_du].T
+    fit_linear_polar_fast(trace, 100,  v_b=v_b)
+    # fit_linear_polar(trace, v_b)
+    test_polar_geo_mag_cor(trace,100,  v_b=v_b)
+
+
+def test_polar_voc(f_asdf):
+    event, d_simu = fsr.load_asdf(f_asdf)
+    assert isinstance(event, Handling3dTracesOfEvent)
+    # event.plot_footprint_val_max()
+    a_inc = d_simu["geo_mag2"]["inc"]
+    print("inc B", a_inc)
+    a_inc = np.deg2rad(a_inc)
+    v_b = np.array([np.cos(a_inc), 0, -np.sin(a_inc)])
+    print(a_inc, v_b)
+    idx_du = 13
+    event.plot_trace_idx(idx_du)
+    trace = event.traces[idx_du].T
+    fit_linear_polar_fast(trace, 20, v_b=v_b)
+    # fit_linear_polar(trace, v_b)
+    test_polar_geo_mag_cor(trace,20, v_b=v_b)
 
 
 if __name__ == "__main__":
     np.random.seed(100)
-    test_raw_efield()
-    test_band_filter_efield()
-    test_band_filter_efield_hc()
+    # test_raw_efield()
+    # test_band_filter_efield()
+    # test_band_filter_efield_hc()
+    test_polar_efield(G_path_simu)
+    test_polar_voc(f_asdf)
     plt.show()
