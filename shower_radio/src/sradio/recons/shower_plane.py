@@ -8,9 +8,8 @@ from logging import getLogger
 
 import numpy as np
 import scipy.optimize as so
-from astropy.constants import c
 
-C_LIGHT_MS = c.value
+from sradio.recons import C_LIGHT_MS
 
 logger = getLogger(__name__)
 

@@ -9,7 +9,7 @@ import scipy.optimize as so
 
 from numba import njit
 
-from sradio.num.const import C_LIGHT_MS
+from sradio.recons import C_LIGHT_MS
 from sradio.recons.shower_plane import solve_with_plane_model
 from sradio.basis.du_network import DetectorUnitNetwork
 
