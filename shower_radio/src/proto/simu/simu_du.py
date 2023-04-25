@@ -12,7 +12,7 @@ import matplotlib.pylab as plt
 import scipy.fft as fft
 
 
-from sradio.simu.du_resp import SimuDetectorUnitForEvent
+from sradio.simu.du_resp import SimuDetectorUnitResponse
 from sradio.io.shower.zhaires_master import ZhairesMaster
 import sradio.manage_log as mlg
 from sradio.basis.traces_event import Handling3dTracesOfEvent
@@ -47,7 +47,7 @@ def wiener_white_noise(measure, kernel, sigma):
 
 
 def proto_simu_voc():
-    dus = SimuDetectorUnitForEvent(G_path_leff)
+    dus = SimuDetectorUnitResponse(G_path_leff)
     event = ZhairesMaster(G_path_simu)
     data = event.get_object_3dtraces()
     d_info = event.get_simu_info()

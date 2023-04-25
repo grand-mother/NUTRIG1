@@ -214,3 +214,71 @@ def interpol_at_new_x(a_x, a_y, new_x):
         a_x, a_y, "cubic", bounds_error=False, fill_value=(0.0, 0.0)
     )
     return func_interpol(new_x)
+
+
+class WienerDeconvolution:
+    def __init__(self, f_sample_hz=1):
+        self.f_hz = f_sample_hz
+
+    def set_kernel(self, ker):
+        self.ker = ker
+        self.set_rfft_kernel(sf.rfft(ker))
+
+    def set_rfft_kernel(self, rfft_ker):
+        s_rfft = rfft_ker.shape[0]
+        if s_rfft % 2 == 0:
+            self.sig_size = 2 * (s_rfft - 1)
+        else:
+            self.sig_size = 2 * s_rfft - 1
+        self.rfft_ker = rfft_ker
+        self.rfft_ker_c = np.conj(self.rfft_ker)
+        self.se_ker = (rfft_ker * self.rfft_ker_c).real
+
+    def deconv_white_noise(self, measure, sigma):
+        wh_var = sigma ** 2
+        rfft_m = sf.rfft(measure)
+        # coeff normalisation of se is sig_size
+        se_sig = (rfft_m * np.conj(rfft_m)).real / self.sig_size
+        # just remove variance from se of measure
+        se_sig -= wh_var
+        idx_neg = np.where(se_sig < 0)[0]
+        se_sig[idx_neg] = 0
+        wiener = (self.rfft_ker_c * se_sig) / (self.se_ker * se_sig + wh_var)
+        sig = sf.irfft(rfft_m * wiener)
+        sig = sf.ifftshift(sig)
+        self.wiener = wiener
+        self.sig = sig
+        self.snr = se_sig / wh_var
+        self.se_sig = se_sig
+        self.se_noise = wh_var * np.ones(rfft_m.shape[0])
+        self.measure = measure
+        return sig
+
+    def plot_se(self, loglog=True):
+        freq_hz = sf.rfftfreq(self.sig_size, 1 / self.f_hz)
+        print(self.sig_size, freq_hz.shape)
+        plt.figure()
+        plt.title("SE")
+        if loglog:
+            my_plot = plt.loglog
+        else:
+            my_plot = plt.semilogy
+        my_plot(freq_hz[1:], self.se_sig[1:], label="SE estimated signal")
+        my_plot(freq_hz[1:], self.se_noise[1:], label="SE estimated noise")
+        plt.grid()
+        plt.legend()
+
+    def plot_snr(self):
+        freq_hz = sf.rfftfreq(self.sig_size, 1 / self.f_hz)
+        plt.figure()
+        plt.title("SNR")
+        plt.loglog(freq_hz[1:], self.snr[1:])
+        plt.grid()
+
+    def plot_measure_signal(self):
+        plt.figure()
+        plt.title("measure_signal")
+        plt.plot(self.sig, label="estimated signal")
+        plt.plot(self.measure, label="measure")
+        plt.grid()
+        plt.legend()

@@ -12,9 +12,9 @@ import scipy.fft as sf
 
 from sradio.io.leff_fmt import AntennaLeffStorage
 from sradio.basis.traces_event import Handling3dTracesOfEvent
-from sradio.simu.ant_resp import DetectorUnitAntenna3Axis
+from sradio.model.ant_resp import DetectorUnitAntenna3Axis
 from sradio.num.signal import get_fastest_size_fft
-from sradio.simu.galaxy import GalaxySignalThroughGp300
+from sradio.model.galaxy import GalaxySignalThroughGp300
 
 
 logger = getLogger(__name__)
@@ -39,7 +39,7 @@ def get_leff_from_files(path_leff):
     return d_leff
 
 
-class SimuDetectorUnitForEvent:
+class SimuDetectorUnitResponse:
     """
     Simulation of
       * antenna response
