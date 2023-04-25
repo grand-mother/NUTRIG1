@@ -1,5 +1,8 @@
 """
 Estimate Xmax position with spherical wavefront model (swf)
+
+From: https://github.com/simon-prunet/ADFRecons
+
 """
 import numpy as np
 import scipy.optimize as so

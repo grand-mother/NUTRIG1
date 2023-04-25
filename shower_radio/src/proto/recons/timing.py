@@ -1,3 +1,7 @@
+"""
+From: https://github.com/simon-prunet/ADFRecons
+"""
+
 import timeit
 
 import numpy as np
@@ -6,10 +10,10 @@ import scipy.optimize as so
 from sradio.recons.shower_plane import pwf_loss, pwf_grad, pwf_hess
 from sradio.recons.shower_spheric import swf_loss, swf_grad
 from sradio.num.const import C_LIGHT_MS
-from grand import grand_add_path_data
 
-REF_POS = grand_add_path_data("tests/recons/ref_recons_coord_antennas.txt")
-REF_EVENT = grand_add_path_data("tests/recons/ref_recons_coinctable.txt")
+
+REF_POS = "tests/recons/ref_recons_coord_antennas.txt"
+REF_EVENT = "tests/recons/ref_recons_coinctable.txt"
 
 
 def read_ref_data():

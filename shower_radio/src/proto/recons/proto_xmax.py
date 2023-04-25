@@ -4,15 +4,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from grand import grand_add_path_data
+
 from sradio.basis.du_network import DetectorUnitNetwork
 import sradio.recons.shower_plane as pwf
 import sradio.recons.shower_spheric as swf
-from grand.io.root_files import FileSimuEfield
 
 
-REF_POS = grand_add_path_data("tests/recons/ref_recons_coord_antennas.txt")
-REF_EVENT = grand_add_path_data("tests/recons/ref_recons_coinctable.txt")
+
+REF_POS = sradio_add_path_data("tests/recons/ref_recons_coord_antennas.txt")
+REF_EVENT = sradio_add_path_data("tests/recons/ref_recons_coinctable.txt")
 
 G_file_efield = "/home/dc1/Coarse2_xmax_add.root"
 G_file_efield = "/home/dc1/Coarse3.root"

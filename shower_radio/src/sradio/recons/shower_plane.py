@@ -1,5 +1,8 @@
 """
 Estimate Xmax position with plane wavefront model (pwf)
+
+From: https://github.com/simon-prunet/ADFRecons
+
 """
 from logging import getLogger
 

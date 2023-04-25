@@ -4,6 +4,8 @@ Estimate shower parameters with ADF model (adf_)
 =================
 Work in progress 
 =================
+
+From: https://github.com/simon-prunet/ADFRecons
 """
 
 import numba as njit
