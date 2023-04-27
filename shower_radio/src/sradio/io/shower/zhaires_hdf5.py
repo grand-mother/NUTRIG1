@@ -5,7 +5,8 @@ import h5py
 import numpy as np
 
 from sradio.basis.traces_event import Handling3dTracesOfEvent
-from .zhaires_txt import ZhairesSingleEventText, ZhairesSingleEventBase
+from .zhaires_base import ZhairesSingleEventBase
+from .zhaires_txt import ZhairesSingleEventText
 
 logger = getLogger(__name__)
 

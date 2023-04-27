@@ -15,38 +15,17 @@ import os.path
 from logging import getLogger
 import tarfile
 import tempfile
-import pprint
+
 
 import numpy as np
-import asdf
 
 from sradio.basis.traces_event import Handling3dTracesOfEvent
-from sradio.io import sradio_asdf as srfmt
-
+from .zhaires_base import ZhairesSingleEventBase
 
 logger = getLogger(__name__)
 
 # approximative regular expression of string float
 REAL = r"[+-]?[0-9][0-9.eE+-]*"
-
-
-class ZhairesSingleEventBase:
-    def __init__(self, path_zhaires):
-        self.path = path_zhaires
-        self.dir_simu = path_zhaires.split("/")[-1]
-        self.d_info = {}
-        # 0 is ok Blues
-        self.status = -1
-
-    def get_dict(self):
-        d_gen = self.d_info.copy()
-        d_gen["traces"] = self.traces
-        d_gen["t_start"] = self.t_start
-        d_gen["ant_pos"] = self.ants
-        return d_gen
-
-    def write_asdf_file(self, p_file):
-        srfmt.save_asdf_single_event(p_file, self.get_object_3dtraces(), self.d_info)
 
 
 def convert_str2number(elmt):
