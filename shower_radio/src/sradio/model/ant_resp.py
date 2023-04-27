@@ -285,7 +285,7 @@ class DetectorUnitAntenna3Axis:
         """
         self.pos_src_n = pos_n
         self._update_dir_source()
-        
+
     def _update_dir_source(self):
         """
         return direction of source in [DU] frame
@@ -321,10 +321,17 @@ class DetectorUnitAntenna3Axis:
         """
         pass
 
-    def get_resp_1d_efield_pol(self, efield_pol):
+    def get_resp_1d_efield_pol(self, fft_efield_pol):
         """Return fft of antennas response for 3 axis with efield in [POL] linear polarization
 
         :param efield_pol:electric field in [POL]
         :type efield_pol: float32 (n_s,)
         """
-        pass
+        resp = np.empty((3, fft_efield_pol.shape[0]), dtype=fft_efield_pol.dtype)
+        fft_leff = self.interp_leff.get_fft_leff_pol(self.sn_leff)
+        resp[0] = fft_leff * fft_efield_pol
+        fft_leff = self.interp_leff.get_fft_leff_pol(self.ew_leff)
+        resp[1] = fft_leff * fft_efield_pol
+        fft_leff = self.interp_leff.get_fft_leff_pol(self.up_leff)
+        resp[2] = fft_leff * fft_efield_pol
+        return resp

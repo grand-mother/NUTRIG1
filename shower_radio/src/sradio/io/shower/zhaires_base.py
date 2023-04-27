@@ -2,10 +2,6 @@
 Created on 28 mars 2023
 
 @author: jcolley
-
-
-
-
 """
 
 

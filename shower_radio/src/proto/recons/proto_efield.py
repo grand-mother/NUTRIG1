@@ -7,7 +7,6 @@ Created on 25 avr. 2023
 import pprint
 
 import numpy as np
-
 import matplotlib.pylab as plt
 
 import sradio.manage_log as mlg
@@ -29,8 +28,6 @@ mlg.create_output_for_logger("debug")
 #
 # FILES
 #
-
-
 FILE_voc = "/home/jcolley/projet/nutrig_wk/NUTRIG1/shower_radio/src/proto/simu/out_v_oc.asdf"
 PATH_leff = "/home/jcolley/projet/grand_wk/data/model/detector"
 
@@ -131,9 +128,8 @@ def check_recons_with_white_noise():
     plt.plot(sig_up, "b", label="UP")
     plt.grid()
     plt.legend()
-    evt.traces[idx_du]= np.array([sig_sn,sig_ew,sig_up])
+    evt.traces[idx_du] = np.array([sig_sn, sig_ew, sig_up])
     evt.plot_trace_idx(idx_du)
-    
 
 
 if __name__ == "__main__":

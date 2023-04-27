@@ -19,9 +19,9 @@ from sradio.basis.traces_event import Handling3dTracesOfEvent
 logger = getLogger(__name__)
 
 
-def save_asdf_single_event(n_file, event, info_sim):
+def save_asdf_single_event(n_file, event, info_sim, type_file="simu_event"):
     assert isinstance(event, Handling3dTracesOfEvent)
-    d_gen = {"type_file": "simu_event"}
+    d_gen = {"type_file": type_file}
     d_gen["simu_pars"] = info_sim
     #
     d_event = {}

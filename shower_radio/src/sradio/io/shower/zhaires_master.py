@@ -17,12 +17,14 @@ logger = getLogger(__name__)
 
 class ZhairesMaster:
     """
-    classdocs
+    select HDF5 or text format
     """
 
     def __init__(self, path_zhaires):
         """
-        Constructor
+        
+        :param path_zhaires:
+        :type path_zhaires:
         """
         l_path = path_zhaires.split("/")
         pre_path = os.path.join(path_zhaires, l_path[-1])
@@ -36,13 +38,11 @@ class ZhairesMaster:
         self.f_zhaires = ZhairesSingleEventText(path_zhaires)
         self.f_zhaires.read_all()
 
-    
     def get_status(self):
         return self.f_zhaires.status
-    
+
     def get_simu_info(self):
         return self.f_zhaires.get_simu_info()
-        
 
     def get_object_3dtraces(self):
         return self.f_zhaires.get_object_3dtraces()

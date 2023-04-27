@@ -22,8 +22,9 @@ a_inc = np.deg2rad(60.79)
 V_B = np.array([np.cos(a_inc), 0, -np.sin(a_inc)])
 
 f_asdf = "/home/jcolley/projet/nutrig_wk/NUTRIG1/shower_radio/src/proto/simu/out_v_oc.asdf"
-G_path_simu = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
-
+#G_path_simu = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
+G_path_simu = "/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1"
+G_path_simu = "/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.296_74.8_0.0_1"
 
 def load_file_trace(path_data=""):
     """
@@ -126,7 +127,7 @@ def loss_function_lin_pol(v_pol, data):
     return s_residu
 
 
-def fit_linear_polar_fast(efield_3d, threasold=20, v_b=V_B):
+def fit_linear_polar_fast_testB(efield_3d, threasold=20, v_b=V_B):
     """
 
     :param efield_3d: (n_s,3)
@@ -156,6 +157,23 @@ def fit_linear_polar_fast(efield_3d, threasold=20, v_b=V_B):
     print(f"angle(B,p)= {a_pB} deg")
     return pol_est
 
+def estimate_polar_vec(trace, threasold=20):
+    """
+
+    :param efield_3d: (n_s,3)
+    """
+    print("===========estimate_polar_vec================")
+    n_elec = np.linalg.norm(trace, axis=1)
+    idx_hb = np.where(n_elec > threasold)[0]
+    # unit
+    sple_ok = trace[idx_hb].T / n_elec[idx_hb]
+    idx_neg = np.where(sple_ok[1] < 0)[0]
+    sple_ok = sple_ok.T
+    sple_ok[idx_neg] = -sple_ok[idx_neg]
+    n_elec_2 = n_elec[idx_hb] * n_elec[idx_hb]
+    #
+    pol_est = np.sum(sple_ok.T * n_elec_2, axis=1) / np.sum(n_elec_2)
+    return pol_est
 
 def fit_linear_polar(efield_3d, v_b=V_B):
     """
@@ -226,6 +244,7 @@ def test_polar_geo_mag_cor(efield_3d, threasold=20, v_b=V_B):
     print("=========test_polar_geo_mag CORRECTION==================")
     n_elec = np.linalg.norm(efield_3d, axis=1)
     idx_hb = np.where(n_elec > threasold)[0]
+    # (3, ns)(ns)
     p_raw = (efield_3d[idx_hb].T / n_elec[idx_hb]).T
     a_cos = np.dot(p_raw, v_b)
     print(f"B.E_u = {a_cos.mean()}  +/-{a_cos.std()}")
@@ -275,12 +294,12 @@ def test_polar_efield(path_simu):
     a_inc = np.deg2rad(a_inc)
     v_b = np.array([np.cos(a_inc), 0, -np.sin(a_inc)])
     print(a_inc, v_b)
-    idx_du = 13
+    idx_du = 124
     event.plot_trace_idx(idx_du)
     trace = event.traces[idx_du].T
-    fit_linear_polar_fast(trace, 20,  v_b=v_b)
-    # fit_linear_polar(trace, v_b)
-    test_polar_geo_mag_cor(trace,20,  v_b=v_b)
+    fit_linear_polar_fast(trace, 50,  v_b=v_b)
+    fit_linear_polar(trace, v_b)
+    test_polar_geo_mag_cor(trace,50,  v_b=v_b)
 
 
 def test_polar_voc(f_asdf):
@@ -295,9 +314,9 @@ def test_polar_voc(f_asdf):
     idx_du = 13
     event.plot_trace_idx(idx_du)
     trace = event.traces[idx_du].T
-    fit_linear_polar_fast(trace, 20, v_b=v_b)
-    # fit_linear_polar(trace, v_b)
-    test_polar_geo_mag_cor(trace,20, v_b=v_b)
+    fit_linear_polar_fast_testB(trace, 50, v_b=v_b)
+    fit_linear_polar(trace, v_b)
+    test_polar_geo_mag_cor(trace,50, v_b=v_b)
 
 
 if __name__ == "__main__":
@@ -305,6 +324,6 @@ if __name__ == "__main__":
     # test_raw_efield()
     # test_band_filter_efield()
     #test_band_filter_efield_hc()
-    #test_polar_efield(G_path_simu)
-    test_polar_voc(f_asdf)
+    test_polar_efield(G_path_simu)
+    #test_polar_voc(f_asdf)
     plt.show()

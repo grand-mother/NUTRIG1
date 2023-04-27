@@ -73,7 +73,7 @@ class SimuDetectorUnitResponse:
         self.o_shower = None
         # FFT info
         self.sig_size = 0
-        self.fact_padding = 1.4
+        self.fact_padding = 6
         #  size_with_pad ~ sig_size*fact_padding
         self.size_with_pad = 0
         # float (size_with_pad,) array of frequencies in MHz in Fourier domain
@@ -120,6 +120,14 @@ class SimuDetectorUnitResponse:
                 self.freqs_out_mhz,
                 self.o_efield.get_nb_du(),
             )
+    
+    def set_xmax(self, xmax_xc):
+        """
+        
+        :param xmax_xc: position Xmax  in frame [XCore]  
+        :type xmax_xc: float (3,)
+        """
+        self.o_ant3d.set_pos_source(xmax_xc)
 
     def set_data_shower(self, shower):
         """
