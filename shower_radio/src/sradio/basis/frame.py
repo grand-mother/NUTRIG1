@@ -1,8 +1,6 @@
 """
 
-To convert between frame coordinate system is always cartesian
-
-See coord.py module for specific spherical convention associated to each frame
+See coord.py module for specific spherical/angle convention associated to each frame
 
 
 Frame available:
@@ -13,26 +11,35 @@ Frame available:
                    for shower physic with time measure, position of DU arround 10 cm seems ok
         * Origin : center of earth
         * Cartesian: ECEF
-          * X: on equator longitude 0, Y: on equator to East, Z: ~rotation axis
+          * X: to equator longitude 0, Y: to equator to East, Z:  North rotation axis
         * Spherical with GRS80 ellipsoide
           * longitude geodetic
           * latitide geodetic
           * altitude:
               * above ellipsoide or geoide EGM96
-    
 
-    [N] is the frame associated to network stations
-        * Origin [W84]: can be center of network or another position like xcore
+    [XC] is the frame associated to XCore of air shower
+        * Origin [W84]: xcore position
         * Cartesian: NWU ie tangential to the surface of the earth
           * X: North mag, Y: West mag, Z: normal up to earth 
         * Spherical
           * azi_w (phi_n)[0,360] = angle between X and azi_w(West)=90 degree
           * d_zen (theta_n) = angle from zenith , d_zen(horizon)=90 degree
         * Remark : so in fact it's a familly of frame 
-        * Example: ZHaireS simulation 
+        * Example: ZHaireS simulation     
+
+    [NET] is the frame associated to NETwork stations
+        * Origin [W84]: can be center of network 
+        * Cartesian: NWU ie tangential to the surface of the earth
+          * X: North mag, Y: West mag, Z: normal up to earth 
+        * Spherical
+          * azi_w (phi_n)[0,360] = angle between X and azi_w(West)=90 degree
+          * d_zen (theta_n) = angle from zenith , d_zen(horizon)=90 degree
+        * Remark : so in fact it's a familly of frame 
+        * Example: 
         
 
-    [DU] is the frame associated to one DU 
+    [DU] is the frame associated to one Detector Unit (DU)
         * Origin [W84]/[N]: antenna position given by GPS position
         * Remark : normaly we must indicate the id of the DU, like [DUi] but as we don't have 
                    computation between DU it's not necessary to specify it
@@ -43,28 +50,39 @@ Frame available:
           * d_zen (theta_du) = angle from zenith , d_zen(horizon)=90 degree
 
 
-    [TAN] is the frame associated to a DU tangential at 
+    [TAN] is the frame associated to Tangential ANtenna
           source direction (phi_src, theta_src) 
         * Origin [DU]: position associated with unit vector with direction (phi_src, theta_src)
         * Cartesian: tangential to the unit sphere around antenna
-          * X: e_phi, Y: e_theta, Z: normal up to sphere
+          * X: e_theta, Y: e_phi, Z: normal up to sphere
         * Spherical
           * None
 
 
     Remark:
-       In case of small network (20-30km) [N] and [DU] are equivalent for vector orientation 
+       In case of small network (20-30km) [NET]/[XC] and [DU] are equivalent for vector orientation 
        because local normal and magnetic field can be considered as constant on this aera.
 
 
     Notation:
        convention xxx_yy variable means position of xxx is in [yy] frame.
        example : efield_tan is E field in tangential frame of antenna
+       
+    Note:
+      all transformation between frame used cartesian coordinate
 
 """
 
+from logging import getLogger
 
 import numpy as np
+from scipy.spatial.transform import Rotation as Rot
+
+#
+#
+#
+
+logger = getLogger(__name__)
 
 
 class FrameAFrameB:
@@ -86,8 +104,39 @@ class FrameAFrameB:
         return np.matmul(self.rot_b2a.T, vec_a)
 
 
-class FrameDuFrameTangent(FrameAFrameB):
+class FrameDuFrameTan(FrameAFrameB):
+    """Transformation between frame [TAN] and [DU]
+
+    rot_b2a or rot_du2tan is defined by 2 elementaries rotation
+
+     [DU]   [DU]    [I]
+    M     = M2    x M1
+     [TAN]    [I]     [TAN]
+
+    Where M1 and M2
+      * M1 is rotation around z for angle azi_w in positive way
+      * M2 is rotation around y for angle d_zen in positive way
+
+    So with euler notation and scipy API M ie rot_b2a) is Rot.from_euler('yz', [d_zen, azi_w])
+
+    ..note:
+        [DU]       <->   [TAN]
+          N(orth)          e_theta
+          W(est)           e_phi
+          Up               e_up
+
+
+    """
+
     def __init__(self, vec_dir_du):
         offset_ab_a = np.zeros(3, dtype=vec_dir_du.dtype)
-        rot_b2a = 2
+        azi_w = vec_dir_du[0]
+        d_zen = vec_dir_du[1]
+        m1 = Rot.from_euler("y", d_zen).as_matrix()
+        m2 = Rot.from_euler("z", azi_w).as_matrix()
+        rot_b2a = np.matmul(m2, m1)
+        logger.debug(rot_b2a)
+        # !!! : not same as this
+        me = Rot.from_euler("zy", [azi_w, d_zen]).as_matrix()
+        logger.debug(me)
         super().__init__(offset_ab_a, rot_b2a)

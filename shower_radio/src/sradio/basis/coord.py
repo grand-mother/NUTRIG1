@@ -4,10 +4,16 @@ Coordinate transformation in same frame.
 see frame.py module to have frame definition and specific convention of axis and angle
 """
 
+from logging import getLogger
 
 import numpy as np
 
+#
+#
+#
+
 G_2PI = 2 * np.pi
+logger = getLogger(__name__)
 
 #
 # [DU] see convention of this frame in module frame.py
