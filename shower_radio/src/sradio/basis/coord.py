@@ -20,7 +20,7 @@ logger = getLogger(__name__)
 #
 
 
-def cart_to_dir_du(xyz):
+def du_cart_to_dir(xyz):
     """Convert cartesian vector xyz to direction in [DU] frame
 
     :param xyz: cartesian vector
@@ -37,7 +37,7 @@ def cart_to_dir_du(xyz):
     return np.array([azi_w, d_zen])
 
 
-def cart_to_sph_du(xyz):
+def du_cart_to_sph(xyz):
     """Convert cartesian vector xyz to spherical in [DU] frame
 
     :param xyz: cartesian vector
@@ -56,7 +56,7 @@ def cart_to_sph_du(xyz):
     return np.array([azi_w, d_zen, np.sqrt(rho_2 + xyz[2] ** 2)])
 
 
-def sph_to_cart_du(sph):
+def du_sph_to_cart(sph):
     """Convert spherical vector xyz to cartesian in [DU] frame
 
     :param sph: azimuth, distance zenithal, norm
@@ -72,3 +72,11 @@ def sph_to_cart_du(sph):
     xyz[1] = s_dz * s_a
     xyz[2] = c_dz
     return sph[2] * xyz
+
+
+#
+# [TAN] see convention of this frame in module frame.py
+#
+
+def tan_cart_to_polar_angle(xyz):
+    return np.arctan2(xyz[1], xyz[0])

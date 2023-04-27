@@ -132,11 +132,13 @@ class FrameDuFrameTan(FrameAFrameB):
         offset_ab_a = np.zeros(3, dtype=vec_dir_du.dtype)
         azi_w = vec_dir_du[0]
         d_zen = vec_dir_du[1]
-        m1 = Rot.from_euler("y", d_zen).as_matrix()
-        m2 = Rot.from_euler("z", azi_w).as_matrix()
+        # Warning : use intrinsec notation upper case X,Y,Z and not lower case x,y, z !!!!
+        m1 = Rot.from_euler("Y", d_zen).as_matrix()
+        m2 = Rot.from_euler("Z", azi_w).as_matrix()
         rot_b2a = np.matmul(m2, m1)
         logger.debug(rot_b2a)
-        # !!! : not same as this
-        me = Rot.from_euler("zy", [azi_w, d_zen]).as_matrix()
+        # 
+        me = Rot.from_euler("ZY", [azi_w, d_zen]).as_matrix()
         logger.debug(me)
         super().__init__(offset_ab_a, rot_b2a)
+    
