@@ -45,6 +45,20 @@ def wiener_white_noise(measure, kernel, sigma):
     sol_w = fft.irfft(fft_m * wiener)
     return sol_w, wiener, se_s
 
+def test_simu_in_frame_pol():
+    dus = SimuDetectorUnitResponse(G_path_leff)
+    event = ZhairesMaster(G_path_simu)
+    data = event.get_object_3dtraces()
+    d_info = event.get_simu_info()
+    print(data)
+    pprint.pprint(d_info)
+    dus.set_data_efield(data)
+    shower = {}
+    shower["xmax"] = 1000 * np.array(
+        [d_info["x_max"]["x"], d_info["x_max"]["y"], d_info["x_max"]["z"]]
+    )
+    dus.set_data_shower(shower)
+    return 
 
 def proto_simu_voc():
     dus = SimuDetectorUnitResponse(G_path_leff)

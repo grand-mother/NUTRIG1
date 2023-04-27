@@ -12,7 +12,7 @@ import scipy.fft as sf
 
 from sradio.basis.traces_event import Handling3dTracesOfEvent
 from sradio.model.ant_resp import DetectorUnitAntenna3Axis, get_leff_from_files
-from sradio.num.signal import get_fastest_size_fft
+from sradio.num.signal import get_fastest_size_rfft
 from sradio.model.galaxy import GalaxySignalThroughGp300
 
 
@@ -47,7 +47,7 @@ class SimuDetectorUnitResponse:
         * TF_rf_chain : transfer function of electronic chain
 
       * We used a common frequency definition for all calculation stored in freqs_mhz attribute
-        and computed with function get_fastest_size_fft()
+        and computed with function get_fastest_size_rfft()
 
     .. note::
        * no IO, only memory processing
@@ -96,7 +96,7 @@ class SimuDetectorUnitResponse:
         logger.debug(self.v_out.shape)
         self.sig_size = self.o_efield.get_size_trace()
         # common frequencies for all processing in Fourier domain
-        self.size_with_pad, self.freqs_out_mhz = get_fastest_size_fft(
+        self.size_with_pad, self.freqs_out_mhz = get_fastest_size_rfft(
             self.sig_size,
             self.o_efield.f_samp_mhz,
             self.fact_padding,

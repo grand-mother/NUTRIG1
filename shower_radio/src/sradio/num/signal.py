@@ -26,7 +26,7 @@ def filter_butter_band_fft(t_series, fr_min, fr_max, f_sample):
     print(f_hz, low, high)
     order = 6
     coeff_b, coeff_a = butter(order, [low, high], btype="bandpass", fs=f_hz)
-    fastest_size_fft, freqs_mhz = get_fastest_size_fft(t_series.shape[0], f_sample)
+    fastest_size_fft, freqs_mhz = get_fastest_size_rfft(t_series.shape[0], f_sample)
     plt.figure()
     w, h = freqz(coeff_b, coeff_a, fs=f_hz, worN=freqs_mhz.shape[0])
     print(w.shape)
@@ -182,7 +182,7 @@ def get_peakamptime_norm_hilbert(a2_time, a3_trace):
     return np.squeeze(t_max), np.squeeze(v_max), idx_max, norm_hilbert_amp
 
 
-def get_fastest_size_fft(sig_size, f_samp_mhz, padding_fact=1):
+def get_fastest_size_rfft(sig_size, f_samp_mhz, padding_fact=1):
     """
 
     :param sig_size:
@@ -234,7 +234,7 @@ class WienerDeconvolution:
         self.rfft_ker_c = np.conj(self.rfft_ker)
         self.se_ker = (rfft_ker * self.rfft_ker_c).real
 
-    def deconv_white_noise(self, measure, sigma):
+    def deconv_white_noise_fft_in(self, rfft_measure, sigma):
         """
         
         :param measure: measures from convolution operation
@@ -243,7 +243,7 @@ class WienerDeconvolution:
         :type sigma: float
         """
         wh_var = sigma ** 2
-        rfft_m = sf.rfft(measure)
+        rfft_m = rfft_measure
         # coeff normalisation of se is sig_size
         se_sig = (rfft_m * np.conj(rfft_m)).real / self.sig_size
         # just remove variance from se of measure
@@ -252,15 +252,26 @@ class WienerDeconvolution:
         se_sig[idx_neg] = 0
         wiener = (self.rfft_ker_c * se_sig) / (self.se_ker * se_sig + wh_var)
         sig = sf.irfft(rfft_m * wiener)
-        sig = sf.ifftshift(sig)
+        #sig = sf.ifftshift(sig)
         self.wiener = wiener
         self.sig = sig
         self.snr = se_sig / wh_var
         self.se_sig = se_sig
         self.se_noise = wh_var * np.ones(rfft_m.shape[0])
-        self.measure = measure
         return sig
 
+    def deconv_white_noise(self, measure, sigma):
+        """
+        
+        :param measure: measures from convolution operation
+        :type measure: float (n_s,)
+        :param sigma: white noise with standard deviation sigma > 0
+        :type sigma: float
+        """
+        rfft_m = sf.rfft(measure, n=self.sig_size)
+        self.measure = measure
+        return self.deconv_white_noise_fft_in(rfft_m, sigma)
+    
     def plot_se(self, loglog=True):
         freq_hz = sf.rfftfreq(self.sig_size, 1 / self.f_hz)
         print(self.sig_size, freq_hz.shape)

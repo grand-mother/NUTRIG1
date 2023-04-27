@@ -28,16 +28,16 @@ def get_leff_from_files(path_leff):
     """
     path_ant = os.path.join(path_leff, "Light_GP300Antenna_EWarm_leff.npz")
     leff_ew = AntennaLeffStorage()
-    leff_ew.name = "ew"
+    leff_ew.name = "EW"
     leff_ew.load(path_ant)
     path_ant = os.path.join(path_leff, "Light_GP300Antenna_SNarm_leff.npz")
     leff_sn = AntennaLeffStorage()
     leff_sn.load(path_ant)
-    leff_sn.name = "sn"
+    leff_sn.name = "SN"
     path_ant = os.path.join(path_leff, "Light_GP300Antenna_Zarm_leff.npz")
     leff_up = AntennaLeffStorage()
     leff_up.load(path_ant)
-    leff_up.name = "up"
+    leff_up.name = "UP"
     d_leff = {"sn": leff_sn, "ew": leff_ew, "up": leff_up}
     return d_leff
 
@@ -195,7 +195,8 @@ class LengthEffectiveInterpolation:
 
     def get_fft_leff_pol(self, leff):
         l_p, l_t = self.get_fft_leff_tan(leff)
-        return self.cos_pol * l_p + self.sin_pol * l_t
+        # TAN order is (e_theta, e_phi, e_normal_out)
+        return self.cos_pol * l_t + self.sin_pol * l_p
 
     def plot_leff_tan(self):
         plt.figure()
@@ -212,14 +213,27 @@ class LengthEffectiveInterpolation:
             self.leff.freq_mhz,
             self.leff.leff_theta.real[idx_phi, idx_theta],
             "*",
-            label="RAW Leff theta real",
+            label=f"RAW Leff theta real idx={idx_theta}",
         )
+        idx_theta_p1 = (idx_theta + 1) % 90
         plt.plot(
             self.leff.freq_mhz,
-            self.leff.leff_theta.real[idx_phi, (idx_theta + 1) % 90],
+            self.leff.leff_theta.real[idx_phi, idx_theta_p1],
             "*",
-            label="RAW Leff theta real",
+            label=f"RAW Leff theta real idx={idx_theta_p1}",
         )
+        plt.grid()
+        plt.xlabel("MHz")
+        plt.legend()
+
+    def plot_leff_pol(self):
+        leff_pol = self.get_fft_leff_pol(self.leff)
+        plt.figure()
+        plt.title(
+            f"Interpolated Leff {self.leff.name} polar angle ({np.rad2deg(self.angle_pol):.1f} deg) at phi={self.dir_src_deg[0]:.1f}, theta={self.dir_src_deg[1]:.1f}"
+        )
+        plt.plot(self.o_pre.freq_out_mhz, leff_pol.real, label="Leff polar real")
+        plt.plot(self.o_pre.freq_out_mhz, leff_pol.imag, label="Leff polar imag")
         plt.grid()
         plt.xlabel("MHz")
         plt.legend()
@@ -281,7 +295,7 @@ class DetectorUnitAntenna3Axis:
         diff_n = self.pos_src_n - self.pos_du_n
         # Hypothesis: small network  (20-30km ) => [N]=[DU]+offset, so direction ar same
         self.cart_src_du = diff_n
-        self.dir_src_du = coord.cart_to_dir_du(diff_n)
+        self.dir_src_du = coord.du_cart_to_dir(diff_n)
         self.interp_leff.set_dir_source(self.dir_src_du)
 
     def get_resp_3d_efield_du(self, fft_efield_du):
