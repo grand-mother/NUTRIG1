@@ -26,6 +26,8 @@ class AntennaLeffStorage:
         self.leff_phi = 1
         # complex values of TF leff in theta direction
         self.leff_theta = 1
+        self.name = ""
+        
 
     def load(self, path_leff):
         f_leff = np.load(path_leff)

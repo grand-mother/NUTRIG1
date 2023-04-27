@@ -4,39 +4,19 @@ Created on 4 avr. 2023
 @author: jcolley
 """
 
-import os.path
+
 from logging import getLogger
 
 import numpy as np
 import scipy.fft as sf
 
-from sradio.io.leff_fmt import AntennaLeffStorage
 from sradio.basis.traces_event import Handling3dTracesOfEvent
-from sradio.model.ant_resp import DetectorUnitAntenna3Axis
+from sradio.model.ant_resp import DetectorUnitAntenna3Axis, get_leff_from_files
 from sradio.num.signal import get_fastest_size_fft
 from sradio.model.galaxy import GalaxySignalThroughGp300
 
 
 logger = getLogger(__name__)
-
-
-def get_leff_from_files(path_leff):
-    """Return dictionary with 3 antenna Leff
-
-    :param path_leff: path to file Leff
-    :type path_leff: string
-    """
-    leff_ew = AntennaLeffStorage()
-    path_ant = os.path.join(path_leff, "Light_GP300Antenna_EWarm_leff.npz")
-    leff_ew.load(path_ant)
-    path_ant = os.path.join(path_leff, "Light_GP300Antenna_SNarm_leff.npz")
-    leff_sn = AntennaLeffStorage()
-    leff_sn.load(path_ant)
-    path_ant = os.path.join(path_leff, "Light_GP300Antenna_Zarm_leff.npz")
-    leff_up = AntennaLeffStorage()
-    leff_up.load(path_ant)
-    d_leff = {"sn": leff_sn, "ew": leff_ew, "up": leff_up}
-    return d_leff
 
 
 class SimuDetectorUnitResponse:
@@ -45,6 +25,7 @@ class SimuDetectorUnitResponse:
       * antenna response
       * electronic
       * galactic signal
+    with E field input
 
     Processing to do:
 
@@ -82,8 +63,7 @@ class SimuDetectorUnitResponse:
         # object contents Efield and network information
         self.o_efield = Handling3dTracesOfEvent()
         self.rf_chain = None
-        self.o_ant3d = DetectorUnitAntenna3Axis()
-        self.o_ant3d.set_dict_leff(get_leff_from_files(path_leff))
+        self.o_ant3d = DetectorUnitAntenna3Axis(get_leff_from_files(path_leff))
         if path_gal != "":
             self.o_gal = GalaxySignalThroughGp300(path_gal)
         else:
@@ -93,7 +73,7 @@ class SimuDetectorUnitResponse:
         self.o_shower = None
         # FFT info
         self.sig_size = 0
-        self.fact_padding = 1.05
+        self.fact_padding = 1.4
         #  size_with_pad ~ sig_size*fact_padding
         self.size_with_pad = 0
         # float (size_with_pad,) array of frequencies in MHz in Fourier domain
@@ -174,7 +154,6 @@ class SimuDetectorUnitResponse:
         """
         logger.info(f"==============>  Processing DU with id: {self.o_efield.du_id[idx_du]}")
         self.o_ant3d.set_name_pos(self.o_efield.du_id[idx_du], self.o_efield.network.du_pos[idx_du])
-        self.o_ant3d.update_dir_source()
         ########################
         # 1) Antenna responses
         ########################

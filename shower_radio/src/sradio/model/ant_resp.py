@@ -7,7 +7,7 @@ Hypothesis: small network  (20-30km ) so => [N]~[DU] for vector/direction
 
 """
 
-
+import os.path
 from logging import getLogger
 
 import matplotlib.pyplot as plt
@@ -15,12 +15,34 @@ import numpy as np
 
 import sradio.basis.coord as coord
 from sradio.io.leff_fmt import AntennaLeffStorage
-import sradio.num.signal as ssr
+
 
 logger = getLogger(__name__)
 
 
-class PreComputeInterpolLeff:
+def get_leff_from_files(path_leff):
+    """Return dictionary with 3 antenna Leff
+
+    :param path_leff: path to file Leff
+    :type path_leff: string
+    """
+    path_ant = os.path.join(path_leff, "Light_GP300Antenna_EWarm_leff.npz")
+    leff_ew = AntennaLeffStorage()
+    leff_ew.name = "ew"
+    leff_ew.load(path_ant)
+    path_ant = os.path.join(path_leff, "Light_GP300Antenna_SNarm_leff.npz")
+    leff_sn = AntennaLeffStorage()
+    leff_sn.load(path_ant)
+    leff_sn.name = "sn"
+    path_ant = os.path.join(path_leff, "Light_GP300Antenna_Zarm_leff.npz")
+    leff_up = AntennaLeffStorage()
+    leff_up.load(path_ant)
+    leff_up.name = "up"
+    d_leff = {"sn": leff_sn, "ew": leff_ew, "up": leff_up}
+    return d_leff
+
+
+class PreComputeInterpolFreq:
     """
     Precompute linear interpolation of frequency of Leff
     """
@@ -79,53 +101,57 @@ class PreComputeInterpolLeff:
         return a_itp
 
 
-class LengthEffProcessing:
-    def __init__(self, name, leff_sampling, o_pre):
-        self.name = name
-        assert isinstance(leff_sampling, AntennaLeffStorage)
-        self.data = leff_sampling
-        self.o_pre = o_pre
+class LengthEffectiveInterpolation:
+    def __init__(self):
+        self.o_pre = PreComputeInterpolFreq()
 
-    def _get_idx_interpol_sph(self):
+    def _update_idx_interpol_sph(self):
+        logger.info(f"New direction {self.dir_src_deg}")
         # delta theta in degree
-        data = self.data
         phi_efield = self.dir_src_deg[0]
         theta_efield = self.dir_src_deg[1]
-        dtheta = data.theta_deg[1] - data.theta_deg[0]
+        dtheta = self.theta_deg[1] - self.theta_deg[0]
         # theta_efield between index it0 and it1 in theta antenna response representation
-        rt1 = (theta_efield - data.theta_deg[0]) / dtheta
+        rt1 = (theta_efield - self.theta_deg[0]) / dtheta
         # prevent > 360 deg or >180 deg ?
-        it0 = int(np.floor(rt1) % data.theta_deg.size)
+        it0 = int(np.floor(rt1) % self.theta_deg.size)
         it1 = it0 + 1
-        if it1 == data.theta_deg.size:  # Prevent overflow
+        if it1 == self.theta_deg.size:  # Prevent overflow
             it1, rt1 = it0, 0
         else:
             rt1 -= np.floor(rt1)
         rt0 = 1 - rt1
         # phi_efield between index ip0 and ip1 in phi antenna response representation
-        dphi = data.phi_deg[1] - data.phi_deg[0]  # deg
-        rp1 = (phi_efield - data.phi_deg[0]) / dphi
-        ip0 = int(np.floor(rp1) % data.phi_deg.size)
+        dphi = self.phi_deg[1] - self.phi_deg[0]  # deg
+        rp1 = (phi_efield - self.phi_deg[0]) / dphi
+        ip0 = int(np.floor(rp1) % self.phi_deg.size)
         ip1 = ip0 + 1
-        if ip1 == data.phi_deg.size:  # Results are periodic along phi
+        if ip1 == self.phi_deg.size:  # Results are periodic along phi
             ip1 = 0
         rp1 -= np.floor(rp1)
         rp0 = 1 - rp1
-        weight = [rt0, rt1, rp0, rp1]
-        idx_i = [it0, it1, ip0, ip1]
+        self.weight = [rt0, rt1, rp0, rp1]
+        self.idx_i = [it0, it1, ip0, ip1]
         # logger.debug(idx_i)
         # logger.debug(weight)
         return rt0, rt1, rp0, rp1, it0, it1, ip0, ip1
 
+    def set_sampling_angle(self, s_theta, s_phi):
+        self.theta_deg = s_theta
+        self.phi_deg = s_phi
+
     def set_dir_source(self, sph_du):
         self.dir_src_deg = np.rad2deg(sph_du)
         self.dir_src_rad = sph_du
+        self._update_idx_interpol_sph()
 
-    def set_angle_polar(self, a_pol):
-        self.angle_pol = a_pol
+    def set_angle_polar(self, a_pol_tan):
+        self.angle_pol = a_pol_tan
+        self.cos_pol = np.cos(self.angle_pol)
+        self.sin_pol = np.sin(self.angle_pol)
 
-    def get_fft_leff_du(self):
-        l_p, l_t = self.get_fft_leff_tan()
+    def get_fft_leff_du(self, leff):
+        l_p, l_t = self.get_fft_leff_tan(leff)
         p_rad = self.dir_src_rad[0]
         t_rad = self.dir_src_rad[1]
         c_t, s_t = np.cos(t_rad), np.sin(t_rad)
@@ -135,16 +161,18 @@ class LengthEffProcessing:
         l_z = -s_t * l_t
         return np.array([l_x, l_y, l_z])
 
-    def get_fft_leff_tan(self):
-        rt0, rt1, rp0, rp1, it0, it1, ip0, ip1 = self._get_idx_interpol_sph()
-        leff = self.data.leff_theta
+    def get_fft_leff_tan(self, leff_tp):
+        self.leff = leff_tp
+        rt0, rt1, rp0, rp1 = self.weight
+        it0, it1, ip0, ip1 = self.idx_i
+        leff = leff_tp.leff_theta
         leff_itp_t = (
             rp0 * rt0 * leff[ip0, it0, :]
             + rp1 * rt0 * leff[ip1, it0, :]
             + rp0 * rt1 * leff[ip0, it1, :]
             + rp1 * rt1 * leff[ip1, it1, :]
         )
-        leff = self.data.leff_phi
+        leff = leff_tp.leff_phi
         leff_itp_p = (
             rp0 * rt0 * leff[ip0, it0, :]
             + rp1 * rt0 * leff[ip1, it0, :]
@@ -165,14 +193,14 @@ class LengthEffProcessing:
         self.l_theta = l_t
         return l_p, l_t
 
-    def get_fft_leff_pol(self):
-        l_p, l_t = self.get_fft_leff_tan()
-        return np.cos(self.angle_pol) * l_p + np.sin(self.angle_pol) * l_t
+    def get_fft_leff_pol(self, leff):
+        l_p, l_t = self.get_fft_leff_tan(leff)
+        return self.cos_pol * l_p + self.sin_pol * l_t
 
     def plot_leff_tan(self):
         plt.figure()
         plt.title(
-            f"Interpolated Leff {self.name} at phi={self.dir_src_deg[0]:.1f}, theta={self.dir_src_deg[1]:.1f}"
+            f"Interpolated Leff {self.leff.name} at phi={self.dir_src_deg[0]:.1f}, theta={self.dir_src_deg[1]:.1f}"
         )
         plt.plot(self.o_pre.freq_out_mhz, self.l_phi.real, label="Leff phi real")
         plt.plot(self.o_pre.freq_out_mhz, self.l_phi.imag, label="Leff phi imag")
@@ -181,14 +209,14 @@ class LengthEffProcessing:
         idx_phi = int(self.dir_src_deg[0])
         idx_theta = int(self.dir_src_deg[1])
         plt.plot(
-            self.data.freq_mhz,
-            self.data.leff_theta.real[idx_phi, idx_theta],
+            self.leff.freq_mhz,
+            self.leff.leff_theta.real[idx_phi, idx_theta],
             "*",
             label="RAW Leff theta real",
         )
         plt.plot(
-            self.data.freq_mhz,
-            self.data.leff_theta.real[idx_phi, (idx_theta + 1) % 90],
+            self.leff.freq_mhz,
+            self.leff.leff_theta.real[idx_phi, (idx_theta + 1) % 90],
             "*",
             label="RAW Leff theta real",
         )
@@ -201,11 +229,9 @@ class DetectorUnitAntenna3Axis:
     """
     Compute DU response at efield
 
-
-
     """
 
-    def __init__(self):
+    def __init__(self, d_leff):
         """
 
         :param name:
@@ -213,33 +239,28 @@ class DetectorUnitAntenna3Axis:
         """
         self.name = "TBD"
         self.pos_du_n = np.zeros(3, dtype=np.float32)
-        self.o_pre = PreComputeInterpolLeff()
+        self.interp_leff = LengthEffectiveInterpolation()
+        self.freq_out_mhz = np.zeros(0)
+        # Hypothesis : all leff storage have same array freq definition
+        self.sn_leff = d_leff["sn"]
+        self.ew_leff = d_leff["ew"]
+        self.up_leff = d_leff["up"]
+        # Hypothesis : all leff storage have same array angle phit theta
+        self.interp_leff.set_sampling_angle(self.sn_leff.theta_deg, self.sn_leff.phi_deg)
 
     def set_name_pos(self, name, pos_n):
         """
-
         :param name:
         :param pos_n: [m] (3,) in stations frame [N]
         """
         self.name = name
         self.pos_du_n = pos_n
+        self._update_dir_source()
 
-    def set_dict_leff(self, d_leff):
-        """
-        set object LengthEffProcessing
-        """
-        # all l_eff share frequency precompute o_pre
-        axis = "sn"
-        self.leff_sn = LengthEffProcessing(axis, d_leff[axis], self.o_pre)
-        axis = "ew"
-        self.leff_ew = LengthEffProcessing(axis, d_leff[axis], self.o_pre)
-        axis = "up"
-        self.leff_up = LengthEffProcessing(axis, d_leff[axis], self.o_pre)
-
-    def set_freq_out_mhz(self, a_freq):
-        self.freq_out_mhz = a_freq
-        freq_in_mhz = self.leff_sn.data.freq_mhz
-        self.o_pre.init_linear_interpol(freq_in_mhz, a_freq)
+    def set_freq_out_mhz(self, out_freq):
+        self.freq_out_mhz = out_freq
+        freq_in_mhz = self.sn_leff.freq_mhz
+        self.interp_leff.o_pre.init_linear_interpol(freq_in_mhz, out_freq)
 
     def set_pos_source(self, pos_n):
         """
@@ -249,21 +270,19 @@ class DetectorUnitAntenna3Axis:
         :type pos_n:
         """
         self.pos_src_n = pos_n
-
-    def update_dir_source(self):
+        self._update_dir_source()
+        
+    def _update_dir_source(self):
         """
         return direction of source in [DU] frame
         :param self:
         :type self:
         """
         diff_n = self.pos_src_n - self.pos_du_n
-        # Hypothesis: small network  (20-30km ) => [N]~[DU] for vector/direction
+        # Hypothesis: small network  (20-30km ) => [N]=[DU]+offset, so direction ar same
+        self.cart_src_du = diff_n
         self.dir_src_du = coord.cart_to_dir_du(diff_n)
-        self.dir_src_du[0] = self.dir_src_du[0]
-        logger.debug(f"phi, d_zen = {np.rad2deg(self.dir_src_du)}")
-        self.leff_sn.set_dir_source(self.dir_src_du)
-        self.leff_ew.set_dir_source(self.dir_src_du)
-        self.leff_up.set_dir_source(self.dir_src_du)
+        self.interp_leff.set_dir_source(self.dir_src_du)
 
     def get_resp_3d_efield_du(self, fft_efield_du):
         """Return fft of antennas response for 3 axis with efield in [N] frame
@@ -272,11 +291,11 @@ class DetectorUnitAntenna3Axis:
         :type fft_efield_du: float (3, n_s)
         """
         resp = np.empty_like(fft_efield_du)
-        fft_leff = self.leff_sn.get_fft_leff_du()
+        fft_leff = self.interp_leff.get_fft_leff_du(self.sn_leff)
         resp[0] = np.sum(fft_leff * fft_efield_du, axis=0)
-        fft_leff = self.leff_ew.get_fft_leff_du()
+        fft_leff = self.interp_leff.get_fft_leff_du(self.ew_leff)
         resp[1] = np.sum(fft_leff * fft_efield_du, axis=0)
-        fft_leff = self.leff_up.get_fft_leff_du()
+        fft_leff = self.interp_leff.get_fft_leff_du(self.up_leff)
         resp[2] = np.sum(fft_leff * fft_efield_du, axis=0)
         return resp
 

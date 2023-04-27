@@ -6,7 +6,7 @@ Created on 20 févr. 2023
 
 import numpy as np
 
-from sradio.simu.ant_resp import PreComputeInterpolLeff
+from sradio.simu.ant_resp import PreComputeInterpolFreq
 
 F_in = np.linspace(20, 30, num=11, endpoint=True)
 D_freq_out = 2.1
@@ -27,7 +27,7 @@ def test_precompute():
     14            29.4        29        9
     15            30.5        out of band
     """
-    pre = PreComputeInterpolLeff()
+    pre = PreComputeInterpolFreq()
     pre.init_linear_interpol(F_in, F_out)
     # index in , in band
     assert pre.idx_first == 10
@@ -41,7 +41,7 @@ def test_precompute():
 
 
 def test_interpol():
-    pre = PreComputeInterpolLeff()
+    pre = PreComputeInterpolFreq()
     pre.init_linear_interpol(F_in, F_out)
     out = pre.get_linear_interpol(F_in)
     # out must be equal to in frequency
