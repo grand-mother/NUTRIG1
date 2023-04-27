@@ -235,6 +235,13 @@ class WienerDeconvolution:
         self.se_ker = (rfft_ker * self.rfft_ker_c).real
 
     def deconv_white_noise(self, measure, sigma):
+        """
+        
+        :param measure: measures from convolution operation
+        :type measure: float (n_s,)
+        :param sigma: white noise with standard deviation sigma > 0
+        :type sigma: float
+        """
         wh_var = sigma ** 2
         rfft_m = sf.rfft(measure)
         # coeff normalisation of se is sig_size
@@ -278,7 +285,7 @@ class WienerDeconvolution:
     def plot_measure_signal(self):
         plt.figure()
         plt.title("measure_signal")
-        plt.plot(self.sig, label="estimated signal")
-        plt.plot(self.measure, label="measure")
+        plt.plot(self.sig, label="Wiener solution")
+        plt.plot(self.measure, label="Measures")
         plt.grid()
         plt.legend()
