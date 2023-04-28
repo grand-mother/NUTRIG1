@@ -7,17 +7,20 @@ import pprint
 import copy
 
 import numpy as np
+import scipy.fft as sf
 import matplotlib.pylab as plt
 
 from sradio.simu.du_resp import SimuDetectorUnitResponse
 from sradio.io.shower.zhaires_master import ZhairesMaster
 import sradio.manage_log as mlg
 from sradio.basis.traces_event import Handling3dTracesOfEvent
+from sradio.basis.efield_event import efield_3d_to_1dpolar
 import sradio.io.sradio_asdf as fsrad
 from sradio.io.shower import zhaires_base as zbase
 from sradio.basis.frame import FrameDuFrameTan
 from sradio.basis import coord
-import scipy.fft as sf
+import sradio.num.signal as srs
+
 
 #
 # Path file
@@ -39,6 +42,33 @@ G_Voc_out = "out_v_oc.asdf"
 #
 logger = mlg.get_logger_for_script(__file__)
 mlg.create_output_for_logger("debug", log_stdout=True)
+
+
+def view_efield_passband(f_simu, idx):
+    f_zh = ZhairesMaster(f_simu)
+    evt = f_zh.get_object_3dtraces()
+    evt.plot_trace_idx(idx)
+    tr_band = srs.filter_butter_band_fft(evt.traces[idx][0], 50*1e-6, 230*1e-6, 1e-6*evt.f_samp_mhz)
+    evt.traces[idx][0] = tr_band
+    tr_band = srs.filter_butter_band_fft(evt.traces[idx][1], 50*1e-6, 230*1e-6, 1e-6*evt.f_samp_mhz)
+    evt.traces[idx][1] = tr_band
+    tr_band = srs.filter_butter_band_fft(evt.traces[idx][2], 50*1e-6, 230*1e-6, 1e-6*evt.f_samp_mhz)
+    evt.traces[idx][2] = tr_band
+    evt.plot_trace_idx(idx)
+
+def view_efield_polar_passband(f_simu, idx):
+    f_zh = ZhairesMaster(f_simu)
+    evt = f_zh.get_object_3dtraces()
+    evt.plot_trace_idx(idx)
+    efield1d, pol_est = efield_3d_to_1dpolar(evt.traces[idx])
+    tr_band = srs.filter_butter_band_fft(efield1d, 50*1e-6, 230*1e-6, 1e-6*evt.f_samp_mhz)
+    plt.plot(evt.t_samples[idx], efield1d, label="E polar")
+    plt.legend()
+    plt.figure()
+    plt.plot(evt.t_samples[idx], tr_band, label="E polar passe band")
+    plt.legend()
+    plt.grid()
+
 
 
 def estimate_polar_vec(trace, threasold=20):
@@ -72,9 +102,12 @@ def test_simu_in_frame_pol(f_simu):
     evt = zmf.get_object_3dtraces()
     d_simu = zmf.get_simu_info()
     pprint.pprint(d_simu)
-    #idx_du = 124, 52; 1123
-    idx_du = 26
+    # idx_du = 124, 52; 123
+    idx_du = 52
     evt.plot_footprint_val_max()
+    sigma = 20
+    noise = np.random.normal(0, sigma, (3, evt.get_size_trace()))
+    evt.traces[idx_du] += noise
     evt.plot_trace_idx(idx_du)
     xmax = zbase.get_simu_xmax(d_simu)
     logger.info(xmax)
@@ -102,18 +135,19 @@ def test_simu_in_frame_pol(f_simu):
     dus.o_ant3d.interp_leff.set_angle_polar(angle_pol)
     fft_v_oc = dus.o_ant3d.get_resp_1d_efield_pol(fft_efield_pol)
     v_oc = sf.irfft(fft_v_oc)[:, : dus.sig_size]
+    v_oc_pol = v_oc
     plt.figure()
     plt.title("V_oc polar")
-    plt.plot(v_oc[0],"k", label="SN")
-    plt.plot(v_oc[1],"y", label="EW")
-    plt.plot(v_oc[2],"b", label="UP")
+    plt.plot(v_oc[0], "k", label="SN")
+    plt.plot(v_oc[1], "y", label="EW")
+    plt.plot(v_oc[2], "b", label="UP")
     plt.legend()
     plt.grid()
     plt.figure()
     plt.title("V_oc DU")
-    plt.plot(dus.v_out[idx_du][0],"k", label="SN")
-    plt.plot(dus.v_out[idx_du][1],"y", label="EW")
-    plt.plot(dus.v_out[idx_du][2],"b", label="UP")
+    plt.plot(dus.v_out[idx_du][0], "k", label="SN")
+    plt.plot(dus.v_out[idx_du][1], "y", label="EW")
+    plt.plot(dus.v_out[idx_du][2], "b", label="UP")
     plt.legend()
     plt.grid()
     #
@@ -137,8 +171,9 @@ def test_simu_in_frame_pol(f_simu):
     plt.plot(dus.v_out[idx_du][2], label="DU")
     plt.legend()
     plt.grid()
-    
-    
+    return v_oc_pol
+
+
 def proto_simu_voc(f_out=None):
     dus = SimuDetectorUnitResponse(G_path_leff)
     event = ZhairesMaster(G_path_simu)
@@ -175,5 +210,7 @@ def proto_read():
 if __name__ == "__main__":
     # proto_simu_voc()
     # proto_read()
-    test_simu_in_frame_pol(G_path_simu)
+    #test_simu_in_frame_pol(G_path_simu)
+    #view_efield_passband("/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2", 52)
+    view_efield_polar_passband("/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2", 52)
     plt.show()

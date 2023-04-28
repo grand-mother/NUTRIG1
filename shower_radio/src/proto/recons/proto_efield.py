@@ -45,6 +45,17 @@ def get_simu_xmax(d_simu):
     return xmax
 
 
+def get_max_energy_spectrum(trace, wiener):
+    es_0 = wiener.get_es_vec(trace[0])
+    ar_es = np.empty((3, es_0.shape[0]), dtype=trace.dtype)
+    ar_es[0] = es_0
+    ar_es[1] = wiener.get_es_vec(trace[1])
+    ar_es[2] = wiener.get_es_vec(trace[2])
+    idx = np.argmax(np.mean(ar_es, axis=1))
+    logger.debug(f"idx max energy spectrum  is {idx}")
+    return ar_es[idx]
+
+
 def check_recons_with_white_noise():
     """
     1) read v_oc file
@@ -58,6 +69,7 @@ def check_recons_with_white_noise():
     4) plot result
     5) estimate polarization or B orthogonality for all traces
     """
+    f_plot_leff = False
     # 1)
     evt, d_simu = fsr.load_asdf(FILE_voc)
     pprint.pprint(d_simu)
@@ -66,11 +78,11 @@ def check_recons_with_white_noise():
     wiener = WienerDeconvolution(evt.f_samp_mhz * 1e-6)
     # 3)
     ant3d = ant.DetectorUnitAntenna3Axis(ant.get_leff_from_files(PATH_leff))
-    # evt.plot_footprint_val_max()
-    idx_du = 55
+    evt.plot_footprint_val_max()
+    idx_du = 52
     evt.plot_trace_idx(idx_du)
     ##add white noise
-    sigma = 10
+    sigma = 50
     noise = np.random.normal(0, sigma, (3, evt.get_size_trace()))
     evt.traces[idx_du] += noise
     evt.plot_trace_idx(idx_du)
@@ -101,31 +113,47 @@ def check_recons_with_white_noise():
     ## get Leff for polar direction  and deconv
     # SN
     leff_pol = ant3d.interp_leff.get_fft_leff_pol(ant3d.sn_leff)
-    ant3d.interp_leff.plot_leff_tan()
-    ant3d.interp_leff.plot_leff_pol()
+    if f_plot_leff:
+        ant3d.interp_leff.plot_leff_tan()
+        ant3d.interp_leff.plot_leff_pol()
     wiener.set_rfft_kernel(leff_pol)
+    ## define energy spectrum of signal
+    es_sig_est = get_max_energy_spectrum(evt.traces[idx_du], wiener)
+    wiener.set_es_sig(es_sig_est)
+    ##
     sig = wiener.deconv_white_noise(evt.traces[idx_du][0], sigma)
+    wiener.plot_measure_signal(" SN")
     sig_sn = sig[: evt.get_size_trace()]
     # EW
     leff_pol = ant3d.interp_leff.get_fft_leff_pol(ant3d.ew_leff)
-    ant3d.interp_leff.plot_leff_tan()
-    ant3d.interp_leff.plot_leff_pol()
+    if f_plot_leff:
+        ant3d.interp_leff.plot_leff_tan()
+        ant3d.interp_leff.plot_leff_pol()
     wiener.set_rfft_kernel(leff_pol)
-    sig = wiener.deconv_white_noise(evt.traces[idx_du][1], sigma)
+    fact = 1
+    sig = wiener.deconv_white_noise(evt.traces[idx_du][1], sigma * fact)
+    wiener.plot_measure_signal(f" fact {fact} to noise for EW")
+    wiener.plot_se()
+    wiener.plot_snr()
     sig_ew = sig[: evt.get_size_trace()]
     # UP
     leff_pol = ant3d.interp_leff.get_fft_leff_pol(ant3d.up_leff)
-    ant3d.interp_leff.plot_leff_tan()
-    ant3d.interp_leff.plot_leff_pol()
+    if f_plot_leff:
+        ant3d.interp_leff.plot_leff_tan()
+        ant3d.interp_leff.plot_leff_pol()
     wiener.set_rfft_kernel(leff_pol)
     sig = wiener.deconv_white_noise(evt.traces[idx_du][2], sigma)
+    wiener.plot_measure_signal(" UP")
+    # wiener.plot_se()
     sig_up = sig[: evt.get_size_trace()]
     # plot sig estimation
     plt.figure()
     plt.title("E field polar estimation for each antenna")
-    plt.plot(sig_sn, "k", label="SN")
-    plt.plot(sig_ew, "y", label="EW")
-    plt.plot(sig_up, "b", label="UP")
+    plt.plot(evt.t_samples[idx_du], sig_sn, "k", label="E pol with SN data")
+    plt.plot(evt.t_samples[idx_du], sig_ew, "y", label="E pol with EW data")
+    plt.plot(evt.t_samples[idx_du], sig_up, "b", label="E pol with UP data")
+    plt.ylabel(r"$\mu$V/m")
+    plt.xlabel(f"ns")    
     plt.grid()
     plt.legend()
     evt.traces[idx_du] = np.array([sig_sn, sig_ew, sig_up])

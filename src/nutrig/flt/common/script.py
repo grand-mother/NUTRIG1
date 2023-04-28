@@ -26,6 +26,6 @@ if __name__ == "__main__":
     signal = tio.read_trace_trend(signalfilename)
     def_sig = tt.PulsExtractor(signal[10:20,:])
     
-    ret = def_sig.extract_pulse_3()
+    ret = def_sig.extract_pulse_1()
     print(ret)
     # noise_histo(signal)

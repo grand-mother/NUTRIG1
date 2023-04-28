@@ -50,13 +50,12 @@ Frame available:
           * d_zen (theta_du) = angle from zenith , d_zen(horizon)=90 degree
 
 
-    [TAN] is the frame associated to Tangential ANtenna
-          source direction (phi_src, theta_src) 
+    [TAN] is the frame associated to Tangential ANtenna in direction of E field source (phi_src, theta_src) 
         * Origin [DU]: position associated with unit vector with direction (phi_src, theta_src)
-        * Cartesian: tangential to the unit sphere around antenna
+        * Cartesian: 
           * X: e_theta, Y: e_phi, Z: normal up to sphere
-        * Spherical
-          * None
+        * Spherical/Polarization angle
+           * only angle between e_theta in trigo orientation, 90 deg for e_phi direction in (e_theta, e_phi) plane
 
 
     Remark:
@@ -81,7 +80,6 @@ from scipy.spatial.transform import Rotation as Rot
 #
 #
 #
-
 logger = getLogger(__name__)
 
 
@@ -90,6 +88,23 @@ class FrameAFrameB:
         self.offset_ab_a = offset_ab_a
         self.rot_b2a = rot_b2a
         self.offset_ab_b = np.matmul(self.rot_b2a.T, offset_ab_a)
+        self._d_frame = {"fa": "a", "fb": "b"}
+
+    def pos_to(self, pos, id_frame):
+        if self._d_frame[id_frame] == "a":
+            return self.pos_to_a(pos)
+        elif self._d_frame[id_frame] == "b":
+            return self.pos_to_b(pos)
+        else:
+            raise
+
+    def vec_to(self, vec, id_frame):
+        if self._d_frame[id_frame] == "a":
+            return self.vec_to_a(vec)
+        elif self._d_frame[id_frame] == "b":
+            return self.vec_to_b(vec)
+        else:
+            raise
 
     def pos_to_a(self, pos_b):
         return self.offset_ab_a + np.matmul(self.rot_b2a, pos_b)
@@ -136,9 +151,8 @@ class FrameDuFrameTan(FrameAFrameB):
         m1 = Rot.from_euler("Y", d_zen).as_matrix()
         m2 = Rot.from_euler("Z", azi_w).as_matrix()
         rot_b2a = np.matmul(m2, m1)
-        logger.debug(rot_b2a)
-        # 
+        # OR
         me = Rot.from_euler("ZY", [azi_w, d_zen]).as_matrix()
-        logger.debug(me)
+        assert np.allclose(rot_b2a, me)
         super().__init__(offset_ab_a, rot_b2a)
-    
+        self._d_frame = {"DU": "a", "TAN": "b"}

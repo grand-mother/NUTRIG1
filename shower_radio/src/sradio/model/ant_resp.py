@@ -3,7 +3,7 @@ Created on 4 avr. 2023
 
 @author: jcolley
 
-Hypothesis: small network  (20-30km ) so => [N]~[DU] for vector/direction
+Hypothesis: small network  (20-30km ) so => [NET]~[DU] for vector/direction
 
 """
 
@@ -249,7 +249,7 @@ class DetectorUnitAntenna3Axis:
         """
 
         :param name:
-        :param pos_n: [m] (3,) in stations frame [N]
+        :param pos_n: [m] (3,) in stations frame [NET]
         """
         self.name = "TBD"
         self.pos_du_n = np.zeros(3, dtype=np.float32)
@@ -265,7 +265,7 @@ class DetectorUnitAntenna3Axis:
     def set_name_pos(self, name, pos_n):
         """
         :param name:
-        :param pos_n: [m] (3,) in stations frame [N]
+        :param pos_n: [m] (3,) in stations frame [NET]
         """
         self.name = name
         self.pos_du_n = pos_n
@@ -278,7 +278,7 @@ class DetectorUnitAntenna3Axis:
 
     def set_pos_source(self, pos_n):
         """
-        set of source mainly Xmax in [N]
+        set of source mainly Xmax in [NET]
 
         :param pos_n:
         :type pos_n:
@@ -293,24 +293,22 @@ class DetectorUnitAntenna3Axis:
         :type self:
         """
         diff_n = self.pos_src_n - self.pos_du_n
-        # Hypothesis: small network  (20-30km ) => [N]=[DU]+offset, so direction ar same
+        # Hypothesis: small network  (20-30km ) => [NET]=[DU]+offset, so direction ar same
         self.cart_src_du = diff_n
         self.dir_src_du = coord.du_cart_to_dir(diff_n)
         self.interp_leff.set_dir_source(self.dir_src_du)
 
     def get_resp_3d_efield_du(self, fft_efield_du):
-        """Return fft of antennas response for 3 axis with efield in [N] frame
+        """Return fft of antennas response for 3 axis with efield in [NET] frame
 
-        :param fft_efield_du: electric field at DU in [N]/[DU]
+        :param fft_efield_du: electric field at DU in [DU]
         :type fft_efield_du: float (3, n_s)
         """
         resp = np.empty_like(fft_efield_du)
-        fft_leff = self.interp_leff.get_fft_leff_du(self.sn_leff)
-        resp[0] = np.sum(fft_leff * fft_efield_du, axis=0)
-        fft_leff = self.interp_leff.get_fft_leff_du(self.ew_leff)
-        resp[1] = np.sum(fft_leff * fft_efield_du, axis=0)
-        fft_leff = self.interp_leff.get_fft_leff_du(self.up_leff)
-        resp[2] = np.sum(fft_leff * fft_efield_du, axis=0)
+        itp = self.interp_leff
+        resp[0] = np.sum(itp.get_fft_leff_du(self.sn_leff) * fft_efield_du, axis=0)
+        resp[1] = np.sum(itp.get_fft_leff_du(self.ew_leff) * fft_efield_du, axis=0)
+        resp[2] = np.sum(itp.get_fft_leff_du(self.up_leff) * fft_efield_du, axis=0)
         return resp
 
     def get_resp_2d_efield_tan(self, efield_tan):
@@ -328,10 +326,8 @@ class DetectorUnitAntenna3Axis:
         :type efield_pol: float32 (n_s,)
         """
         resp = np.empty((3, fft_efield_pol.shape[0]), dtype=fft_efield_pol.dtype)
-        fft_leff = self.interp_leff.get_fft_leff_pol(self.sn_leff)
-        resp[0] = fft_leff * fft_efield_pol
-        fft_leff = self.interp_leff.get_fft_leff_pol(self.ew_leff)
-        resp[1] = fft_leff * fft_efield_pol
-        fft_leff = self.interp_leff.get_fft_leff_pol(self.up_leff)
-        resp[2] = fft_leff * fft_efield_pol
+        itp = self.interp_leff
+        resp[0] = itp.get_fft_leff_pol(self.sn_leff) * fft_efield_pol
+        resp[1] = itp.get_fft_leff_pol(self.ew_leff) * fft_efield_pol
+        resp[2] = itp.get_fft_leff_pol(self.up_leff) * fft_efield_pol
         return resp
