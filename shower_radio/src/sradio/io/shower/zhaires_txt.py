@@ -4,9 +4,10 @@ Created on 28 mars 2023
 @author: jcolley
 
 
-Read ZHAires Outputs simulation, can be convert:
-* object 3D traces
-* ASDF file
+Read ZHAires text Outputs simulation, can be convert:
+* axxx.trace
+* xxxx.sry
+* ant_pos.txt
 
 """
 

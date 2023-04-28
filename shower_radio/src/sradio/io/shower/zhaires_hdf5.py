@@ -47,7 +47,8 @@ class ZhairesSingleEventHdf5(ZhairesSingleEventBase):
 
     def get_simu_info(self):
         """
-        PATH HDF5 simu info with sry file ...
+        UGLY PATCH: I use sry file to extract simulation parameters ...
+        
         #TODO: extract simu info from HDF5 file
         :param self:
         """

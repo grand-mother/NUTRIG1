@@ -14,6 +14,9 @@ from sradio.io import sradio_asdf as srfmt
 
 logger = getLogger(__name__)
 
+#
+# Some functions to extract data from raw SRY dictionary
+#
 
 def get_simu_magnetic_vector(d_simu):
     d_inc = d_simu["geo_mag2"]["inc"]
@@ -27,6 +30,9 @@ def get_simu_xmax(d_simu):
     xmax = 1000.0 * np.array([d_simu["x_max"]["x"], d_simu["x_max"]["y"], d_simu["x_max"]["z"]])
     return xmax
 
+#
+# Mother class for ZhairesSingleEventXXXX
+#
 
 class ZhairesSingleEventBase:
     def __init__(self, path_zhaires):
@@ -37,6 +43,11 @@ class ZhairesSingleEventBase:
         self.status = -1
 
     def get_dict(self):
+        """
+        #TODO : necessary ?
+        :param self:
+        :type self:
+        """
         d_gen = self.d_info.copy()
         d_gen["traces"] = self.traces
         d_gen["t_start"] = self.t_start
@@ -44,4 +55,9 @@ class ZhairesSingleEventBase:
         return d_gen
 
     def write_asdf_file(self, p_file):
+        """
+        
+        :param p_file:
+        :type p_file:
+        """
         srfmt.save_asdf_single_event(p_file, self.get_object_3dtraces(), self.d_info)
