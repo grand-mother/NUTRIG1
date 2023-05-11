@@ -132,7 +132,7 @@ def fit_linear_polar_fast_testB(efield_3d, threasold=20, v_b=V_B):
 
     :param efield_3d: (n_s,3)
     """
-    print("============fit_linear_polar FAST ===============")
+    print("============fit_vec_linear_polar FAST ===============")
     n_elec = np.linalg.norm(efield_3d, axis=1)
     idx_hb = np.where(n_elec > threasold)[0]
     p_raw = efield_3d[idx_hb].T / n_elec[idx_hb]
@@ -175,12 +175,12 @@ def estimate_polar_vec(trace, threasold=20):
     pol_est = np.sum(sple_ok.T * n_elec_2, axis=1) / np.sum(n_elec_2)
     return pol_est
 
-def fit_linear_polar(efield_3d, v_b=V_B):
+def fit_vec_linear_polar(efield_3d, v_b=V_B):
     """
 
     :param efield_3d: (n,3)
     """
-    print("============fit_linear_polar===============")
+    print("============fit_vec_linear_polar===============")
     n_elec = np.linalg.norm(efield_3d, axis=1)
     sum_n = np.sum(n_elec)
     data = [efield_3d, n_elec, sum_n, n_elec.shape[0], 0]
@@ -261,7 +261,7 @@ def test_polar_geo_mag_cor(efield_3d, threasold=20, v_b=V_B):
 def test_raw_efield():
     trace, f_mhz = load_file_trace()
     plot_trace(trace, "raw", f_mhz)
-    fit_linear_polar(trace)
+    fit_vec_linear_polar(trace)
     test_polar_geo_mag(trace)
 
 
@@ -270,7 +270,7 @@ def test_band_filter_efield():
     # plot_trace(trace_raw, "raw", f_mhz)
     trace = filter_butter_band_causal(trace_raw, 50, 250, f_mhz, True)
     plot_trace(trace, "band filter", f_mhz)
-    fit_linear_polar(trace)
+    fit_vec_linear_polar(trace)
     test_polar_geo_mag(trace)
 
 
@@ -280,7 +280,7 @@ def test_band_filter_efield_hc():
     trace = filter_butter_band_causal_hc(trace_raw, 50, 250, f_mhz, True)
     plot_trace(trace, "band filter hc", f_mhz)
     fit_linear_polar_fast(trace)
-    fit_linear_polar(trace)
+    fit_vec_linear_polar(trace)
     test_polar_geo_mag(trace)
     test_polar_geo_mag_cor(trace)
 
@@ -298,7 +298,7 @@ def test_polar_efield(path_simu):
     event.plot_trace_idx(idx_du)
     trace = event.traces[idx_du].T
     fit_linear_polar_fast(trace, 50,  v_b=v_b)
-    fit_linear_polar(trace, v_b)
+    fit_vec_linear_polar(trace, v_b)
     test_polar_geo_mag_cor(trace,50,  v_b=v_b)
 
 
@@ -315,7 +315,7 @@ def test_polar_voc(f_asdf):
     event.plot_trace_idx(idx_du)
     trace = event.traces[idx_du].T
     fit_linear_polar_fast_testB(trace, 50, v_b=v_b)
-    fit_linear_polar(trace, v_b)
+    fit_vec_linear_polar(trace, v_b)
     test_polar_geo_mag_cor(trace,50, v_b=v_b)
 
 

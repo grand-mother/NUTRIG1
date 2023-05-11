@@ -14,7 +14,7 @@ from sradio.simu.du_resp import SimuDetectorUnitResponse
 from sradio.io.shower.zhaires_master import ZhairesMaster
 import sradio.manage_log as mlg
 from sradio.basis.traces_event import Handling3dTracesOfEvent
-from sradio.basis.efield_event import efield_3d_to_1dpolar
+from sradio.basis.efield_event import efield_in_polar_frame
 import sradio.io.sradio_asdf as fsrad
 from sradio.io.shower import zhaires_base as zbase
 from sradio.basis.frame import FrameDuFrameTan
@@ -60,12 +60,12 @@ def view_efield_polar_passband(f_simu, idx):
     f_zh = ZhairesMaster(f_simu)
     evt = f_zh.get_object_3dtraces()
     evt.plot_trace_idx(idx)
-    efield1d, pol_est = efield_3d_to_1dpolar(evt.traces[idx])
+    efield1d, pol_est = efield_in_polar_frame(evt.traces[idx])
     tr_band = srs.filter_butter_band_fft(efield1d, 50*1e-6, 230*1e-6, 1e-6*evt.f_samp_mhz)
     plt.plot(evt.t_samples[idx], efield1d, label="E polar")
     plt.legend()
     plt.figure()
-    plt.plot(evt.t_samples[idx], tr_band, label="E polar passe band")
+    plt.plot(evt.t_samples[idx], tr_band, label="E polar antenna bandwidth")
     plt.legend()
     plt.grid()
 
@@ -187,8 +187,7 @@ def proto_simu_voc(f_out=None):
     dus.set_data_shower(shower)
     dus.compute_du_all()
     dus.o_ant3d.interp_leff.plot_leff_tan()
-    # dus.o_ant3d.leff_sn.plot_leff_tan()
-    # dus.o_ant3d.leff_up.plot_leff_tan()
+    dus.o_ant3d.interp_leff.get_fft_leff_du(dus.o_ant3d.sn_leff)
     print(data.traces[0])
     print(dus.v_out[0])
     data.plot_footprint_val_max()
@@ -208,9 +207,11 @@ def proto_read():
 
 
 if __name__ == "__main__":
-    # proto_simu_voc()
+    #proto_simu_voc()
     # proto_read()
     #test_simu_in_frame_pol(G_path_simu)
     #view_efield_passband("/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2", 52)
-    view_efield_polar_passband("/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2", 52)
+    view_efield_polar_passband(
+        "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2",
+        24)
     plt.show()

@@ -17,6 +17,7 @@ Frame available:
           * latitide geodetic
           * altitude:
               * above ellipsoide or geoide EGM96
+              
 
     [XC] is the frame associated to XCore of air shower
         * Origin [W84]: xcore position
@@ -27,6 +28,7 @@ Frame available:
           * d_zen (theta_n) = angle from zenith , d_zen(horizon)=90 degree
         * Remark : so in fact it's a familly of frame 
         * Example: ZHaireS simulation     
+        
 
     [NET] is the frame associated to NETwork stations
         * Origin [W84]: can be center of network 
@@ -54,10 +56,16 @@ Frame available:
         * Origin [DU]: position associated with unit vector with direction (phi_src, theta_src)
         * Cartesian: 
           * X: e_theta, Y: e_phi, Z: normal up to sphere
-        * Spherical/Polarization angle
+        * Spherical
            * only angle between e_theta in trigo orientation, 90 deg for e_phi direction in (e_theta, e_phi) plane
-
-
+           * is vector is p linear polarization, the angle is polar angle
+           
+           
+    [POL] is the frame associated to linear polarization of E field
+         * Origin : center of antenna 
+         * Cartesian: only one dimension is used
+           * X: p is linear polarization. p is in plane (e_theta,e_phi) of [TAN]
+         
     Remark:
        In case of small network (20-30km) [NET]/[XC] and [DU] are equivalent for vector orientation 
        because local normal and magnetic field can be considered as constant on this aera.
@@ -124,7 +132,7 @@ class FrameDuFrameTan(FrameAFrameB):
 
     rot_b2a or rot_du2tan is defined by 2 elementaries rotation
 
-     [DU]   [DU]    [I]
+     [DU]     [DU]    [I]
     M     = M2    x M1
      [TAN]    [I]     [TAN]
 

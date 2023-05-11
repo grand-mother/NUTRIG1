@@ -150,17 +150,6 @@ class LengthEffectiveInterpolation:
         self.cos_pol = np.cos(self.angle_pol)
         self.sin_pol = np.sin(self.angle_pol)
 
-    def get_fft_leff_du(self, leff):
-        l_p, l_t = self.get_fft_leff_tan(leff)
-        p_rad = self.dir_src_rad[0]
-        t_rad = self.dir_src_rad[1]
-        c_t, s_t = np.cos(t_rad), np.sin(t_rad)
-        c_p, s_p = np.cos(p_rad), np.sin(p_rad)
-        l_x = l_t * c_t * c_p - s_p * l_p
-        l_y = l_t * c_t * s_p + c_p * l_p
-        l_z = -s_t * l_t
-        return np.array([l_x, l_y, l_z])
-
     def get_fft_leff_tan(self, leff_tp):
         self.leff = leff_tp
         rt0, rt1, rp0, rp1 = self.weight
@@ -192,6 +181,17 @@ class LengthEffectiveInterpolation:
         self.l_phi = l_p
         self.l_theta = l_t
         return l_p, l_t
+
+    def get_fft_leff_du(self, leff):
+        l_p, l_t = self.get_fft_leff_tan(leff)
+        p_rad = self.dir_src_rad[0]
+        t_rad = self.dir_src_rad[1]
+        c_t, s_t = np.cos(t_rad), np.sin(t_rad)
+        c_p, s_p = np.cos(p_rad), np.sin(p_rad)
+        l_x = l_t * c_t * c_p - s_p * l_p
+        l_y = l_t * c_t * s_p + c_p * l_p
+        l_z = -s_t * l_t
+        return np.array([l_x, l_y, l_z])
 
     def get_fft_leff_pol(self, leff):
         l_p, l_t = self.get_fft_leff_tan(leff)
