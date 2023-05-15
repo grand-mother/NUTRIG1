@@ -4,7 +4,7 @@ import os.path
 import h5py
 import numpy as np
 
-from sradio.basis.traces_event import Handling3dTracesOfEvent
+from sradio.basis.efield_event import HandlingEfieldOfEvent
 from .zhaires_base import ZhairesSingleEventBase
 from .zhaires_txt import ZhairesSingleEventText
 
@@ -67,7 +67,7 @@ class ZhairesSingleEventHdf5(ZhairesSingleEventBase):
         """
         self._get_traces()
         self._get_antspos()
-        o_tevent = Handling3dTracesOfEvent(self.dir_simu)
+        o_tevent = HandlingEfieldOfEvent(self.dir_simu)
         #  MHz/ns: 1e-6/1e-9 = 1e3
         sampling_freq_mhz = 1e3 / self.t_sample_ns
         o_tevent.init_traces(
@@ -77,5 +77,7 @@ class ZhairesSingleEventHdf5(ZhairesSingleEventBase):
             sampling_freq_mhz,
         )
         o_tevent.init_network(self.ants_pos)
+        i_sim = self.get_simu_info()
+        o_tevent.network.name += f"\nXmax dist {i_sim['x_max']['dist']:.1f}km, (azi ,zenith): {i_sim['shower_azimuth']:.1f}, {i_sim['shower_zenith']:.1f}deg"
         o_tevent.set_unit_axis(r"$\mu$V/m", "cart")
         return o_tevent

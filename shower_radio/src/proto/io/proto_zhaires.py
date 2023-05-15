@@ -103,7 +103,7 @@ def try_zhaires_convert():
     simu = simu_zh.get_object_3dtraces()
     simu.plot_footprint_val_max()
     simu.plot_footprint_time_max()
-    simu.plot_footprint_4d()
+    simu.plot_footprint_4d_max()
 
 def test_file_sry(file_sry):
     simu_zh = zh.ZhairesSingleEventText(file_sry)

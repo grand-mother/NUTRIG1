@@ -62,6 +62,7 @@ def view_efield_polar_passband(f_simu, idx):
     evt.plot_trace_idx(idx)
     efield1d, pol_est = efield_in_polar_frame(evt.traces[idx])
     tr_band = srs.filter_butter_band_fft(efield1d, 50*1e-6, 230*1e-6, 1e-6*evt.f_samp_mhz)
+    plt.figure()
     plt.plot(evt.t_samples[idx], efield1d, label="E polar")
     plt.legend()
     plt.figure()
@@ -213,5 +214,5 @@ if __name__ == "__main__":
     #view_efield_passband("/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2", 52)
     view_efield_polar_passband(
         "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2",
-        24)
+        52)
     plt.show()

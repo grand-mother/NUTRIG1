@@ -173,8 +173,9 @@ class DetectorUnitNetwork:
 
         fig, ax1 = plt.subplots(1, 1)
         ax1.set_title(f"{self.name}\nDU network : {title}")
-        vmin = a_values.min()
-        vmax = a_values.max()
+        vmin = np.nanmin(a_values)
+        vmax = np.nanmax(a_values)
+        print(vmin,vmax )
         norm_user = colors.LogNorm(vmin=vmin, vmax=vmax)
         if scale == "log":
             my_cmaps = "Reds"
@@ -205,7 +206,7 @@ class DetectorUnitNetwork:
         if traces:
             plt.connect("button_press_event", on_click)
 
-    def plot_footprint_4d(self, o_tr, title=""):  # pragma: no cover
+    def plot_footprint_4d(self, o_tr, v_plot, title="", same_scale=True):  # pragma: no cover
         """
         Plot footprint of time max by DU and value max by component
 
@@ -215,16 +216,17 @@ class DetectorUnitNetwork:
         :type title: str
         """
 
-        def subplot(plt_axis, a_values, traces=None, cpnt="", scale="log"):
+        def subplot(plt_axis, a_values, cpnt="", scale="log"):
             ax1 = plt_axis
             size_circle = 80
             cur_idx_plot = -1
-
+            
             ax1.set_title(cpnt)
             if type(scale) is str:
                 my_cmaps = "Blues"
-                vmin = a_values.min()
-                vmax = a_values.max()
+                vmin = np.nanmin(a_values)
+                vmax = np.nanmax(a_values)
+                print(vmin, vmax)
                 norm_user = colors.LogNorm(vmin=vmin, vmax=vmax)
                 if scale == "log":
                     pass
@@ -233,7 +235,6 @@ class DetectorUnitNetwork:
                 else:
                     logger.error(f'scale must be in ["log","lin"]')
             else:
-                print("Use scale as norm")
                 norm_user = scale
                 my_cmaps = "Reds"
             scm = ax1.scatter(
@@ -254,18 +255,20 @@ class DetectorUnitNetwork:
         fig, ax = plt.subplots(2, 2)
 
         t_max, _ = o_tr.get_tmax_vmax()
-        v_max = np.max(np.abs(o_tr.traces), axis=2)
         ret_scat = subplot(ax[0, 0], t_max, cpnt="Time of max value", scale="lin")
         fig.colorbar(ret_scat)
         # same scale for
-        vmin = v_max.min()
-        vmax = v_max.max()
-        norm_user = colors.Normalize(vmin=vmin, vmax=vmax)
-        ret_scat = subplot(ax[1, 0], v_max[:, 0], o_tr, f"{o_tr.axis_name[0]}", norm_user)
+        if same_scale:
+            vmin = np.nanmin(v_plot)
+            vmax = np.nanmax(v_plot)
+            norm_user = colors.Normalize(vmin=vmin, vmax=vmax)
+        else:
+            norm_user = "lin"
+        ret_scat = subplot(ax[1, 0], v_plot[:, 0], f"{title} {o_tr.axis_name[0]}", norm_user)
         fig.colorbar(ret_scat)
-        ret_scat = subplot(ax[0, 1], v_max[:, 1], o_tr, f"{o_tr.axis_name[1]}", norm_user)
+        ret_scat = subplot(ax[0, 1], v_plot[:, 1], f"{title} {o_tr.axis_name[1]}", norm_user)
         fig.colorbar(ret_scat)
-        ret_scat = subplot(ax[1, 1], v_max[:, 2], o_tr, f"{o_tr.axis_name[2]}", norm_user)
+        ret_scat = subplot(ax[1, 1], v_plot[:, 2], f"{title} {o_tr.axis_name[2]}", norm_user)
         fig.colorbar(ret_scat)
 
     def plot_footprint_time(self, a_time, a3_values, title=""):  # pragma: no cover

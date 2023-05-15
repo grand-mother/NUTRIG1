@@ -308,7 +308,7 @@ class Handling3dTracesOfEvent:
                     scaling="spectrum",
                 )
                 plt.semilogy(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
-                #plt.plot(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
+                # plt.plot(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
         plt.ylabel(f"({self.unit_trace})^2")
         plt.xlabel(f"MHz\nFile: {self.name}")
         plt.xlim([0, 400])
@@ -359,17 +359,18 @@ class Handling3dTracesOfEvent:
         plt.xlabel("ns")
         plt.grid()
 
-    def plot_footprint_4d(self):  # pragma: no cover
+    def plot_footprint_4d_max(self):  # pragma: no cover
         """
         Plot time max and max value by component
         """
-        self.network.plot_footprint_4d(self, "3D")
+        v_max = np.max(np.abs(self.traces), axis=2)
+        self.network.plot_footprint_4d(self, v_max, "3D")
 
     def plot_footprint_val_max(self):  # pragma: no cover
         """
         Plot footprint max value
         """
-        self.network.plot_footprint_1d(self.get_max_norm(), f"Max ||trace|| of {self.name}", self)
+        self.network.plot_footprint_1d(self.get_max_norm(), f"Max ||trace||", self)
 
     def plot_footprint_time_max(self):  # pragma: no cover
         """

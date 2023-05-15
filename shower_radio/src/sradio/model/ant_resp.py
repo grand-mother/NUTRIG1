@@ -102,6 +102,9 @@ class PreComputeInterpolFreq:
 
 
 class LengthEffectiveInterpolation:
+    """
+    From AntennaProcessing class of https://github.com/grand-mother/grand
+    """
     def __init__(self):
         self.o_pre = PreComputeInterpolFreq()
 

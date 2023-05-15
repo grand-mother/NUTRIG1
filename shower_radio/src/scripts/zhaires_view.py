@@ -91,7 +91,7 @@ def main():
         o_tevent.plot_all_traces_as_image()
     if args.footprint:
         o_tevent.plot_footprint_val_max()
-        o_tevent.plot_footprint_4d()
+        o_tevent.plot_footprint_4d_max()
     if args.time_val:
         o_tevent.plot_footprint_time_max()
     if args.trace != "":
