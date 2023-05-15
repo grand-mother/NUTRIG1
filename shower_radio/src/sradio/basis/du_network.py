@@ -175,7 +175,6 @@ class DetectorUnitNetwork:
         ax1.set_title(f"{self.name}\nDU network : {title}")
         vmin = np.nanmin(a_values)
         vmax = np.nanmax(a_values)
-        print(vmin,vmax )
         norm_user = colors.LogNorm(vmin=vmin, vmax=vmax)
         if scale == "log":
             my_cmaps = "Reds"
@@ -226,7 +225,6 @@ class DetectorUnitNetwork:
                 my_cmaps = "Blues"
                 vmin = np.nanmin(a_values)
                 vmax = np.nanmax(a_values)
-                print(vmin, vmax)
                 norm_user = colors.LogNorm(vmin=vmin, vmax=vmax)
                 if scale == "log":
                     pass

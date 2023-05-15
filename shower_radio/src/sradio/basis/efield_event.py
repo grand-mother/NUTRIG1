@@ -104,8 +104,9 @@ def fit_vec_linear_polar_l2(trace, threshold=20):
     n_elec = np.linalg.norm(trace, axis=0)
     idx_hb = np.where(n_elec > threshold)[0]
     if len(idx_hb) == 0:
-        return np.array([[np.nan,np.nan,np.nan]]), np.array([])
-    #logger.debug(f"{len(idx_hb)} samples out noise :\n{idx_hb}")
+        # set to nan to be excluded by plot
+        return np.array([[np.nan, np.nan, np.nan]]), np.array([])
+    # logger.debug(f"{len(idx_hb)} samples out noise :\n{idx_hb}")
     # to unit vector for samples out noise
     # (3,ns)/(ns) => OK
     n_elec_hb = n_elec[idx_hb]
@@ -191,7 +192,8 @@ def check_vec_linear_polar(trace, idx_on, vec_pol):
     :type vec_pol:float (3,)
     """
     if idx_on is not None:
-        if len(idx_on)  == 0:
+        if len(idx_on) == 0:
+            # set to nan to be excluded by plot
             return np.nan, np.nan
         trace_on = trace[:, idx_on]
     else:
@@ -202,23 +204,25 @@ def check_vec_linear_polar(trace, idx_on, vec_pol):
     # plt.plot(idx_on, trace_on[1], label="y")
     # plt.plot(idx_on, trace_on[2], label="z")
     norm_tr = np.linalg.norm(trace_on, axis=0)
-    #logger.info(norm_tr)
+    # logger.info(norm_tr)
     tr_u = trace_on / norm_tr
-    #logger.info(tr_u)
+    # logger.info(tr_u)
     cos_angle = np.dot(vec_pol, tr_u)
     idx_pb = np.argwhere(cos_angle > 1)
     cos_angle[idx_pb] = 1.0
-    #logger.info(cos_angle)
+    # logger.info(cos_angle)
     assert cos_angle.shape[0] == idx_on.shape[0]
     angles = np.rad2deg(np.arccos(cos_angle))
-    #logger.info(angles)
+    # logger.info(angles)
+    # for measures in opposite direction
     idx_neg = np.where(angles > 180)[0]
     angles[idx_neg] -= 180
     idx_neg = np.where(angles > 90)[0]
     angles[idx_neg] = 180 - angles[idx_neg]
-    #logger.info(angles)
+    # logger.info(angles)
     assert np.alltrue(angles >= 0)
     mean, std = angles.mean(), angles.std()
+    # weighted estimation
     norm2_tr = np.sum(trace_on * trace_on, axis=0)
     prob = norm2_tr / np.sum(norm2_tr)
     mean_w = np.sum(angles * norm_tr * norm_tr) / np.sum(norm_tr * norm_tr)
@@ -226,10 +230,59 @@ def check_vec_linear_polar(trace, idx_on, vec_pol):
     diff = angles - mean_w2
     std_w2 = np.sqrt(np.sum(prob * diff * diff))
     logger.debug(f"Angle error: {mean}, sigma {std} ")
-    logger.debug(f"Angle error w: {mean_w2} {std_w2}")
+    logger.debug(f"Angle error w2: {mean_w2} {std_w2}")
+    prob = norm_tr / np.sum(norm_tr)
+    assert np.isclose(prob.sum(), 1)
+    mean_w1 = np.sum(angles * prob)
+    diff = angles - mean_w2
+    std_w1 = np.sqrt(np.sum(prob * diff * diff))
+    logger.debug(f"Angle error w1: {mean_w1} {std_w1}")
     # plt.figure()
     # plt.hist(angles)
     return mean_w2, std_w2
+
+
+def check_vec_linear_polar_l2(trace, idx_on, vec_pol):
+    """
+
+    :param trace_on: sample of trace out noise
+    :type trace_on: float (3,n) n number of sample
+    :param vec_pol:
+    :type vec_pol:float (3,)
+    """
+    if idx_on is not None:
+        if len(idx_on) == 0:
+            # set to nan to be excluded by plot
+            return np.nan, np.nan
+        trace_on = trace[:, idx_on]
+    else:
+        trace_on = trace
+        idx_on = np.arange(trace.shape[1])
+    norm_tr = np.linalg.norm(trace_on, axis=0)
+    # logger.info(norm_tr)
+    tr_u = trace_on / norm_tr
+    # logger.info(tr_u)
+    cos_angle = np.dot(vec_pol, tr_u)
+    idx_pb = np.argwhere(cos_angle > 1)
+    cos_angle[idx_pb] = 1.0
+    # logger.info(cos_angle)
+    assert cos_angle.shape[0] == idx_on.shape[0]
+    angles = np.rad2deg(np.arccos(cos_angle))
+    # logger.info(angles)
+    # for measures in opposite direction
+    idx_neg = np.argwhere(angles > 180)
+    angles[idx_neg] -= 180
+    idx_neg = np.argwhere(angles > 90)
+    angles[idx_neg] = 180 - angles[idx_neg]
+    # logger.info(angles)
+    assert np.alltrue(angles >= 0)
+    prob = norm_tr / np.sum(norm_tr)
+    assert np.isclose(prob.sum(), 1)
+    mean_l2 = np.sum(angles * prob)
+    diff = angles - mean_l2
+    std_l2 = np.sqrt(np.sum(prob * diff * diff))
+    logger.debug(f"Angle error l2: {mean_l2} {std_l2}")
+    return mean_l2, std_l2
 
 
 def efield_in_polar_frame(efield3d, threshold=40):
@@ -269,12 +322,16 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
         return a_vec_pol
 
     def plot_polar_check_fit(self, threshold=40):
-        a_vec_pol = np.empty((self.get_nb_du(), 3), dtype=np.float32)
-        a_stat = np.empty((self.get_nb_du(), 2), dtype=np.float32)
+        nb_du = self.get_nb_du()
+        a_vec_pol = np.empty((nb_du, 3), dtype=np.float32)
+        a_stat = np.empty((nb_du, 2), dtype=np.float32)
+        a_nb_sple = np.empty(nb_du, dtype=np.float32)
         for idx in range(self.get_nb_du()):
-            vec, idx_on = fit_vec_linear_polar_l2(self.traces[idx])
+            vec, idx_on = fit_vec_linear_polar_l2(self.traces[idx], threshold)
             a_vec_pol[idx, :] = vec.ravel()
-            a_stat[idx, 0], a_stat[idx, 1] = check_vec_linear_polar(self.traces[idx], idx_on, vec)
+            a_nb_sple[idx] = len(idx_on)
+            a_stat[idx, 0], a_stat[idx, 1] = check_vec_linear_polar_l2(self.traces[idx], idx_on, vec)
         self.network.plot_footprint_4d(self, a_vec_pol, "Unit polar vector", False)
         self.network.plot_footprint_1d(a_stat[:, 0], "Mean of polar angle fit residu", scale="lin")
         self.network.plot_footprint_1d(a_stat[:, 1], "Std of polar angle fit residu", scale="lin")
+        self.network.plot_footprint_1d(a_nb_sple, "Nunber of sample used to fit polar vector", scale="lin")
