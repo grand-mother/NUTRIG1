@@ -56,7 +56,7 @@ def get_max_energy_spectrum(trace, wiener):
     return ar_es[idx]
 
 
-def check_recons_with_white_noise():
+def check_recons_with_white_noise_ref():
     """
     1) read v_oc file
     2) create wiener object
@@ -70,6 +70,8 @@ def check_recons_with_white_noise():
     5) estimate polarization or B orthogonality for all traces
     """
     f_plot_leff = False
+    idx_du = 52
+    sigma = 100
     # 1)
     evt, d_simu = fsr.load_asdf(FILE_voc)
     pprint.pprint(d_simu)
@@ -79,10 +81,8 @@ def check_recons_with_white_noise():
     # 3)
     ant3d = ant.DetectorUnitAntenna3Axis(ant.get_leff_from_files(PATH_leff))
     evt.plot_footprint_val_max()
-    idx_du = 52
     evt.plot_trace_idx(idx_du)
     ##add white noise
-    sigma = 50
     noise = np.random.normal(0, sigma, (3, evt.get_size_trace()))
     evt.traces[idx_du] += noise
     evt.plot_trace_idx(idx_du)
@@ -92,7 +92,7 @@ def check_recons_with_white_noise():
     size_with_pad, freqs_out_mhz = get_fastest_size_rfft(
         evt.get_size_trace(),
         evt.f_samp_mhz,
-        1.2,
+        1.4,
     )
     ant3d.set_freq_out_mhz(freqs_out_mhz)
     ## compute polarization angle

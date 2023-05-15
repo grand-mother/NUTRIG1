@@ -183,7 +183,7 @@ def fit_vec_linear_polar_hls(trace):
     return vec_pol
 
 
-def check_vec_linear_polar(trace, idx_on, vec_pol):
+def check_vec_linear_polar_proto(trace, idx_on, vec_pol):
     """
 
     :param trace_on: sample of trace out noise
@@ -295,7 +295,7 @@ def efield_in_polar_frame(efield3d, threshold=40):
     """
     pol_est, idx_on = fit_vec_linear_polar_l2(efield3d, threshold)
     # mean, std = check_vec_linear_polar(efield3d, None, pol_est)
-    mean, std = check_vec_linear_polar(efield3d, idx_on, pol_est)
+    check_vec_linear_polar_l2(efield3d, idx_on, pol_est)
     efield1d = np.dot(efield3d.T, pol_est)
     fit_vec_linear_polar_hls(efield3d)
     # fit_vec_linear_polar_with_max(efield3d)
@@ -334,4 +334,4 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
         self.network.plot_footprint_4d(self, a_vec_pol, "Unit polar vector", False)
         self.network.plot_footprint_1d(a_stat[:, 0], "Mean of polar angle fit residu", scale="lin", unit="deg")
         self.network.plot_footprint_1d(a_stat[:, 1], "Std of polar angle fit residu", scale="lin", unit="deg")
-        self.network.plot_footprint_1d(a_nb_sple, "Nunber of sample used to fit polar vector", scale="lin")
+        self.network.plot_footprint_1d(a_nb_sple, "Nunber of samples used to fit polar vector", scale="lin")
