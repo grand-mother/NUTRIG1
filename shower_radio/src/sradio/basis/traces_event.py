@@ -364,17 +364,19 @@ class Handling3dTracesOfEvent:
         Plot time max and max value by component
         """
         v_max = np.max(np.abs(self.traces), axis=2)
-        self.network.plot_footprint_4d(self, v_max, "3D")
+        self.network.plot_footprint_4d(self, v_max, "3D", unit=self.unit_trace)
 
     def plot_footprint_val_max(self):  # pragma: no cover
         """
         Plot footprint max value
         """
-        self.network.plot_footprint_1d(self.get_max_norm(), f"Max ||trace||", self)
+        self.network.plot_footprint_1d(
+            self.get_max_norm(), f"Max ||trace||", self, unit=self.unit_trace
+        )
 
     def plot_footprint_time_max(self):  # pragma: no cover
         """
         Plot footprint time associated to max value
         """
         tmax, _ = self.get_tmax_vmax()
-        self.network.plot_footprint_1d(tmax, "Time of max value", self, scale="lin")
+        self.network.plot_footprint_1d(tmax, "Time of max value", self, scale="lin", unit="ns")

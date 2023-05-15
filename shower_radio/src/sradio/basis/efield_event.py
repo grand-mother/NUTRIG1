@@ -332,6 +332,6 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
             a_nb_sple[idx] = len(idx_on)
             a_stat[idx, 0], a_stat[idx, 1] = check_vec_linear_polar_l2(self.traces[idx], idx_on, vec)
         self.network.plot_footprint_4d(self, a_vec_pol, "Unit polar vector", False)
-        self.network.plot_footprint_1d(a_stat[:, 0], "Mean of polar angle fit residu", scale="lin")
-        self.network.plot_footprint_1d(a_stat[:, 1], "Std of polar angle fit residu", scale="lin")
+        self.network.plot_footprint_1d(a_stat[:, 0], "Mean of polar angle fit residu", scale="lin", unit="deg")
+        self.network.plot_footprint_1d(a_stat[:, 1], "Std of polar angle fit residu", scale="lin", unit="deg")
         self.network.plot_footprint_1d(a_nb_sple, "Nunber of sample used to fit polar vector", scale="lin")

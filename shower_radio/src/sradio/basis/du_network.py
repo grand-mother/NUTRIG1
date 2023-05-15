@@ -134,7 +134,9 @@ class DetectorUnitNetwork:
         plt.ylabel("[m]")
         plt.xlabel("[m]")
 
-    def plot_footprint_1d(self, a_values, title="", traces=None, scale="log"):  # pragma: no cover
+    def plot_footprint_1d(
+        self, a_values, title="", traces=None, scale="log", unit=""
+    ):  # pragma: no cover
         """
         Interactive footprint double click on DU draw trace associated and power spectrum
 
@@ -192,7 +194,7 @@ class DetectorUnitNetwork:
             edgecolors="k",
             cmap=my_cmaps,
         )
-        fig.colorbar(scm)
+        fig.colorbar(scm, label=unit)
         plt.xlabel("[m] => North")
         plt.ylabel(r"[m] => West (azi= +90 deg)")
         ax1.grid()
@@ -205,7 +207,9 @@ class DetectorUnitNetwork:
         if traces:
             plt.connect("button_press_event", on_click)
 
-    def plot_footprint_4d(self, o_tr, v_plot, title="", same_scale=True):  # pragma: no cover
+    def plot_footprint_4d(
+        self, o_tr, v_plot, title="", same_scale=True, unit=""
+    ):  # pragma: no cover
         """
         Plot footprint of time max by DU and value max by component
 
@@ -219,7 +223,7 @@ class DetectorUnitNetwork:
             ax1 = plt_axis
             size_circle = 80
             cur_idx_plot = -1
-            
+
             ax1.set_title(cpnt)
             if type(scale) is str:
                 my_cmaps = "Blues"
@@ -254,7 +258,7 @@ class DetectorUnitNetwork:
 
         t_max, _ = o_tr.get_tmax_vmax()
         ret_scat = subplot(ax[0, 0], t_max, cpnt="Time of max value", scale="lin")
-        fig.colorbar(ret_scat)
+        fig.colorbar(ret_scat, label="ns")
         # same scale for
         if same_scale:
             vmin = np.nanmin(v_plot)
@@ -263,11 +267,11 @@ class DetectorUnitNetwork:
         else:
             norm_user = "lin"
         ret_scat = subplot(ax[1, 0], v_plot[:, 0], f"{title} {o_tr.axis_name[0]}", norm_user)
-        fig.colorbar(ret_scat)
+        fig.colorbar(ret_scat, label=unit)
         ret_scat = subplot(ax[0, 1], v_plot[:, 1], f"{title} {o_tr.axis_name[1]}", norm_user)
-        fig.colorbar(ret_scat)
+        fig.colorbar(ret_scat, label=unit)
         ret_scat = subplot(ax[1, 1], v_plot[:, 2], f"{title} {o_tr.axis_name[2]}", norm_user)
-        fig.colorbar(ret_scat)
+        fig.colorbar(ret_scat, label=unit)
 
     def plot_footprint_time(self, a_time, a3_values, title=""):  # pragma: no cover
         """
