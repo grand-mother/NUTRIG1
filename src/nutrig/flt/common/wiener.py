@@ -56,7 +56,7 @@ class WienerDeconvolution:
         self.measure = measure
         return sig
 
-    def plot_se(self, loglog=True):
+    def plot_spectrum(self, loglog=True):
         freq_hz = sf.rfftfreq(self.sig_size, 1 / self.f_hz)
         print(self.sig_size, freq_hz.shape)
         plt.figure()
@@ -423,7 +423,7 @@ def test_class_wiener():
     deconv = wiener.deconv_white_noise(sig_conv_noise, sigma)
     # plot wiener
     wiener.plot_measure_signal()
-    wiener.plot_se()
+    wiener.plot_spectrum()
     wiener.plot_snr()
     # plot
     smooth = Smoother(15, s_sig)

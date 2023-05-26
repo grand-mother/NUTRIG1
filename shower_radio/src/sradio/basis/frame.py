@@ -87,7 +87,6 @@ from scipy.spatial.transform import Rotation as Rot
 
 #
 #
-#
 logger = getLogger(__name__)
 
 
@@ -140,7 +139,8 @@ class FrameDuFrameTan(FrameAFrameB):
       * M1 is rotation around z for angle azi_w in positive way
       * M2 is rotation around y for angle d_zen in positive way
 
-    So with euler notation and scipy API M ie rot_b2a) is Rot.from_euler('yz', [d_zen, azi_w])
+    So with euler notation and scipy API M ie rot_b2a) is Rot.from_euler('YZ', [d_zen, azi_w])
+    with upper case X,Y,Z and not lower case x,y,z (see documentation ) 
 
     ..note:
         [DU]       <->   [TAN]

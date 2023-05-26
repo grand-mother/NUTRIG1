@@ -320,6 +320,11 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
         for idx in range(self.get_nb_du()):
             a_vec_pol[idx, :], _ = fit_vec_linear_polar_l2(self.traces[idx], threshold)
         return a_vec_pol
+    
+    # def get_polar_angle(self, threshold=40):
+    #     a_pol_vec_du = self.get_polar_vec(threshold)
+        
+        
 
     def plot_polar_check_fit(self, threshold=40):
         nb_du = self.get_nb_du()
@@ -332,6 +337,10 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
             a_nb_sple[idx] = len(idx_on)
             a_stat[idx, 0], a_stat[idx, 1] = check_vec_linear_polar_l2(self.traces[idx], idx_on, vec)
         self.network.plot_footprint_4d(self, a_vec_pol, "Unit polar vector", False)
-        self.network.plot_footprint_1d(a_stat[:, 0], "Mean of polar angle fit residu", scale="lin", unit="deg")
-        self.network.plot_footprint_1d(a_stat[:, 1], "Std of polar angle fit residu", scale="lin", unit="deg")
-        self.network.plot_footprint_1d(a_nb_sple, "Nunber of samples used to fit polar vector", scale="lin")
+        self.network.plot_footprint_1d(a_stat[:, 0], 
+                                       "Mean of polar angle fit residu",
+                                       self, 
+                                       scale="lin", 
+                                       unit="deg")
+        self.network.plot_footprint_1d(a_stat[:, 1], "Std of polar angle fit residu", self,scale="lin", unit="deg")
+        self.network.plot_footprint_1d(a_nb_sple, "Nunber of samples used to fit polar vector",self, scale="lin")

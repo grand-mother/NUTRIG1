@@ -231,10 +231,11 @@ def interpol_at_new_x(a_x, a_y, new_x):
 class WienerDeconvolution:
     def __init__(self, f_sample_hz=1):
         self.f_hz = f_sample_hz
+        logger.info(f"f_sample_hz : {f_sample_hz}")
         self.f_ifftshift = False
         self.es_sig = None
 
-    def set_ifftshift(self, flag):
+    def set_flag_ifftshift(self, flag):
         self.f_ifftshift = flag
 
     def set_kernel(self, ker):
@@ -249,12 +250,24 @@ class WienerDeconvolution:
             self.sig_size = 2 * s_rfft - 1
         self.rfft_ker = rfft_ker
         self.rfft_ker_c = np.conj(self.rfft_ker)
-        self.se_ker = (rfft_ker * self.rfft_ker_c).real
+        self.es_ker = (rfft_ker * self.rfft_ker_c).real
+        self.a_freq_mhz = sf.rfftfreq(self.sig_size, 1 / self.f_hz)*1e-6
 
-    def set_es_sig(self, es_sig):
+    def set_spectrum_sig(self, es_sig):
+        """
+        Set energy spectrum of signal
+        
+        :param es_sig:
+        :type es_sig:
+        """
         self.es_sig = es_sig
 
-    def get_es_vec(self, vec):
+    def get_spectrum_vec(self, vec):
+        """
+        Set energy spectrum of signal
+        :param vec:
+        :type vec:
+        """
         rfft_m = sf.rfft(vec, n=self.sig_size)
         es_sig = (rfft_m * np.conj(rfft_m)).real / self.sig_size
         return es_sig
@@ -280,8 +293,9 @@ class WienerDeconvolution:
             #self.es_sig = es_sig
         else:
             es_sig = self.es_sig
-        wiener = (self.rfft_ker_c * es_sig) / (self.se_ker * es_sig + wh_var)
-        sig = sf.irfft(rfft_m * wiener)
+        wiener = (self.rfft_ker_c * es_sig) / (self.es_ker * es_sig + wh_var)
+        fft_sig = rfft_m * wiener
+        sig = sf.irfft(fft_sig)
         # sig[:2] = 0
         if self.f_ifftshift:
             sig = sf.ifftshift(sig)
@@ -289,8 +303,8 @@ class WienerDeconvolution:
         self.sig = sig
         self.es_sig_est = es_sig
         self.snr = es_sig / wh_var
-        self.se_noise = wh_var * np.ones(rfft_m.shape[0])
-        return sig
+        self.es_noise = wh_var * np.ones(rfft_m.shape[0])
+        return sig, fft_sig
 
     def deconv_white_noise(self, measure, sigma):
         """
@@ -304,25 +318,25 @@ class WienerDeconvolution:
         self.measure = measure
         return self.deconv_white_noise_fft_in(rfft_m, sigma)
 
-    def plot_se(self, loglog=True):
-        freq_hz = sf.rfftfreq(self.sig_size, 1 / self.f_hz)
-        print(self.sig_size, freq_hz.shape)
+    def plot_spectrum(self, loglog=True):
+        freq_hz = self.a_freq_mhz
+        print(self.sig_size, freq_hz.shape, 1 / self.f_hz)
         plt.figure()
-        plt.title("SE")
+        plt.title("Energy Spectrum (ES)")
         if loglog:
             my_plot = plt.loglog
         else:
             my_plot = plt.semilogy
-        my_plot(freq_hz[1:], self.es_sig_est[1:], label="SE estimated signal")
-        my_plot(freq_hz[1:], self.se_noise[1:], label="SE estimated noise")
+        my_plot(freq_hz[1:], self.es_sig_est[1:], label="ES estimated signal")
+        my_plot(freq_hz[1:], self.es_noise[1:], label="ES estimated noise")
         plt.grid()
         plt.legend()
 
     def plot_snr(self):
-        freq_hz = sf.rfftfreq(self.sig_size, 1 / self.f_hz)
+        freq_hz = self.a_freq_mhz
         plt.figure()
         plt.title("SNR")
-        plt.loglog(freq_hz[1:], self.snr[1:])
+        plt.semilogy(freq_hz[1:], self.snr[1:])
         plt.grid()
 
     def plot_measure_signal(self, title=""):

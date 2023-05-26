@@ -109,7 +109,7 @@ class LengthEffectiveInterpolation:
         self.o_pre = PreComputeInterpolFreq()
 
     def _update_idx_interpol_sph(self):
-        logger.info(f"New direction {self.dir_src_deg}")
+        #logger.debug(f"New direction {self.dir_src_deg}")
         # delta theta in degree
         phi_efield = self.dir_src_deg[0]
         theta_efield = self.dir_src_deg[1]
@@ -197,6 +197,7 @@ class LengthEffectiveInterpolation:
         return np.array([l_x, l_y, l_z])
 
     def get_fft_leff_pol(self, leff):
+        #logger.debug(f"{self.dir_src_deg} {np.rad2deg(self.angle_pol)}")
         l_p, l_t = self.get_fft_leff_tan(leff)
         # TAN order is (e_theta, e_phi, e_normal_out)
         return self.cos_pol * l_t + self.sin_pol * l_p
@@ -289,6 +290,10 @@ class DetectorUnitAntenna3Axis:
         self.pos_src_n = pos_n
         self._update_dir_source()
 
+    def set_dir_source(self, dir_du):
+        self.dir_src_du = dir_du
+        self.interp_leff.set_dir_source(self.dir_src_du)
+        
     def _update_dir_source(self):
         """
         return direction of source in [DU] frame

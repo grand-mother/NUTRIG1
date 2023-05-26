@@ -31,10 +31,8 @@ G_path_rf_chain = ""
 # G_path_simu = (
 #     "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
 # )
-# G_path_simu = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
-G_path_simu = (
-    "/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1"
-)
+G_path_simu = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
+#G_path_simu = ("/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1")
 G_Voc_out = "out_v_oc.asdf"
 
 #
@@ -61,7 +59,7 @@ def view_efield_polar_passband(f_simu, idx):
     evt = f_zh.get_object_3dtraces()
     evt.plot_trace_idx(idx)
     efield1d, pol_est = efield_in_polar_frame(evt.traces[idx])
-    tr_band = srs.filter_butter_band_fft(efield1d, 50*1e-6, 230*1e-6, 1e-6*evt.f_samp_mhz)
+    tr_band = srs.filter_butter_band_fft(efield1d, 30*1e-6, 250*1e-6, 1e-6*evt.f_samp_mhz)
     plt.figure()
     plt.plot(evt.t_samples[idx], efield1d, label="E polar")
     plt.legend()
@@ -181,6 +179,9 @@ def proto_simu_voc(f_out=None):
     data = event.get_object_3dtraces()
     d_info = event.get_simu_info()
     print(data)
+    a_pol = data.get_polar_vec()
+    print(a_pol[52])
+    print('==============')
     pprint.pprint(d_info)
     dus.set_data_efield(data)
     shower = {}
@@ -208,11 +209,11 @@ def proto_read():
 
 
 if __name__ == "__main__":
-    #proto_simu_voc()
+    proto_simu_voc(G_path_simu)
     # proto_read()
     #test_simu_in_frame_pol(G_path_simu)
     #view_efield_passband("/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2", 52)
-    view_efield_polar_passband(
-        "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2",
-        52)
+    # view_efield_polar_passband(
+    #     "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2",
+    #     52)
     plt.show()

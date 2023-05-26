@@ -34,6 +34,23 @@ def solve_with_plane_model(pos_ant, time_max):
     return params_out, chi2, res
 
 
+def pwf_residu(params, Xants, tants, cr=1.0):
+    theta, phi = params
+    nants = tants.shape[0]
+    ct = np.cos(theta)
+    st = np.sin(theta)
+    cp = np.cos(phi)
+    sp = np.sin(phi)
+    K = np.array([st * cp, st * sp, ct])
+    # Make sure tants and Xants are compatible
+    if Xants.shape[0] != nants:
+        print("Shapes of tants and Xants are incompatible", tants.shape, Xants.shape)
+        return None
+    # Use numpy outer methods to build matrix X_ij = x_i -x_j
+    xk = np.dot(Xants, K)
+    residu = xk - cr *tants
+    return residu   
+    
 def pwf_loss(params, Xants, tants, cr=1.0, verbose=False):
     """
     Defines Chi2 by summing model residuals

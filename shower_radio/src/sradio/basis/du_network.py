@@ -41,7 +41,7 @@ class DetectorUnitNetwork:
         self.du_pos = np.zeros((nb_du, 3))
         self.du_id = np.arange(nb_du)
 
-    def init_pos_id(self, du_pos, du_id):
+    def init_pos_id(self, du_pos, du_id=None):
         """
         Init object with array position and identifier
 
@@ -50,6 +50,8 @@ class DetectorUnitNetwork:
         :param du_id: identifier of DU
         :type du_id: int[nb_DU]
         """
+        if du_id is None:
+            du_id = list(range(du_pos.shape[0])) 
         self.du_pos = du_pos
         self.du_id = du_id
         assert isinstance(self.du_pos, np.ndarray)
@@ -198,8 +200,8 @@ class DetectorUnitNetwork:
         plt.xlabel("[m] => North")
         plt.ylabel(r"[m] => West (azi= +90 deg)")
         ax1.grid()
-        anch_du = AnchoredText("DU", prop=dict(size=10), frameon=False, loc="upper left")
-        anch_val = AnchoredText("Value max", prop=dict(size=10), frameon=False, loc="upper right")
+        anch_du = AnchoredText("DU id", prop=dict(size=10), frameon=False, loc="upper left")
+        anch_val = AnchoredText("Value", prop=dict(size=10), frameon=False, loc="upper right")
         ax1.axis("equal")
         ax1.add_artist(anch_du)
         ax1.add_artist(anch_val)
