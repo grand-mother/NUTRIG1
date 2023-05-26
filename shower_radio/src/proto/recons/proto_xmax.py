@@ -4,16 +4,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pprint
+import pickle
 
 from sradio.basis.du_network import DetectorUnitNetwork
 import sradio.recons.shower_plane as pwf
 import sradio.recons.shower_spheric as swf
 from sradio.io.shower.zhaires_master import ZhairesMaster
+import sradio.num.signal as sns
 
 MY_PATH_DATA = "/home/jcolley/projet/grand_wk/dc1/grand/data"
 
-REF_POS = MY_PATH_DATA+"/tests/recons/ref_recons_coord_antennas.txt"
-REF_EVENT = MY_PATH_DATA+"/tests/recons/ref_recons_coinctable.txt"
+REF_POS = MY_PATH_DATA + "/tests/recons/ref_recons_coord_antennas.txt"
+REF_EVENT = MY_PATH_DATA + "/tests/recons/ref_recons_coinctable.txt"
 
 G_file_efield = "/home/dc1/Coarse2_xmax_add.root"
 G_file_efield = "/home/dc1/Coarse3.root"
@@ -96,6 +98,7 @@ def use_spheric_model_with_root_efield():
     print("Xmax: ", xmax_est.get_xmax())
     print("Xmax True: ", fef.tt_shower.xmax_pos_shc)
 
+
 def use_plan_model_with_zhaires():
     """
     Spherical model
@@ -104,25 +107,40 @@ def use_plan_model_with_zhaires():
     i_sim = f_zh.get_simu_info()
     pprint.pprint(f_zh.get_simu_info())
     evt = f_zh.get_object_3dtraces()
-    evt.plot_footprint_val_max() 
-    t_evt, _ = evt.get_tmax_vmax()
+    evt.plot_footprint_val_max()
+    idx_du = 57
+    t_max, v_max, idx_max, norm_hilbert_amp = sns.get_peakamptime_norm_hilbert(evt.t_samples, evt.traces)
+    evt.plot_trace_idx(idx_du)
+    t_evt, e_max = evt.get_tmax_vmax()
+    plt.plot(t_evt[idx_du],e_max[idx_du], '*', label="max" )
+    plt.plot(evt.t_samples[idx_du], np.linalg.norm(evt.traces[idx_du],axis=0),'-.', label="norm")
+    plt.plot(evt.t_samples[idx_du], norm_hilbert_amp[idx_du], '--',label="Hilbert env") 
+    plt.legend()
     pos = evt.network.du_pos
-    
+    if False:
+        np.save("Coarse2_efield_t_max_ns", t_evt)
+        np.save("Coarse2_efield_pos_m", pos)
+        Coarse2 = {}
+        Coarse2["t_max"] = t_evt
+        Coarse2["pos"] = pos
+        with open("Coarse2_efield.pkl","wb") as fpkl:
+            pickle.dump(Coarse2,fpkl )
     # convert in s
-    #xmax_est = swf.ReconsXmaxSphericalModel(pos, t_evt / 1e9)
+    # xmax_est = swf.ReconsXmaxSphericalModel(pos, t_evt / 1e9)
     est_dir, chi2, res = pwf.solve_with_plane_model(pos, t_evt)
     print(np.rad2deg(est_dir))
     print("chi2=", chi2)
-    residu = pwf.pwf_residu(est_dir,pos, t_evt )
-    evt.network.plot_footprint_1d(t_evt, "t_max",  scale="lin", unit="ns")
-    evt.network.plot_footprint_1d(residu, "residu",  scale="lin", unit="ns")
+    residu = pwf.pwf_residu(est_dir, pos, t_evt)
+    evt.network.plot_footprint_1d(t_evt, "t_max", scale="lin", unit="ns")
+    evt.network.plot_footprint_1d(residu, "residu", scale="lin", unit="ns")
+
 
 if __name__ == "__main__":
     # read_ref_data()
-    #plot_ref_event()
+    # plot_ref_event()
     use_plane_model()
     # use_spheric_model()
     # use_spheric_model_class()
-    #use_spheric_model_with_root_efield()
+    # use_spheric_model_with_root_efield()
     use_plan_model_with_zhaires()
     plt.show()
