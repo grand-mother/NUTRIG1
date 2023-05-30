@@ -2,6 +2,7 @@
 Handling a set of 3D traces
 """
 from logging import getLogger
+import copy
 
 import numpy as np
 import scipy.signal as ssig
@@ -142,6 +143,23 @@ class Handling3dTracesOfEvent:
             self.t_samples = t_trace.transpose()
             logger.info(f"shape t_samples =  {self.t_samples.shape}")
 
+    def reduce_l_idx(self, l_idx):
+        print(self.du_id)
+        print(type(self.du_id))
+        print(type(l_idx))
+        du_id = [self.du_id[idx] for idx in l_idx]
+        self.du_id = du_id
+        self.d_idxdu = {}
+        for idx, ident in enumerate(self.du_id):
+            self.d_idxdu[ident] = idx
+        print(self.du_id)
+        self.traces = self.traces[l_idx]
+        self.t_start_ns = self.t_start_ns[l_idx]
+        if self.t_samples.shape[0] > 0:
+            self.t_samples = self.t_samples[l_idx]
+        self.network = copy.deepcopy(self.network)
+        self.network.reduce_l_idx(l_idx)
+        
     def reduce_nb_du(self, new_nb_du):
         """
         feature to reduce computation, for debugging
@@ -157,10 +175,42 @@ class Handling3dTracesOfEvent:
         if self.t_samples.shape[0] > 0:
             self.t_samples = self.t_samples[:new_nb_du, :, :]
         self.network.reduce_nb_du(new_nb_du)
+    
+    def remove_traces_low_signal(self, threshold):
+        a_norm = self.get_max_norm()
+        l_idx_ok = []
+        for idx in range(self.get_nb_du()):
+            if a_norm[idx] >= threshold:
+                l_idx_ok.append(idx)
+        print(l_idx_ok)
+        #l_idx_ok  = np.array(l_idx_ok)
+        self.reduce_l_idx(l_idx_ok)
 
     ### GETTER :
+    def get_copy(self, new_traces=None):
+        """Return a copy of current object where traces can be modify
+        
+        The type of copy is copy with reference, not a deepcopy
+        https://stackoverflow.com/questions/3975376/why-updating-shallow-copy-dictionary-doesnt-update-original-dictionary/3975388#3975388
+        
+        if new_traces is :
+          * None : object with same value
+          * 0 : the return object has a traces with same shape but set to 0
+          * np.array : the return object has new_traces as traces
+        
+        :param new_traces: if array must be have the same shape
+        :type new_traces: array/None/0
+        :return:
+        """
+        my_copy = copy.copy(self)
+        if new_traces is not None:
+            if new_traces == 0:
+                new_traces = np.zeros_like(self.traces)
+            assert self.traces.shape == new_traces.shape
+            my_copy.traces = new_traces
+        return my_copy
 
-    def delta_t_ns(self):
+    def get_delta_t_ns(self):
         """
         Return sampling rate in ns
         """
@@ -236,7 +286,7 @@ class Handling3dTracesOfEvent:
         """
         size_tr = int(self.get_size_trace())
         t_min, t_max = self.get_min_max_t_start()
-        delta = self.delta_t_ns()
+        delta = self.get_delta_t_ns()
         nb_sample_mm = (t_max - t_min) / delta
         nb_sample = int(np.rint(nb_sample_mm) + size_tr)
         extended_traces = np.zeros((self.get_nb_du(), 3, nb_sample), dtype=self.traces.dtype)

@@ -31,7 +31,6 @@ class DetectorUnitNetwork:
         * name str: name of the set of trace
         * du_pos float(nb_du, 3): position of DU
         * du_id int(nb_du): array of identifier of DU
-        * t_start_ns float(nb_du): time of first sample of trace
 
     """
 
@@ -59,6 +58,11 @@ class DetectorUnitNetwork:
         assert du_pos.shape[0] == len(du_id)
         assert du_pos.shape[1] == 3
 
+    def reduce_l_idx(self, l_idx):
+        du_id = [self.du_id[idx] for idx in l_idx]
+        self.du_id = du_id
+        self.du_pos = self.du_pos[l_idx]
+        
     def reduce_nb_du(self, new_nb_du):
         """
         Feature to debug and reduce computation

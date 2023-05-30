@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pylab as plt
 
 from .traces_event import Handling3dTracesOfEvent
+import sradio.num.signal as sns
 
 
 logger = getLogger(__name__)
@@ -118,33 +119,6 @@ def fit_vec_linear_polar_l2(trace, threshold=20):
     # unit vect
     pol_est /= np.linalg.norm(pol_est)
     logger.info(f"pol_est: {pol_est} with {len(idx_hb)} values out of noise.")
-    return pol_est, idx_hb
-
-
-def fit_array_vec_linear_polar_l2(trace, threshold=20):
-    """Fit the unit linear pola vec with samples out of noise (>threshold)
-
-    We used weighted estimation with norm l2
-
-    :param trace:
-    :type trace: float (n_t,3, n_s)
-    :param threshold:
-    :type threshold:
-    """
-    n_elec = np.linalg.norm(trace, axis=0)
-    idx_hb = np.where(n_elec > threshold)[0]
-    logger.debug(f"{len(idx_hb)} samples out noise :\n{idx_hb}")
-    # to unit vector for samples out noise
-    # (3,ns)/(ns) => OK
-    n_elec_hb = n_elec[idx_hb]
-    sple_ok = trace[:, idx_hb]
-    logger.debug(sple_ok)
-    # weighted estimation with norm
-    pol_est = np.sum(sple_ok, axis=1) / np.sum(n_elec_hb)
-    logger.info(pol_est)
-    # unit vect
-    pol_est /= np.linalg.norm(pol_est)
-    logger.info(f"pol_est: {pol_est}, {np.linalg.norm(pol_est)}")
     return pol_est, idx_hb
 
 
@@ -286,7 +260,7 @@ def check_vec_linear_polar_l2(trace, idx_on, vec_pol):
 
 
 def efield_in_polar_frame(efield3d, threshold=40):
-    """
+    """Return E field in linear polarization direction
 
     :param efield3d: [uV/m] Efield 3D
     :type efield3d: float (3, n_s)
@@ -294,11 +268,8 @@ def efield_in_polar_frame(efield3d, threshold=40):
     :type threshold: float (n_s,)
     """
     pol_est, idx_on = fit_vec_linear_polar_l2(efield3d, threshold)
-    # mean, std = check_vec_linear_polar(efield3d, None, pol_est)
     check_vec_linear_polar_l2(efield3d, idx_on, pol_est)
     efield1d = np.dot(efield3d.T, pol_est)
-    fit_vec_linear_polar_hls(efield3d)
-    # fit_vec_linear_polar_with_max(efield3d)
     return efield1d, pol_est
 
 
@@ -320,12 +291,37 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
         for idx in range(self.get_nb_du()):
             a_vec_pol[idx, :], _ = fit_vec_linear_polar_l2(self.traces[idx], threshold)
         return a_vec_pol
-    
-    # def get_polar_angle(self, threshold=40):
-    #     a_pol_vec_du = self.get_polar_vec(threshold)
-        
-        
 
+    def get_tmax_vmax(self, interpol=True):
+        """Return time where norm is max
+
+        :return:  time of max and max
+        :rtype: float(nb_du,) , float(nb_du,)
+        """
+        tr_norm = np.linalg.norm(self.traces, axis=1)
+        idx_max = np.argmax(tr_norm, axis=1)
+        if interpol:
+            t_max = np.empty_like(idx_max, dtype=np.float32)
+            e_max = np.empty_like(idx_max, dtype=np.float32)
+            for idx in range(len(idx_max)):
+                logger.debug(f"{idx} {self.du_id[idx]} {idx_max[idx]}")
+                t_max[idx], e_max[idx] = sns.find_max_with_parabola_interp(
+                    self.t_samples[idx], tr_norm[idx], int(idx_max[idx])
+                )
+                logger.debug(f"{t_max[idx]} ; {e_max[idx]}")
+            return t_max, e_max
+        idx_max = idx_max[:, np.newaxis]
+        t_max = np.take_along_axis(self.t_samples, idx_max, axis=1)
+        v_max = np.take_along_axis(tr_norm, idx_max, axis=1)
+        # remove dimension (np.squeeze) to have ~vector ie shape is (n,) instead (n,1)
+        return np.squeeze(t_max), np.squeeze(v_max)
+
+    def filter_traces_passband(self, f_mhz=[30, 250]):
+        self.traces = sns.filter_butter_band(self.traces, f_mhz[0], f_mhz[1], self.f_samp_mhz)
+
+    #
+    # PLOTS
+    #
     def plot_polar_check_fit(self, threshold=40):
         nb_du = self.get_nb_du()
         a_vec_pol = np.empty((nb_du, 3), dtype=np.float32)
@@ -335,12 +331,16 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
             vec, idx_on = fit_vec_linear_polar_l2(self.traces[idx], threshold)
             a_vec_pol[idx, :] = vec.ravel()
             a_nb_sple[idx] = len(idx_on)
-            a_stat[idx, 0], a_stat[idx, 1] = check_vec_linear_polar_l2(self.traces[idx], idx_on, vec)
+            a_stat[idx, 0], a_stat[idx, 1] = check_vec_linear_polar_l2(
+                self.traces[idx], idx_on, vec
+            )
         self.network.plot_footprint_4d(self, a_vec_pol, "Unit polar vector", False)
-        self.network.plot_footprint_1d(a_stat[:, 0], 
-                                       "Mean of polar angle fit residu",
-                                       self, 
-                                       scale="lin", 
-                                       unit="deg")
-        self.network.plot_footprint_1d(a_stat[:, 1], "Std of polar angle fit residu", self,scale="lin", unit="deg")
-        self.network.plot_footprint_1d(a_nb_sple, "Nunber of samples used to fit polar vector",self, scale="lin")
+        self.network.plot_footprint_1d(
+            a_stat[:, 0], "Mean of polar angle fit residu", self, scale="lin", unit="deg"
+        )
+        self.network.plot_footprint_1d(
+            a_stat[:, 1], "Std of polar angle fit residu", self, scale="lin", unit="deg"
+        )
+        self.network.plot_footprint_1d(
+            a_nb_sple, "Nunber of samples used to fit polar vector", self, scale="lin"
+        )

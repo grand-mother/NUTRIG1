@@ -53,8 +53,24 @@ def test_fit_polar(f_simu):
     #a_pol  = evt.get_polar_vec()
     #print(a_pol)
     evt.plot_polar_check_fit()
+    
 
+def test_filter(f_simu):
+    f_zh = ZhairesMaster(f_simu)
+    i_sim = f_zh.get_simu_info()
+    pprint.pprint(f_zh.get_simu_info())
+    evt = f_zh.get_object_3dtraces()
+    idx_du = 52
+    evt_all_freq = evt.get_copy()
+    evt.plot_trace_idx(idx_du)
+    evt.filter_traces_passband()
+    evt.plot_trace_idx(idx_du)
+    evt.plot_trace_idx(idx_du)
+    evt_all_freq.plot_footprint_val_max()
+    evt.plot_footprint_val_max()
+    
 if __name__ == '__main__':
     #test_fit_polar(G_path_simu)
-    get_polar_angle_by_efield(G_path_simu)
+    #get_polar_angle_by_efield(G_path_simu)
+    test_filter(G_path_simu)
     plt.show()

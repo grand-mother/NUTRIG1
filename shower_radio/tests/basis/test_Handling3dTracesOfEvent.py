@@ -46,7 +46,7 @@ def test_define_t_samples():
     assert np.allclose(tr3d.t_samples[-1], np.array([120.0, 121, 122.0, 123]))
     
 
-def test_delta_t_ns():
+def test_get_delta_t_ns():
     tr3d = get_tr3d()
-    assert tr3d.delta_t_ns() == 1.0
+    assert tr3d.get_delta_t_ns() == 1.0
 
