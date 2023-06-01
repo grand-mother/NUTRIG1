@@ -20,20 +20,20 @@ from sradio.io.shower import zhaires_base as zbase
 from sradio.basis.frame import FrameDuFrameTan
 from sradio.basis import coord
 import sradio.num.signal as srs
+from sradio import set_path_model_du
 
 
 #
 # Path file
 #
-G_path_leff = "/home/jcolley/projet/grand_wk/data/model/detector"
-G_path_galaxy = ""
-G_path_rf_chain = ""
 # G_path_simu = (
 #     "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
 # )
 G_path_simu = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
-#G_path_simu = ("/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1")
-G_Voc_out = "out_v_oc.asdf"
+G_path_simu = (
+    "/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1"
+)
+G_Voc_out = "out2_v_oc.asdf"
 
 #
 # Logger
@@ -41,25 +41,37 @@ G_Voc_out = "out_v_oc.asdf"
 logger = mlg.get_logger_for_script(__file__)
 mlg.create_output_for_logger("debug", log_stdout=True)
 
+np.random.seed(11)
+
+set_path_model_du("/home/jcolley/projet/grand_wk/data/model")
+
 
 def view_efield_passband(f_simu, idx):
     f_zh = ZhairesMaster(f_simu)
     evt = f_zh.get_object_3dtraces()
     evt.plot_trace_idx(idx)
-    tr_band = srs.filter_butter_band_fft(evt.traces[idx][0], 50*1e-6, 230*1e-6, 1e-6*evt.f_samp_mhz)
+    tr_band = srs.filter_butter_band_fft(
+        evt.traces[idx][0], 50 * 1e-6, 230 * 1e-6, 1e-6 * evt.f_samp_mhz
+    )
     evt.traces[idx][0] = tr_band
-    tr_band = srs.filter_butter_band_fft(evt.traces[idx][1], 50*1e-6, 230*1e-6, 1e-6*evt.f_samp_mhz)
+    tr_band = srs.filter_butter_band_fft(
+        evt.traces[idx][1], 50 * 1e-6, 230 * 1e-6, 1e-6 * evt.f_samp_mhz
+    )
     evt.traces[idx][1] = tr_band
-    tr_band = srs.filter_butter_band_fft(evt.traces[idx][2], 50*1e-6, 230*1e-6, 1e-6*evt.f_samp_mhz)
+    tr_band = srs.filter_butter_band_fft(
+        evt.traces[idx][2], 50 * 1e-6, 230 * 1e-6, 1e-6 * evt.f_samp_mhz
+    )
     evt.traces[idx][2] = tr_band
     evt.plot_trace_idx(idx)
+    evt.plot_footprint_val_max()
+
 
 def view_efield_polar_passband(f_simu, idx):
     f_zh = ZhairesMaster(f_simu)
     evt = f_zh.get_object_3dtraces()
     evt.plot_trace_idx(idx)
     efield1d, pol_est = efield_in_polar_frame(evt.traces[idx])
-    tr_band = srs.filter_butter_band_fft(efield1d, 30*1e-6, 250*1e-6, 1e-6*evt.f_samp_mhz)
+    tr_band = srs.filter_butter_band_fft(efield1d, 30 * 1e-6, 250 * 1e-6, 1e-6 * evt.f_samp_mhz)
     plt.figure()
     plt.plot(evt.t_samples[idx], efield1d, label="E polar")
     plt.legend()
@@ -67,7 +79,6 @@ def view_efield_polar_passband(f_simu, idx):
     plt.plot(evt.t_samples[idx], tr_band, label="E polar antenna bandwidth")
     plt.legend()
     plt.grid()
-
 
 
 def estimate_polar_vec(trace, threasold=20):
@@ -96,7 +107,7 @@ def estimate_polar_vec(trace, threasold=20):
 
 
 def test_simu_in_frame_pol(f_simu):
-    dus = SimuDetectorUnitResponse(G_path_leff)
+    dus = SimuDetectorUnitResponse()
     zmf = ZhairesMaster(f_simu)
     evt = zmf.get_object_3dtraces()
     d_simu = zmf.get_simu_info()
@@ -174,14 +185,14 @@ def test_simu_in_frame_pol(f_simu):
 
 
 def proto_simu_voc(f_out=None):
-    dus = SimuDetectorUnitResponse(G_path_leff)
+    dus = SimuDetectorUnitResponse()
     event = ZhairesMaster(G_path_simu)
     data = event.get_object_3dtraces()
     d_info = event.get_simu_info()
     print(data)
     a_pol = data.get_polar_vec()
     print(a_pol[52])
-    print('==============')
+    print("==============")
     pprint.pprint(d_info)
     dus.set_data_efield(data)
     shower = {}
@@ -196,11 +207,60 @@ def proto_simu_voc(f_out=None):
     assert isinstance(data, Handling3dTracesOfEvent)
     out = copy.copy(data)
     out.traces = dus.v_out
-    out.set_unit_axis("$\mu$V", "dir")
-    out.name += "V_oc"
+    out.set_unit_axis("$\mu$V", "dir", r"$V_{oc}$")
     out.plot_footprint_val_max()
     if f_out:
         fsrad.save_asdf_single_event(f_out, out, d_info)
+
+
+def proto_simu_vout(f_out=None):
+    dus = SimuDetectorUnitResponse()
+    dus.params = {"flag_add_leff": True, "flag_add_gal": True, "flag_add_rf": True, "lst": 18.0}
+    zh_f = ZhairesMaster(G_path_simu)
+    efield = zh_f.get_object_3dtraces()
+    # efield.plot_all_traces_as_image()
+    assert isinstance(efield, Handling3dTracesOfEvent)
+    d_info = zh_f.get_simu_info()
+    dus.set_data_efield(efield)
+    shower = {}
+    shower["xmax"] = zbase.get_simu_xmax(d_info)
+    dus.set_data_shower(shower)
+    dus.compute_du_all()
+    efield.plot_footprint_val_max()
+    # create object volt
+    volt = efield.get_copy(dus.v_out)
+    assert isinstance(volt, Handling3dTracesOfEvent)
+    # print(np.std(volt.traces, axis=2)[:, 0])
+    # print(volt.traces.std(axis=-1)[:, 1])
+    # print(volt.traces.std(axis=-1)[:, 2])
+    volt.set_unit_axis("$\mu$V", "dir", r"$V_{out}$")
+    volt.plot_footprint_val_max()
+    # volt.plot_all_traces_as_image()
+    if f_out:
+        fsrad.save_asdf_single_event(f_out, volt, d_info)
+    return efield, volt
+
+
+def compare_efield_volt(efield, volt):
+    assert isinstance(efield, Handling3dTracesOfEvent)
+    assert isinstance(volt, Handling3dTracesOfEvent)
+    volt_ok = volt.get_copy(deepcopy=True)
+    l_idx_ok = volt_ok.remove_traces_low_signal(1000)
+    efield_ok = efield.get_copy(deepcopy=True)
+    assert isinstance(efield_ok, Handling3dTracesOfEvent)
+    assert isinstance(volt_ok, Handling3dTracesOfEvent)
+    efield_ok.reduce_l_idx(l_idx_ok)
+    tm_ef, em_ef = efield_ok.get_tmax_vmax(True)
+    tm_v, em_v = volt_ok.get_tmax_vmax(True)
+    id = "A104"
+    idx = volt_ok.idt2idx[id]
+    volt_ok.plot_trace_du(id)
+    plt.plot(tm_v[idx], em_v[idx], "d")
+
+    tm_diff = tm_v - tm_ef
+    efield_ok.network.plot_footprint_1d(tm_diff, "diff t_max (volt - Efield)", volt_ok, "lin", "ns")
+    plt.figure()
+    plt.hist(tm_diff)
 
 
 def proto_read():
@@ -209,11 +269,18 @@ def proto_read():
 
 
 if __name__ == "__main__":
-    proto_simu_voc(G_path_simu)
+    logger.info(mlg.string_begin_script())
+    #
+    #
+    efield, volt = proto_simu_vout(G_Voc_out)
+    compare_efield_volt(efield, volt)
     # proto_read()
-    #test_simu_in_frame_pol(G_path_simu)
-    #view_efield_passband("/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2", 52)
+    # test_simu_in_frame_pol(G_path_simu)
+    # view_efield_passband("/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2", 52)
     # view_efield_polar_passband(
     #     "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2",
     #     52)
+    #
+    #
+    logger.info(mlg.string_end_script())
     plt.show()

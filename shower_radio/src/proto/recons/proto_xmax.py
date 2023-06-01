@@ -21,8 +21,8 @@ REF_EVENT = MY_PATH_DATA + "/tests/recons/ref_recons_coinctable.txt"
 G_file_efield = "/home/dc1/Coarse2_xmax_add.root"
 G_file_efield = "/home/dc1/Coarse3.root"
 G_file_efield = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
-G_file_efield = "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_Iron_3.98_87.1_0.0_1"
-G_file_efield = "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_LH_EPLHC_Proton_3.98_84.5_180.0_2"
+#G_file_efield = "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_Iron_3.98_87.1_0.0_1"
+#G_file_efield = "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_LH_EPLHC_Proton_3.98_84.5_180.0_2"
 
 #
 # Logger
@@ -119,7 +119,7 @@ def use_plan_model_with_zhaires_debug_max():
     evt.remove_traces_low_signal(10)
     evt.plot_footprint_val_max()
     du = "A52"
-    idx_du = evt.d_idxdu[du]
+    idx_du = evt.idt2idx[du]
     t_max, v_max, idx_max, norm_hilbert_amp = sns.get_peakamptime_norm_hilbert(
         evt.t_samples, evt.traces
     )
@@ -171,7 +171,7 @@ def use_plan_model_with_zhaires():
     plt.plot(t_max[idx_du], e_max[idx_du], "d", label="max interpol")
     plt.legend()
     pos = evt.network.du_pos
-    if True:
+    if False:
         #np.save("Coarse2_efield_t_max_ns", t_evt)
         #np.save("Coarse2_efield_pos_m", pos)
         Coarse2 = {}

@@ -20,16 +20,16 @@ def find_max_with_parabola_interp(x_trace, y_trace, idx_max, factor_hill=0.8):
     trace : all values >= 0
 
     algo:
-      1. find begin idx, ie trace[idx] > v_max*factor_hill
-      2. find end idx, ie trace[idx] > v_max*factor_hill
+      1. find begin idx, ie trace[--idx_max] > v_max*factor_hill
+      2. find end idx, ie trace[idx_max++] > v_max*factor_hill
       3. if nb idx <= 2 : mode pic else mode hill
       4. Mode pic : 3 values and the middle one is max
          4.1 offset of (x0, v0)
-         4.2 solve coef a, b => x_m = offset-b/2a ; v_m=offset+b^2/4a
+         4.2 solve coef a, b => x_m = offset - b/2a ; v_m=offset - b^2/4a
       5. Mode hill:
          5.0 offset of (x, y) of first sample
          5.1 solve overdetermined linear system with a, b, c
-         5.2 x_m =offset -b/2a ; v_m=offset+b^2/4a + c
+         5.2 x_m =offset - b/2a ; v_m=offset - b^2/4a + c
 
     :param trace:
     :type trace:
@@ -79,23 +79,23 @@ def find_max_with_parabola_interp(x_trace, y_trace, idx_max, factor_hill=0.8):
         r_pic = y_pic / x_pic
         c_a = (r_pic[1] - r_pic[0]) / (x_pic[1] - x_pic[0])
         c_b = r_pic[0] - c_a * x_pic[0]
-        x_m = c_b / (2 * c_a)
-        x_max = x_trace[idx_max - 1] - x_m
-        y_max = y_trace[idx_max - 1] - x_m * c_b / 2
+        x_m = -c_b / (2 * c_a)
+        x_max = x_trace[idx_max - 1] + x_m
+        y_max = y_trace[idx_max - 1] + x_m * c_b / 2
         return x_max, y_max
     else:
         logger.debug(f"Parabola interp: mode hill")
         # mode hill
-        y_pic = y_trace[b_idx : e_idx + 1] - y_trace[b_idx]
-        x_pic = x_trace[b_idx : e_idx + 1] - x_trace[b_idx]
-        mat = np.empty((x_pic.shape[0], 3), dtype=np.float32)
+        y_hill = y_trace[b_idx : e_idx + 1] - y_trace[b_idx]
+        x_hill = x_trace[b_idx : e_idx + 1] - x_trace[b_idx]
+        mat = np.empty((x_hill.shape[0], 3), dtype=np.float32)
         mat[:, 2] = 1
-        mat[:, 1] = x_pic
-        mat[:, 0] = x_pic * x_pic
-        sol = np.linalg.lstsq(mat, y_pic, rcond=None)[0]
-        x_m = sol[1] / (2 * sol[0])
-        x_max = x_trace[b_idx] - x_m
-        y_max = y_trace[b_idx] - x_m * sol[1] / 2 + sol[2]
+        mat[:, 1] = x_hill
+        mat[:, 0] = x_hill * x_hill
+        sol = np.linalg.lstsq(mat, y_hill, rcond=None)[0]
+        x_m = -sol[1] / (2 * sol[0])
+        x_max = x_trace[b_idx] + x_m
+        y_max = y_trace[b_idx] + x_m * sol[1] / 2 + sol[2]
         return x_max, y_max
 
 
@@ -122,7 +122,6 @@ def filter_butter_band(t_series, fr_min, fr_max, f_sample):
     f_fft = sf.fft(t_series, n=size_fft)
     f_fft = f_fft * abs_h
     filtered = sf.ifft(f_fft)[:, :, :size_sig]
-    print(filtered.shape)
     return filtered.real
 
 
@@ -164,7 +163,7 @@ def filter_butter_band_fft(t_series, fr_min, fr_max, f_sample, mhz=True):
     f_fft = f_fft * abs_h
     print("after ", f_fft.shape)
     print(t_series.shape, f_fft.shape)
-    filtered = sf.ifft(f_fft)[..., :size_fft]
+    filtered = sf.ifft(f_fft)[:size_sig]
     print("filtered")
     print(filtered.shape)
     return filtered.real
@@ -306,7 +305,7 @@ def get_peakamptime_norm_hilbert(a2_time, a3_trace):
     t_max = np.take_along_axis(a2_time, idx_max, axis=1)
     v_max = np.take_along_axis(norm_hilbert_amp, idx_max, axis=1)
     # remove dimension (np.squeeze) to have ~vector ie shape is (n,) instead (n,1)
-    return np.squeeze(t_max), np.squeeze(v_max), idx_max, norm_hilbert_amp
+    return np.squeeze(t_max), np.squeeze(v_max), np.squeeze(idx_max), norm_hilbert_amp
 
 
 def get_fastest_size_rfft(sig_size, f_samp_mhz, padding_fact=1):

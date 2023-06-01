@@ -30,15 +30,14 @@ class DetectorUnitNetwork:
 
         * name str: name of the set of trace
         * du_pos float(nb_du, 3): position of DU
-        * du_id int(nb_du): array of identifier of DU
-
+        * idx2idt int(nb_du): array of identifier of DU
     """
 
     def __init__(self, name="NotDefined"):
         self.name = name
         nb_du = 0
         self.du_pos = np.zeros((nb_du, 3))
-        self.du_id = np.arange(nb_du)
+        self.idx2idt = np.arange(nb_du)
 
     def init_pos_id(self, du_pos, du_id=None):
         """
@@ -46,21 +45,21 @@ class DetectorUnitNetwork:
 
         :param du_pos: position of DU
         :type du_pos: float[nb_DU, 3]
-        :param du_id: identifier of DU
-        :type du_id: int[nb_DU]
+        :param idx2idt: identifier of DU
+        :type idx2idt: int[nb_DU]
         """
         if du_id is None:
             du_id = list(range(du_pos.shape[0])) 
         self.du_pos = du_pos
-        self.du_id = du_id
+        self.idx2idt = du_id
         assert isinstance(self.du_pos, np.ndarray)
-        assert isinstance(self.du_id, list)
+        assert isinstance(self.idx2idt, list)
         assert du_pos.shape[0] == len(du_id)
         assert du_pos.shape[1] == 3
 
     def reduce_l_idx(self, l_idx):
-        du_id = [self.du_id[idx] for idx in l_idx]
-        self.du_id = du_id
+        du_id = [self.idx2idt[idx] for idx in l_idx]
+        self.idx2idt = du_id
         self.du_pos = self.du_pos[l_idx]
         
     def reduce_nb_du(self, new_nb_du):
@@ -70,7 +69,7 @@ class DetectorUnitNetwork:
         :param new_nb_du: keep only new_nb_du first DU
         :type new_nb_du: int
         """
-        self.du_id = self.du_id[:new_nb_du]
+        self.idx2idt = self.idx2idt[:new_nb_du]
         self.du_pos = self.du_pos[:new_nb_du, :]
 
     def get_sub_network(self, l_id):
@@ -81,7 +80,7 @@ class DetectorUnitNetwork:
         :type: int[nb_DU in l_id]
         """
         sub_net = DetectorUnitNetwork("sub-network of " + self.name)
-        sub_net.init_pos_id(self.du_pos[l_id], self.du_id[l_id])
+        sub_net.init_pos_id(self.du_pos[l_id], self.idx2idt[l_id])
         return sub_net
 
     def get_pos_id(self, l_id):
@@ -166,7 +165,7 @@ class DetectorUnitNetwork:
                 idx = closest_node(np.array([event.xdata, event.ydata]), self.du_pos[:, :2])
                 if idx != cur_idx_plot:
                     cur_idx_plot = idx
-                    anch_du.txt.set_text(f"DU={self.du_id[idx]}")
+                    anch_du.txt.set_text(f"DU={self.idx2idt[idx]}")
                     anch_val.txt.set_text(f"{a_values[idx]:.2e}")
                     plt.draw()
 

@@ -94,7 +94,7 @@ def load_event(path_event):
 
 
 def check_polar_one_event(evt, d_simu):
-    logger.info(evt.du_id[:5])
+    logger.info(evt.idx2idt[:5])
     # B definition
     a_inc = d_simu["geo_mag2"]["inc"]
     logger.info(f"inclinaison mag = {a_inc} deg")

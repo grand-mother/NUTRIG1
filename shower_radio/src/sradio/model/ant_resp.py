@@ -15,17 +15,18 @@ import numpy as np
 
 import sradio.basis.coord as coord
 from sradio.io.leff_fmt import AntennaLeffStorage
-
+from sradio import get_path_model_du
 
 logger = getLogger(__name__)
 
 
-def get_leff_from_files(path_leff):
+def get_leff_from_files():
     """Return dictionary with 3 antenna Leff
 
     :param path_leff: path to file Leff
     :type path_leff: string
     """
+    path_leff = os.path.join(get_path_model_du(), "detector")
     path_ant = os.path.join(path_leff, "Light_GP300Antenna_EWarm_leff.npz")
     leff_ew = AntennaLeffStorage()
     leff_ew.name = "EW"

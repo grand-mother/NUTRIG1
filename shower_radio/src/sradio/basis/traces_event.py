@@ -38,11 +38,11 @@ class Handling3dTracesOfEvent:
 
         * name str: name of the set of trace
         * traces float(nb_du, 3, nb_sample): trace 3D
-        * du_id int(nb_du): array of identifier of DU
+        * idx2idt int(nb_du): array of identifier of DU
         * t_start_ns float(nb_du): [ns] time of first sample of trace
         * t_samples float(nb_du, nb_dim, nb_sample): [ns]
         * f_samp_mhz float: [MHz] frequency sampling
-        * d_idxdu dict: for each identifier return the index in array
+        * idt2idx dict: for each identifier return the index in array
         * unit_trace str: string unit of trace
         * network object: content position network
     """
@@ -53,11 +53,11 @@ class Handling3dTracesOfEvent:
         nb_du = 0
         nb_sample = 0
         self.traces = np.zeros((nb_du, 3, nb_sample))
-        self.du_id = range(nb_du)
+        self.idx2idt = range(nb_du)
         self.t_start_ns = np.zeros((nb_du), dtype=np.int64)
         self.t_samples = np.zeros((nb_du, nb_sample), dtype=np.float64)
         self.f_samp_mhz = 0.0
-        self.d_idxdu = {}
+        self.idt2idx = {}
         self.unit_trace = "TBD"
         self._d_axis_val = {
             "idx": ["0", "1", "2"],
@@ -83,17 +83,17 @@ class Handling3dTracesOfEvent:
 
         :param traces: array traces 3D
         :type traces: float (nb_du, 3, nb sample)
-        :param du_id: array identifier of DU
-        :type du_id: int (nb_du,)
+        :param idx2idt: array identifier of DU
+        :type idx2idt: int (nb_du,)
         :param t_start_ns: array time start of trace
         :type t_start_ns: int (nb_du,)
         :param f_samp_mhz: franquency sampling in MHz
         :type f_samp_mhz: float
         """
         self.traces = traces
-        self.du_id = du_id
-        for idx, ident in enumerate(self.du_id):
-            self.d_idxdu[ident] = idx
+        self.idx2idt = du_id
+        for idx, ident in enumerate(self.idx2idt):
+            self.idt2idx[ident] = idx
         self.t_start_ns = t_start_ns
         self.f_samp_mhz = f_samp_mhz
         assert isinstance(self.traces, np.ndarray)
@@ -109,9 +109,9 @@ class Handling3dTracesOfEvent:
         :param du_pos:
         :type du_pos:
         """
-        self.network.init_pos_id(du_pos, self.du_id)
+        self.network.init_pos_id(du_pos, self.idx2idt)
 
-    def set_unit_axis(self, str_unit="TBD", axis_name="idx"):
+    def set_unit_axis(self, str_unit="TBD", axis_name="idx", type="Trace"):
         """
 
         :param str_unit:
@@ -120,6 +120,7 @@ class Handling3dTracesOfEvent:
         :type axis_name:
         """
         assert isinstance(str_unit, str)
+        self.type_trace = type
         self.unit_trace = str_unit
         self.axis_name = self._d_axis_val[axis_name]
 
@@ -144,15 +145,15 @@ class Handling3dTracesOfEvent:
             logger.info(f"shape t_samples =  {self.t_samples.shape}")
 
     def reduce_l_idx(self, l_idx):
-        print(self.du_id)
-        print(type(self.du_id))
+        print(self.idx2idt)
+        print(type(self.idx2idt))
         print(type(l_idx))
-        du_id = [self.du_id[idx] for idx in l_idx]
-        self.du_id = du_id
-        self.d_idxdu = {}
-        for idx, ident in enumerate(self.du_id):
-            self.d_idxdu[ident] = idx
-        print(self.du_id)
+        du_id = [self.idx2idt[idx] for idx in l_idx]
+        self.idx2idt = du_id
+        self.idt2idx = {}
+        for idx, ident in enumerate(self.idx2idt):
+            self.idt2idx[ident] = idx
+        print(self.idx2idt)
         self.traces = self.traces[l_idx]
         self.t_start_ns = self.t_start_ns[l_idx]
         if self.t_samples.shape[0] > 0:
@@ -169,7 +170,7 @@ class Handling3dTracesOfEvent:
         """
         assert new_nb_du > 0
         assert new_nb_du <= self.get_nb_du()
-        self.du_id = self.du_id[:new_nb_du]
+        self.idx2idt = self.idx2idt[:new_nb_du]
         self.traces = self.traces[:new_nb_du, :, :]
         self.t_start_ns = self.t_start_ns[:new_nb_du]
         if self.t_samples.shape[0] > 0:
@@ -185,9 +186,10 @@ class Handling3dTracesOfEvent:
         print(l_idx_ok)
         #l_idx_ok  = np.array(l_idx_ok)
         self.reduce_l_idx(l_idx_ok)
+        return l_idx_ok
 
     ### GETTER :
-    def get_copy(self, new_traces=None):
+    def get_copy(self, new_traces=None, deepcopy=False):
         """Return a copy of current object where traces can be modify
         
         The type of copy is copy with reference, not a deepcopy
@@ -202,11 +204,15 @@ class Handling3dTracesOfEvent:
         :type new_traces: array/None/0
         :return:
         """
-        my_copy = copy.copy(self)
+        if deepcopy:
+            my_copy = copy.copy(self)
+        else:
+            my_copy = copy.deepcopy(self)
         if new_traces is not None:
-            if new_traces == 0:
+            if isinstance(new_traces, np.ndarray):
+                assert self.traces.shape == new_traces.shape
+            elif new_traces == 0:
                 new_traces = np.zeros_like(self.traces)
-            assert self.traces.shape == new_traces.shape
             my_copy.traces = new_traces
         return my_copy
 
@@ -246,15 +252,26 @@ class Handling3dTracesOfEvent:
         """
         return np.linalg.norm(self.traces, axis=1)
 
-    def get_tmax_vmax(self):
+    def get_tmax_vmax(self, interpol=True):
         """
         Return time where norm of the amplitude of the Hilbert tranform  is max
 
         :return:  time of max and max
         :rtype: float(nb_du,) , float(nb_du,)
         """
-        tmax, vmax, _, _ = sns.get_peakamptime_norm_hilbert(self.t_samples, self.traces)
-        return tmax, vmax
+        tmax, vmax, idx_max, norm_hilbert_amp= sns.get_peakamptime_norm_hilbert(self.t_samples, self.traces)
+        if not interpol:
+            return tmax, vmax
+        t_max = np.empty_like(tmax)
+        e_max = np.empty_like(tmax)
+        for idx in range(self.get_nb_du()):
+            logger.debug(f"{idx} {self.idx2idt[idx]} {idx_max[idx]}")
+            t_max[idx], e_max[idx] = sns.find_max_with_parabola_interp(
+                self.t_samples[idx], norm_hilbert_amp[idx], int(idx_max[idx])
+            )
+            logger.debug(f"{t_max[idx]} ; {e_max[idx]}")
+        return t_max, e_max
+
 
     def get_min_max_t_start(self):
         """
@@ -268,7 +285,7 @@ class Handling3dTracesOfEvent:
         :return: number of DU
         :rtype: int
         """
-        return len(self.du_id)
+        return len(self.idx2idt)
 
     def get_size_trace(self):
         """
@@ -310,7 +327,7 @@ class Handling3dTracesOfEvent:
         """
         self._define_t_samples()
         plt.figure()
-        plt.title(f"Trace of DU {self.du_id[idx]} (idx={idx})")
+        plt.title(f"{self.type_trace}, DU {self.idx2idt[idx]} (idx={idx})")
         for idx_axis, axis in enumerate(self.axis_name):
             if str(idx_axis) in to_draw:
                 plt.plot(
@@ -326,14 +343,14 @@ class Handling3dTracesOfEvent:
 
     def plot_trace_du(self, du_id, to_draw="012"):  # pragma: no cover
         """
-        Draw 3 traces associated to DU du_id
+        Draw 3 traces associated to DU idx2idt
 
         :param idx: index of DU to draw
         :type idx: int
         :param to_draw: select components to draw
         :type to_draw: enum str ["0", "1", "2"] not exclusive
         """
-        self.plot_trace_idx(self.d_idxdu[du_id], to_draw)
+        self.plot_trace_idx(self.idt2idx[du_id], to_draw)
 
     def plot_ps_trace_idx(self, idx, to_draw="012"):  # pragma: no cover
         """
@@ -347,7 +364,7 @@ class Handling3dTracesOfEvent:
         self._define_t_samples()
         plt.figure()
         noverlap = 0
-        plt.title(f"Power spectrum of DU {self.du_id[idx]} (idx={idx})")
+        plt.title(f"Power spectrum of {self.type_trace}, DU {self.idx2idt[idx]} (idx={idx})")
         for idx_axis, axis in enumerate(self.axis_name):
             if str(idx_axis) in to_draw:
                 freq, pxx_den = ssig.welch(
@@ -359,7 +376,7 @@ class Handling3dTracesOfEvent:
                 )
                 plt.semilogy(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
                 # plt.plot(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
-        plt.ylabel(f"({self.unit_trace})^2")
+        plt.ylabel(rf"({self.unit_trace})$^2$")
         plt.xlabel(f"MHz\nFile: {self.name}")
         plt.xlim([0, 400])
         plt.grid()
@@ -367,14 +384,14 @@ class Handling3dTracesOfEvent:
 
     def plot_ps_trace_du(self, du_id, to_draw="012"):  # pragma: no cover
         """
-        Draw power spectrum for 3 traces associated to DU du_id
+        Draw power spectrum for 3 traces associated to DU idx2idt
 
-        :param du_id: DU identifier
-        :type du_id: int
+        :param idx2idt: DU identifier
+        :type idx2idt: int
         :param to_draw: select components to draw
         :type to_draw: enum str ["0", "1", "2"] not exclusive
         """
-        self.plot_ps_trace_idx(self.d_idxdu[du_id], to_draw)
+        self.plot_ps_trace_idx(self.idt2idx[du_id], to_draw)
 
     def plot_all_traces_as_image(self):  # pragma: no cover
         """
@@ -383,7 +400,7 @@ class Handling3dTracesOfEvent:
         norm = self.get_norm()
         _ = plt.figure()
         # fig.canvas.manager.set_window_title(f"{self.name}")
-        plt.title(f"Norm of all traces in event")
+        plt.title(f"Norm of all traces {self.type_trace} in event")
         col_log = colors.LogNorm(clip=False)
         im_traces = plt.imshow(norm, cmap="Blues", norm=col_log)
         plt.colorbar(im_traces)
@@ -421,12 +438,12 @@ class Handling3dTracesOfEvent:
         Plot footprint max value
         """
         self.network.plot_footprint_1d(
-            self.get_max_norm(), f"Max ||trace||", self, unit=self.unit_trace
+            self.get_max_norm(), f"Max ||{self.type_trace}||", self, unit=self.unit_trace
         )
 
     def plot_footprint_time_max(self):  # pragma: no cover
         """
         Plot footprint time associated to max value
         """
-        tmax, _ = self.get_tmax_vmax()
+        tmax, _ = self.get_tmax_vmax(False)
         self.network.plot_footprint_1d(tmax, "Time of max value", self, scale="lin", unit="ns")

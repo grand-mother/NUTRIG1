@@ -11,9 +11,10 @@ import numpy as np
 import scipy.fft as sf
 
 from sradio.basis.traces_event import Handling3dTracesOfEvent
-from sradio.model.ant_resp import DetectorUnitAntenna3Axis, get_leff_from_files
 from sradio.num.signal import get_fastest_size_rfft
-from sradio.model.galaxy import GalaxySignalThroughGp300
+from sradio.model.ant_resp import DetectorUnitAntenna3Axis, get_leff_from_files
+from sradio.model.galaxy import GalaxySignalGp300
+from sradio.model.rf_chain import RfChainGP300
 
 
 logger = getLogger(__name__)
@@ -54,21 +55,17 @@ class SimuDetectorUnitResponse:
        * manage only one event
     """
 
-    def __init__(self, path_leff, path_gal=""):
+    def __init__(self):
         """
         Constructor
         """
         # Parameters
-        self.params = {"flag_add_gal": True, "flag_add_rf": False, "lst": 18.0}
+        self.params = {"flag_add_leff": True,"flag_add_gal": True, "flag_add_rf": False, "lst": 18.0}
         # object contents Efield and network information
         self.o_efield = Handling3dTracesOfEvent()
-        self.rf_chain = None
-        self.o_ant3d = DetectorUnitAntenna3Axis(get_leff_from_files(path_leff))
-        if path_gal != "":
-            self.o_gal = GalaxySignalThroughGp300(path_gal)
-        else:
-            self.params["flag_add_gal"] = False
-            logger.info("No galaxy signal added")
+        self.o_rfchain = RfChainGP300()
+        self.o_ant3d = DetectorUnitAntenna3Axis(get_leff_from_files())
+        self.o_gal = GalaxySignalGp300()
         # object of class ShowerEvent
         self.o_shower = None
         # FFT info
@@ -110,7 +107,7 @@ class SimuDetectorUnitResponse:
         assert self.fft_efield.shape[0] == self.o_efield.traces.shape[0]
         assert self.fft_efield.shape[1] == self.o_efield.traces.shape[1]
         # compute total transfer function of RF chain
-        # self.rf_chain.compute_for_freqs(self.freqs_out_mhz)
+        self.o_rfchain.compute_for_freqs(self.freqs_out_mhz)
         if self.params["flag_add_gal"]:
             # lst: local sideral time, galactic noise max at 18h
             logger.info("Compute galaxy noise for all traces")
@@ -160,13 +157,16 @@ class SimuDetectorUnitResponse:
         :param idx_du: index of DU in array traces
         :type  idx_du: int
         """
-        logger.info(f"==============>  Processing DU with id: {self.o_efield.du_id[idx_du]}")
-        self.o_ant3d.set_name_pos(self.o_efield.du_id[idx_du], self.o_efield.network.du_pos[idx_du])
+        logger.info(f"==============>  Processing DU with id: {self.o_efield.idx2idt[idx_du]}")
+        self.o_ant3d.set_name_pos(self.o_efield.idx2idt[idx_du], self.o_efield.network.du_pos[idx_du])
         ########################
         # 1) Antenna responses
         ########################
         # Voltage open circuit
-        fft_3d = self.o_ant3d.get_resp_3d_efield_du(self.fft_efield[idx_du])
+        if self.params["flag_add_leff"]:
+            fft_3d = self.o_ant3d.get_resp_3d_efield_du(self.fft_efield[idx_du])
+        else:
+            fft_3d = np.zeros_like(self.fft_efield[idx_du])
         ########################
         # 2) Add galactic noise
         ########################
@@ -175,13 +175,11 @@ class SimuDetectorUnitResponse:
             # logger.debug(np.std(noise_gal, axis=1))
             # self.voc[idx_du] += noise_gal
             fft_3d += self.fft_noise_gal_3d[idx_du]
-            raise
         ########################
         # 3) RF chain
         ########################
         if self.params["flag_add_rf"]:
-            fft_3d *= self.rf_chain.get_tf_3d()
-            raise
+            fft_3d *= self.o_rfchain.get_tf_3d()
         # inverse FFT and remove zero-padding
         # WARNING: do not used sf.irfft(fft_vlna, self.sig_size) to remove padding
         self.v_out[idx_du] = sf.irfft(fft_3d)[:, : self.sig_size]

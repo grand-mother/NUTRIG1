@@ -6,19 +6,22 @@ From github grand-mother/grand
 ..Authors:
     PengFei and Xidian group GRAND collaboration
 """
+import os.path
 
 import h5py
 import numpy as np
 
 from sradio.num.signal import interpol_at_new_x
+from sradio import get_path_model_du
 
 
-class GalaxySignalThroughGp300:
+class GalaxySignalGp300:
     """
     Return galaxy signal directly in voltage as GP300 antenna see it
     """
 
-    def __init__(self, path_model):
+    def __init__(self):
+        path_model = os.path.join(get_path_model_du(), "sky", "30_250galactic.mat")
         gala_show = h5py.File(path_model, "r")
         self.gala_voltage = np.transpose(
             gala_show["v_amplitude"]
@@ -28,7 +31,7 @@ class GalaxySignalThroughGp300:
 
     def get_volt_all_du(self, f_lst, size_out, freqs_mhz, nb_ant, seed=None):
         """Return for all DU fft of galaxy signal in voltage
-        
+
         This program is used as a subroutine to complete the calculation and
         expansion of galactic noise
 
@@ -47,7 +50,7 @@ class GalaxySignalThroughGp300:
         :type show_flag: boll
         :param seed: if None, values are randomly generated as expected.
         :type seed:if number, same set of randomly generated output. This is useful for testing.
-        
+
         :return: FFT of galactic noise for all DU and components
         :rtype: float(nb du, 3, nb freq)
         """
@@ -71,8 +74,8 @@ class GalaxySignalThroughGp300:
         # RK: above loop is replaced by lines below. Also np.random.default_rng(seed) is used instead of np.random.seed().
         #     if seed is a fixed number, same set of randomly generated number is produced. This is useful for testing.
         v_amplitude = v_amplitude.T
-        rng = np.random.default_rng(seed)
-        amp = rng.normal(loc=0, scale=v_amplitude[np.newaxis, ...], size=(nb_ant, 3, nb_freq))
-        phase = 2 * np.pi * rng.random(size=(nb_ant, 3, nb_freq))
+        #rng = np.random.default_rng(seed)
+        amp = np.random.normal(loc=0, scale=v_amplitude[np.newaxis, ...], size=(nb_ant, 3, nb_freq))
+        phase = 2 * np.pi * np.random.random(size=(nb_ant, 3, nb_freq))
         v_complex = np.abs(amp * size_out / 2) * np.exp(1j * phase)
         return v_complex

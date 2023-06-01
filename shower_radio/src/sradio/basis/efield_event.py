@@ -281,11 +281,12 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
     """
 
     def __init__(self, name="NotDefined"):
-        super().__init__("E field " + name)
+        super().__init__(name)
 
     ### INTERNAL
 
     ### INIT/SETTER
+    
     def get_polar_vec(self, threshold=40):
         a_vec_pol = np.empty((self.get_nb_du(), 3), dtype=np.float32)
         for idx in range(self.get_nb_du()):
@@ -304,7 +305,7 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
             t_max = np.empty_like(idx_max, dtype=np.float32)
             e_max = np.empty_like(idx_max, dtype=np.float32)
             for idx in range(len(idx_max)):
-                logger.debug(f"{idx} {self.du_id[idx]} {idx_max[idx]}")
+                logger.debug(f"{idx} {self.idx2idt[idx]} {idx_max[idx]}")
                 t_max[idx], e_max[idx] = sns.find_max_with_parabola_interp(
                     self.t_samples[idx], tr_norm[idx], int(idx_max[idx])
                 )
@@ -316,8 +317,8 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
         # remove dimension (np.squeeze) to have ~vector ie shape is (n,) instead (n,1)
         return np.squeeze(t_max), np.squeeze(v_max)
 
-    def filter_traces_passband(self, f_mhz=[30, 250]):
-        self.traces = sns.filter_butter_band(self.traces, f_mhz[0], f_mhz[1], self.f_samp_mhz)
+    def get_traces_passband(self, f_mhz=[30, 250]):
+        return sns.filter_butter_band(self.traces, f_mhz[0], f_mhz[1], self.f_samp_mhz)
 
     #
     # PLOTS

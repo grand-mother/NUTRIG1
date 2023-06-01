@@ -28,7 +28,7 @@ def save_asdf_single_event(n_file, event, info_sim, type_file="simu_event"):
     d_event["name"] = event.name
     d_event["traces"] = event.traces
     d_event["f_samp_mhz"] = event.f_samp_mhz
-    d_event["du_id"] = event.du_id
+    d_event["idx2idt"] = event.idx2idt
     d_event["name"] = event.name
     d_event["t_start_ns"] = event.t_start_ns
     d_event["unit_trace"] = event.unit_trace
@@ -66,7 +66,7 @@ def load_asdf_simu_single_event(f_asdf):
     print(type(f_asdf["event"]["traces"]))
     event.init_traces(
         np.array(f_asdf["event"]["traces"]),
-        f_asdf["event"]["du_id"],
+        f_asdf["event"]["idx2idt"],
         np.array(f_asdf["event"]["t_start_ns"]),
         f_asdf["event"]["f_samp_mhz"],
     )

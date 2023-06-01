@@ -27,7 +27,7 @@ def test_init_traces():
     tr3d.init_traces(traces, du_id, t_start_ns, f_samp_mhz)
     assert tr3d.traces[0, 0, 0] == 0.0
     assert tr3d.traces[2, 2, 3] == size_tot - 1
-    assert tr3d.du_id[-1] == 2
+    assert tr3d.idx2idt[-1] == 2
     assert np.allclose(tr3d.t_start_ns, np.array([100, 110, 120]))
 
 

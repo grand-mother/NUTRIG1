@@ -78,6 +78,6 @@ class ZhairesSingleEventHdf5(ZhairesSingleEventBase):
         )
         o_tevent.init_network(self.ants_pos)
         i_sim = self.get_simu_info()
-        o_tevent.network.name += f"\nXmax dist {i_sim['x_max']['dist']:.1f}km, (azi ,zenith): {i_sim['shower_azimuth']:.1f}, {i_sim['shower_zenith']:.1f}deg"
-        o_tevent.set_unit_axis(r"$\mu$V/m", "cart")
+        o_tevent.network.name += f"\nXmax dist {i_sim['x_max']['dist']:.1f}km, (azi, zenith): {i_sim['shower_azimuth']:.1f}, {i_sim['shower_zenith']:.1f}deg"
+        o_tevent.set_unit_axis(r"$\mu$V/m", "cart", "E field")
         return o_tevent

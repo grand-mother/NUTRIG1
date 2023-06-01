@@ -84,7 +84,7 @@ def main():
     if args.list_du:
         print(f"\nIdentifier DU : ")
         s_id = ""
-        for id_du in o_tevent.d_idxdu.keys():
+        for id_du in o_tevent.idt2idx.keys():
             s_id += f" {id_du} ," 
         print(s_id[1:-1]) 
     if args.trace_image:
@@ -95,16 +95,16 @@ def main():
     if args.time_val:
         o_tevent.plot_footprint_time_max()
     if args.trace != "":
-        if not args.trace in o_tevent.d_idxdu.keys():
+        if not args.trace in o_tevent.idt2idx.keys():
             logger.error(f"ERROR: unknown DU identifer")
             return
         o_tevent.plot_trace_du(args.trace)
         o_tevent.plot_ps_trace_du(args.trace)
     if args.dump != "":
-        if not args.dump in o_tevent.d_idxdu.keys():
+        if not args.dump in o_tevent.idt2idx.keys():
             logger.error(f"ERROR: unknown DU identifer")
             return
-        idx_du = o_tevent.d_idxdu[args.dump]
+        idx_du = o_tevent.idt2idx[args.dump]
         tr_du = o_tevent.traces[idx_du]
         t_tr = o_tevent.t_samples[idx_du]
         for idx in range(o_tevent.get_size_trace()):
