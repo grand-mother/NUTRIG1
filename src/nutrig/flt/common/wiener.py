@@ -18,7 +18,7 @@ true_dse_s = 1
 np.random.seed(12)
 
 
-class WienerDeconvolution:
+class WienerDeconvolutionWhiteNoise:
     def __init__(self, f_sample_hz=1):
         self.f_hz = f_sample_hz
 
@@ -418,7 +418,7 @@ def test_class_wiener():
     sigma = 0.5
     sig, sig_conv_noise, ker = create_convolve_nois_signal(s_sig, sigma)
     # deconv
-    wiener = WienerDeconvolution()
+    wiener = WienerDeconvolutionWhiteNoise()
     wiener.set_kernel(ker)
     deconv = wiener.deconv_white_noise(sig_conv_noise, sigma)
     # plot wiener

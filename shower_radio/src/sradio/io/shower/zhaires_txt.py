@@ -208,7 +208,7 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
         return self.d_info
 
     def get_object_3dtraces(self):
-        o_tevent = HandlingEfieldOfEvent(self.dir_simu)
+        o_tevent = HandlingEfieldOfEvent("File: "+self.dir_simu)
         du_id = [str(iddu, "UTF-8") for iddu in self.ants["name"].tolist()]
         #  MHz/ns: 1e-6/1e-9 = 1e3
         sampling_freq_mhz = 1e3 / self.d_info["t_sample_ns"]
@@ -224,6 +224,6 @@ class ZhairesSingleEventText(ZhairesSingleEventBase):
         ants[:, 2] = self.ants["z"]
         o_tevent.init_network(ants)
         i_sim = self.get_simu_info()
-        o_tevent.network.name += f"\nXmax dist {int(np.round(i_sim['x_max']['dist']))}km, (azi, zenith): {i_sim['shower_azimuth']:.1f}, {i_sim['shower_zenith']:.1f} deg"
+        o_tevent.network.name = f"Xmax dist {int(np.round(i_sim['x_max']['dist']))}km, (azi, zenith): {i_sim['shower_azimuth']:.1f}, {i_sim['shower_zenith']:.1f} deg"
         o_tevent.set_unit_axis(r"$\mu$V/m", "cart","E field")
         return o_tevent

@@ -38,6 +38,7 @@ class DetectorUnitNetwork:
         nb_du = 0
         self.du_pos = np.zeros((nb_du, 3))
         self.idx2idt = np.arange(nb_du)
+        self.area_km2 = -1
 
     def init_pos_id(self, du_pos, du_id=None):
         """
@@ -61,6 +62,7 @@ class DetectorUnitNetwork:
         du_id = [self.idx2idt[idx] for idx in l_idx]
         self.idx2idt = du_id
         self.du_pos = self.du_pos[l_idx]
+        self.area_km2 = -1
         
     def reduce_nb_du(self, new_nb_du):
         """
@@ -71,7 +73,8 @@ class DetectorUnitNetwork:
         """
         self.idx2idt = self.idx2idt[:new_nb_du]
         self.du_pos = self.du_pos[:new_nb_du, :]
-
+        self.area_km2 = -1
+        
     def get_sub_network(self, l_id):
         """
         Reduce networh to DU in list l_id
@@ -82,6 +85,9 @@ class DetectorUnitNetwork:
         sub_net = DetectorUnitNetwork("sub-network of " + self.name)
         sub_net.init_pos_id(self.du_pos[l_id], self.idx2idt[l_id])
         return sub_net
+    
+    def get_nb_du(self):
+        return len(self.idx2idt)
 
     def get_pos_id(self, l_id):
         """
@@ -98,7 +104,8 @@ class DetectorUnitNetwork:
         :return: [km2] surface of network envelop
         :rtype: float
         """
-        # TODO:
+        if self.area_km2 > 0:
+            return self.area_km2
         pts = self.du_pos[:, :2].astype(np.float64)
         self.delaunay = Delaunay(self.du_pos[:, :2])
         triangle = self.delaunay.simplices
@@ -179,7 +186,7 @@ class DetectorUnitNetwork:
                 plt.draw()
 
         fig, ax1 = plt.subplots(1, 1)
-        ax1.set_title(f"{self.name}\nDU network : {title}")
+        ax1.set_title(f"{title}\n{self.get_nb_du()} DUs, surface {int(self.get_surface())} km$^2$")
         vmin = np.nanmin(a_values)
         vmax = np.nanmax(a_values)
         norm_user = colors.LogNorm(vmin=vmin, vmax=vmax)
@@ -200,8 +207,12 @@ class DetectorUnitNetwork:
             cmap=my_cmaps,
         )
         fig.colorbar(scm, label=unit)
-        plt.xlabel("[m] => North")
-        plt.ylabel(r"[m] => West (azi= +90 deg)")
+        xlabel = "meters,          North =>"
+        if traces is not None:
+            xlabel += f"\nFile: {traces.name}"
+        xlabel += f"\n{self.name}"    
+        plt.xlabel(xlabel)
+        plt.ylabel(fr"meters,          West (azimuth=90°) => ")
         ax1.grid()
         anch_du = AnchoredText("DU id", prop=dict(size=10), frameon=False, loc="upper left")
         anch_val = AnchoredText("Value", prop=dict(size=10), frameon=False, loc="upper right")
@@ -314,8 +325,8 @@ class DetectorUnitNetwork:
         )
         ax1.axis("equal")
         fig.colorbar(scat)
-        plt.ylabel("[m] => West")
-        plt.xlabel("[m] => North")
+        plt.ylabel("meters,          West (azimuth=90°) =>")
+        plt.xlabel("meters,          North =>")
         fig.subplots_adjust(left=0.2, bottom=0.2)
         # Make a horizontal slider to control the frequency.
         axe_idx = fig.add_axes([0.15, 0.05, 0.7, 0.05])

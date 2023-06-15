@@ -10,6 +10,7 @@ import os.path
 
 import h5py
 import numpy as np
+import matplotlib.pylab as plt
 
 from sradio.num.signal import interpol_at_new_x
 from sradio import get_path_model_du
@@ -29,7 +30,7 @@ class GalaxySignalGp300:
         # gala_power_mag = np.transpose(gala_show["p_narrow"])
         self.gala_freq = gala_show["freq_all"]
 
-    def get_volt_all_du(self, f_lst, size_out, freqs_mhz, nb_ant, seed=None):
+    def get_volt_all_du(self, f_lst, size_out, freqs_mhz, nb_ant):
         """Return for all DU fft of galaxy signal in voltage
 
         This program is used as a subroutine to complete the calculation and
@@ -48,13 +49,11 @@ class GalaxySignalGp300:
         :type nb_ant:int
         :param show_flag: print figure
         :type show_flag: boll
-        :param seed: if None, values are randomly generated as expected.
-        :type seed:if number, same set of randomly generated output. This is useful for testing.
 
         :return: FFT of galactic noise for all DU and components
         :rtype: float(nb du, 3, nb freq)
         """
-        # TODO: why lst is an integer ?
+        # lst is used as index
         lst = int(f_lst)
         v_amplitude_infile = self.gala_voltage[:, :, lst - 1]
         # SL
@@ -74,8 +73,25 @@ class GalaxySignalGp300:
         # RK: above loop is replaced by lines below. Also np.random.default_rng(seed) is used instead of np.random.seed().
         #     if seed is a fixed number, same set of randomly generated number is produced. This is useful for testing.
         v_amplitude = v_amplitude.T
-        #rng = np.random.default_rng(seed)
         amp = np.random.normal(loc=0, scale=v_amplitude[np.newaxis, ...], size=(nb_ant, 3, nb_freq))
         phase = 2 * np.pi * np.random.random(size=(nb_ant, 3, nb_freq))
         v_complex = np.abs(amp * size_out / 2) * np.exp(1j * phase)
+        self.freqs_mhz = freqs_mhz
+        self.v_ampli = v_amplitude
+        self.lst = lst
         return v_complex
+
+    def plot_v_ampl(self):
+        plt.figure()
+        my_t = "Galaxy $V_{oc}$ GP300 at local sideral time"
+        plt.title(f"{my_t} {self.lst}h\n'v_amplitude' field in file 30_250galactic.mat")
+        plt.semilogy(self.freqs_mhz, self.v_ampli[0], color='k', label="0 / SN axis")
+        plt.semilogy(self.freqs_mhz, self.v_ampli[1], color='y', label="1 / EW axis")
+        plt.semilogy(self.freqs_mhz, self.v_ampli[2], color='b', label="2 / Up axis")
+        plt.xlabel('MHz')
+        plt.ylabel('$\mu$V')
+        plt.xlim([20,260])
+        plt.ylim([0,7])
+        plt.grid()
+        plt.legend()
+        

@@ -64,7 +64,7 @@ def fit_vec_linear_polar_with_max(trace):
 
 
 def fit_vec_linear_polar_l2_2(trace, threshold=20, plot=False):
-    """Fit the unit linear pola vec with samples out of noise (>threshold)
+    """Fit the unit linear polarization vec with samples out of noise (>threshold)
 
     We used weighted estimation with square l2 norm
 

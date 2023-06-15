@@ -69,7 +69,7 @@ class GenericProcessingDU:
         self.freqs_out = a_freq
         self.nb_freqs = a_freq.shape[0]
         self.size_sig = (self.nb_freqs - 1) * 2
-
+        self.f_samp_mhz = a_freq[-1]*2
 
 class StandingWaveRatioGP300(GenericProcessingDU):
     """
@@ -616,7 +616,7 @@ class RfChainGP300:
 
     def get_tf_3d(self):
         """Return transfer function for all elements in RF chain
-        @return total TF (complex, (3,N)):
+        @return total TF complex (3,N):
         """
         return self._total_tf
 

@@ -26,20 +26,23 @@ from sradio import set_path_model_du
 #
 # Path file
 #
-# G_path_simu = (
+# FILE_efield = (
 #     "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
 # )
-G_path_simu = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
-G_path_simu = (
+FILE_efield = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
+FILE_efield = (
     "/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1"
 )
-G_Voc_out = "out2_v_oc.asdf"
+# FILE_efield = (
+#     "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
+#     )
+FILE_vout = "/home/jcolley/projet/grand_wk/data/volt/out4_v_out.asdf"
 
 #
 # Logger
 #
 logger = mlg.get_logger_for_script(__file__)
-mlg.create_output_for_logger("debug", log_stdout=True)
+
 
 np.random.seed(11)
 
@@ -186,7 +189,7 @@ def test_simu_in_frame_pol(f_simu):
 
 def proto_simu_voc(f_out=None):
     dus = SimuDetectorUnitResponse()
-    event = ZhairesMaster(G_path_simu)
+    event = ZhairesMaster(FILE_efield)
     data = event.get_object_3dtraces()
     d_info = event.get_simu_info()
     print(data)
@@ -215,12 +218,21 @@ def proto_simu_voc(f_out=None):
 
 def proto_simu_vout(f_out=None):
     dus = SimuDetectorUnitResponse()
-    dus.params = {"flag_add_leff": True, "flag_add_gal": True, "flag_add_rf": True, "lst": 18.0}
-    zh_f = ZhairesMaster(G_path_simu)
+    dus.params = {
+        "flag_add_leff": True,
+        "flag_add_gal": True,
+        "flag_add_rf": True,
+        "lst": 18.0,
+    }
+    zh_f = ZhairesMaster(FILE_efield)
     efield = zh_f.get_object_3dtraces()
     # efield.plot_all_traces_as_image()
     assert isinstance(efield, Handling3dTracesOfEvent)
     d_info = zh_f.get_simu_info()
+    #
+    evt_band = efield.get_copy(efield.get_traces_passband([50, 180]))
+    evt_band.type_trace = "E field [50, 180]MHz"
+    evt_band.plot_footprint_val_max()
     dus.set_data_efield(efield)
     shower = {}
     shower["xmax"] = zbase.get_simu_xmax(d_info)
@@ -236,7 +248,10 @@ def proto_simu_vout(f_out=None):
     volt.set_unit_axis("$\mu$V", "dir", r"$V_{out}$")
     volt.plot_footprint_val_max()
     # volt.plot_all_traces_as_image()
+    volt.remove_traces_low_signal(16000)
     if f_out:
+        d_info["efield_file"] = FILE_efield.split("/")[-1]
+        d_info["du simu"] = dus.params
         fsrad.save_asdf_single_event(f_out, volt, d_info)
     return efield, volt
 
@@ -245,37 +260,43 @@ def compare_efield_volt(efield, volt):
     assert isinstance(efield, Handling3dTracesOfEvent)
     assert isinstance(volt, Handling3dTracesOfEvent)
     volt_ok = volt.get_copy(deepcopy=True)
-    l_idx_ok = volt_ok.remove_traces_low_signal(1000)
+    l_idx_ok = volt_ok.remove_traces_low_signal(0)
     efield_ok = efield.get_copy(deepcopy=True)
+    l_idx = [efield.idt2idx[idt] for idt in volt.idx2idt]
+    efield_ok.reduce_l_idx(l_idx)
+    efield_ok.traces  = efield_ok.get_traces_passband([53, 190])
     assert isinstance(efield_ok, Handling3dTracesOfEvent)
     assert isinstance(volt_ok, Handling3dTracesOfEvent)
-    efield_ok.reduce_l_idx(l_idx_ok)
     tm_ef, em_ef = efield_ok.get_tmax_vmax(True)
     tm_v, em_v = volt_ok.get_tmax_vmax(True)
-    id = "A104"
-    idx = volt_ok.idt2idx[id]
-    volt_ok.plot_trace_du(id)
-    plt.plot(tm_v[idx], em_v[idx], "d")
-
+    # id = "A79"
+    # idx = volt_ok.idt2idx[id]
+    # volt_ok.plot_trace_du(id)
+    #plt.plot(tm_v[idx], em_v[idx], "d")
     tm_diff = tm_v - tm_ef
-    efield_ok.network.plot_footprint_1d(tm_diff, "diff t_max (volt - Efield)", volt_ok, "lin", "ns")
+    efield_ok.network.plot_footprint_1d(tm_diff, "diff t_max (V_out - Efield band)", volt_ok, "lin", "ns")
     plt.figure()
+    plt.title(f"diff t_max (V_out - Efield band)\nFile: {efield.name}")
     plt.hist(tm_diff)
+    plt.xlabel("ns")
+    plt.grid()
 
 
 def proto_read():
-    event, info = fsrad.load_asdf(G_Voc_out)
+    event, info = fsrad.load_asdf(FILE_vout)
     pprint.pprint(info)
 
 
 if __name__ == "__main__":
+    mlg.create_output_for_logger("debug", log_stdout=True)
     logger.info(mlg.string_begin_script())
     #
     #
-    efield, volt = proto_simu_vout(G_Voc_out)
-    compare_efield_volt(efield, volt)
+    efield, volt = proto_simu_vout(FILE_vout)
+    #proto_simu_vout(FILE_vout)
+    #compare_efield_volt(efield, volt)
     # proto_read()
-    # test_simu_in_frame_pol(G_path_simu)
+    # test_simu_in_frame_pol(FILE_efield)
     # view_efield_passband("/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2", 52)
     # view_efield_polar_passband(
     #     "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2",

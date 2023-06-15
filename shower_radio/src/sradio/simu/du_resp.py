@@ -118,13 +118,13 @@ class SimuDetectorUnitResponse:
                 self.o_efield.get_nb_du(),
             )
     
-    def set_xmax(self, xmax_xc):
+    def set_xmax(self, xmax_xcs):
         """
         
-        :param xmax_xc: position Xmax  in frame [XCore]  
-        :type xmax_xc: float (3,)
+        :param xmax_xcs: position Xmax  in frame [XCore]  
+        :type xmax_xcs: float (3,)
         """
-        self.o_ant3d.set_pos_source(xmax_xc)
+        self.o_ant3d.set_pos_source(xmax_xcs)
 
     def set_data_shower(self, shower):
         """

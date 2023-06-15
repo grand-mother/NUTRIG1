@@ -17,6 +17,16 @@ import sradio.num.signal as sns
 logger = getLogger(__name__)
 
 
+def get_psd(trace, f_samp_mhz, nperseg=0):
+    if nperseg == 0:
+        nperseg = trace.shape[0]
+
+    freq, pxx_den = ssig.welch(
+        trace, f_samp_mhz * 1e6, nperseg=nperseg, window="taylor", scaling="density"
+    )
+    return freq * 1e-6, pxx_den
+
+
 class Handling3dTracesOfEvent:
     """
     Handling a set of traces associated to one event observed on Detector Unit network
@@ -52,6 +62,7 @@ class Handling3dTracesOfEvent:
         self.name = name
         nb_du = 0
         nb_sample = 0
+        self.nperseg = 512
         self.traces = np.zeros((nb_du, 3, nb_sample))
         self.idx2idt = range(nb_du)
         self.t_start_ns = np.zeros((nb_du), dtype=np.int64)
@@ -59,6 +70,7 @@ class Handling3dTracesOfEvent:
         self.f_samp_mhz = 0.0
         self.idt2idx = {}
         self.unit_trace = "TBD"
+        self.type_trace = ""
         self._d_axis_val = {
             "idx": ["0", "1", "2"],
             "port": ["1", "2", "3"],
@@ -78,7 +90,7 @@ class Handling3dTracesOfEvent:
 
     ### INIT/SETTER
 
-    def init_traces(self, traces, du_id, t_start_ns, f_samp_mhz):
+    def init_traces(self, traces, du_id=None, t_start_ns=None, f_samp_mhz=2000):
         """
 
         :param traces: array traces 3D
@@ -90,15 +102,20 @@ class Handling3dTracesOfEvent:
         :param f_samp_mhz: franquency sampling in MHz
         :type f_samp_mhz: float
         """
+        assert isinstance(self.traces, np.ndarray)
+        assert traces.ndim == 3
+        assert traces.shape[1] == 3
         self.traces = traces
+        if du_id is None:
+            du_id = list(range(traces.shape[0]))
+        if t_start_ns is None:
+            t_start_ns = np.zeros(traces.shape[0], dtype=np.float32)
         self.idx2idt = du_id
         for idx, ident in enumerate(self.idx2idt):
             self.idt2idx[ident] = idx
         self.t_start_ns = t_start_ns
         self.f_samp_mhz = f_samp_mhz
-        assert isinstance(self.traces, np.ndarray)
         assert isinstance(self.t_start_ns, np.ndarray)
-        assert traces.shape[1] == 3
         assert traces.shape[0] == len(du_id)
         assert len(du_id) == t_start_ns.shape[0]
         self._define_t_samples()
@@ -111,18 +128,26 @@ class Handling3dTracesOfEvent:
         """
         self.network.init_pos_id(du_pos, self.idx2idt)
 
-    def set_unit_axis(self, str_unit="TBD", axis_name="idx", type="Trace"):
+    def set_unit_axis(self, str_unit="TBD", axis_name="idx", type_tr="Trace"):
         """
 
         :param str_unit:
         :type str_unit:
         :param axis_name:
         :type axis_name:
+        :param type:
+        :type type:
         """
         assert isinstance(str_unit, str)
-        self.type_trace = type
+        assert isinstance(axis_name, str)
+        assert isinstance(type_tr, str)
+        self.type_trace = type_tr
         self.unit_trace = str_unit
         self.axis_name = self._d_axis_val[axis_name]
+
+    def set_periodogram(self, size):
+        assert size > 0
+        self.nperseg = size
 
     ### OPERATIONS
 
@@ -160,7 +185,7 @@ class Handling3dTracesOfEvent:
             self.t_samples = self.t_samples[l_idx]
         self.network = copy.deepcopy(self.network)
         self.network.reduce_l_idx(l_idx)
-        
+
     def reduce_nb_du(self, new_nb_du):
         """
         feature to reduce computation, for debugging
@@ -176,30 +201,37 @@ class Handling3dTracesOfEvent:
         if self.t_samples.shape[0] > 0:
             self.t_samples = self.t_samples[:new_nb_du, :, :]
         self.network.reduce_nb_du(new_nb_du)
-    
+
+    def downsize_sampling(self, fact):
+        self.traces = self.traces[:, :, ::fact]
+        self.f_samp_mhz /= fact
+        self.t_samples = np.zeros((0, 0), dtype=np.float64)
+        self._define_t_samples()
+        self.nperseg = np.min(np.array([self.traces.shape[2] // 2, self.nperseg]))
+
     def remove_traces_low_signal(self, threshold):
-        a_norm = self.get_max_norm()
+        a_norm = np.max(np.max(np.abs(self.traces), axis=1), axis=1)
         l_idx_ok = []
         for idx in range(self.get_nb_du()):
             if a_norm[idx] >= threshold:
                 l_idx_ok.append(idx)
         print(l_idx_ok)
-        #l_idx_ok  = np.array(l_idx_ok)
+        # l_idx_ok  = np.array(l_idx_ok)
         self.reduce_l_idx(l_idx_ok)
         return l_idx_ok
 
     ### GETTER :
     def get_copy(self, new_traces=None, deepcopy=False):
         """Return a copy of current object where traces can be modify
-        
+
         The type of copy is copy with reference, not a deepcopy
         https://stackoverflow.com/questions/3975376/why-updating-shallow-copy-dictionary-doesnt-update-original-dictionary/3975388#3975388
-        
+
         if new_traces is :
           * None : object with same value
           * 0 : the return object has a traces with same shape but set to 0
           * np.array : the return object has new_traces as traces
-        
+
         :param new_traces: if array must be have the same shape
         :type new_traces: array/None/0
         :return:
@@ -252,26 +284,33 @@ class Handling3dTracesOfEvent:
         """
         return np.linalg.norm(self.traces, axis=1)
 
-    def get_tmax_vmax(self, interpol=True):
+    def get_tmax_vmax(self, interpol="auto"):
         """
         Return time where norm of the amplitude of the Hilbert tranform  is max
 
         :return:  time of max and max
         :rtype: float(nb_du,) , float(nb_du,)
         """
-        tmax, vmax, idx_max, norm_hilbert_amp= sns.get_peakamptime_norm_hilbert(self.t_samples, self.traces)
-        if not interpol:
+        tmax, vmax, idx_max, norm_hilbert_amp = sns.get_peakamptime_norm_hilbert(
+            self.t_samples, self.traces
+        )
+        if interpol == "no":
             return tmax, vmax
+        if interpol == "parab":
+            factor_hill = 1
+        elif interpol == "auto":
+            factor_hill = 0.8
+        else:
+            raise
         t_max = np.empty_like(tmax)
         e_max = np.empty_like(tmax)
         for idx in range(self.get_nb_du()):
             logger.debug(f"{idx} {self.idx2idt[idx]} {idx_max[idx]}")
             t_max[idx], e_max[idx] = sns.find_max_with_parabola_interp(
-                self.t_samples[idx], norm_hilbert_amp[idx], int(idx_max[idx])
+                self.t_samples[idx], norm_hilbert_amp[idx], int(idx_max[idx]), factor_hill
             )
             logger.debug(f"{t_max[idx]} ; {e_max[idx]}")
         return t_max, e_max
-
 
     def get_min_max_t_start(self):
         """
@@ -337,7 +376,7 @@ class Handling3dTracesOfEvent:
                     label=axis,
                 )
         plt.ylabel(f"{self.unit_trace}")
-        plt.xlabel(f"ns\nFile: {self.name}")
+        plt.xlabel(f"ns\n{self.name}")
         plt.grid()
         plt.legend()
 
@@ -363,24 +402,31 @@ class Handling3dTracesOfEvent:
         """
         self._define_t_samples()
         plt.figure()
-        noverlap = 0
-        plt.title(f"Power spectrum of {self.type_trace}, DU {self.idx2idt[idx]} (idx={idx})")
         for idx_axis, axis in enumerate(self.axis_name):
             if str(idx_axis) in to_draw:
-                freq, pxx_den = ssig.welch(
-                    self.traces[idx, idx_axis],
-                    self.f_samp_mhz * 1e6,
-                    window="taylor",
-                    noverlap=noverlap,
-                    scaling="spectrum",
-                )
+                if True:
+                    freq, pxx_den = ssig.welch(
+                        self.traces[idx, idx_axis],
+                        self.f_samp_mhz * 1e6,
+                        nperseg=self.nperseg,
+                        window="taylor",
+                        scaling="density",
+                    )
+                else:
+                    freq, pxx_den = get_ps_trace(self.traces[idx, idx_axis], self.f_samp_mhz)
+                logger.info(f"{freq[:3]}")
                 plt.semilogy(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
                 # plt.plot(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
-        plt.ylabel(rf"({self.unit_trace})$^2$")
-        plt.xlabel(f"MHz\nFile: {self.name}")
+        m_title = f"Power spectrum density of {self.type_trace}, DU {self.idx2idt[idx]} (idx={idx})"
+        m_title += f"\nPeriodogram have {self.nperseg} samples, delta freq {freq[1]*1e-6:.2f}MHz"
+        plt.title(m_title)
+        plt.ylabel(rf"({self.unit_trace})$^2$/Hz")
+        plt.xlabel(f"MHz\n{self.name}")
         plt.xlim([0, 400])
         plt.grid()
         plt.legend()
+        self.welch_freq = freq
+        self.welch_pxx_den = pxx_den
 
     def plot_ps_trace_du(self, du_id, to_draw="012"):  # pragma: no cover
         """

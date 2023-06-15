@@ -3,8 +3,9 @@ Created on 4 avr. 2023
 
 @author: jcolley
 
-Hypothesis: small network  (20-30km ) so => [NET]~[DU] for vector/direction
+Hypothesis: small network  (20-30km ) so => [XCS]~[DU] for vector/direction
 
+see sradio.basis.frame for frame definition [XXX]
 """
 
 import os.path
@@ -89,6 +90,13 @@ class PreComputeInterpolFreq:
         # logger.debug(f"{self.idx_itp}")
         # define coefficient of linear interpolation
         self.c_sup = (freq_in_band - freq_in_mhz[self.idx_itp]) / d_freq_in
+        if self.idx_itp[-1]+1 == freq_in_mhz.shape[0]:
+            # https://github.com/grand-mother/collaboration-issues/issues/30
+            logger.info(f" ** Specfic processing when f_in = k * f_out else IndexError **")
+            self.idx_itp[-1] -= 1
+            # in this case last c_sup must be zero
+            # check it !
+            assert np.allclose(self.c_sup[-1], 0)        
         self.c_inf = 1 - self.c_sup
 
     def get_linear_interpol(self, a_val):
@@ -254,10 +262,9 @@ class DetectorUnitAntenna3Axis:
         """
 
         :param name:
-        :param pos_n: [m] (3,) in stations frame [NET]
         """
         self.name = "TBD"
-        self.pos_du_n = np.zeros(3, dtype=np.float32)
+        self.pos_du_xcs = np.zeros(3, dtype=np.float32)
         self.interp_leff = LengthEffectiveInterpolation()
         self.freq_out_mhz = np.zeros(0)
         # Hypothesis : all leff storage have same array freq definition
@@ -267,13 +274,13 @@ class DetectorUnitAntenna3Axis:
         # Hypothesis : all leff storage have same array angle phit theta
         self.interp_leff.set_sampling_angle(self.sn_leff.theta_deg, self.sn_leff.phi_deg)
 
-    def set_name_pos(self, name, pos_n):
+    def set_name_pos(self, name, pos_xcs):
         """
         :param name:
-        :param pos_n: [m] (3,) in stations frame [NET]
+        :param pos_xcs: [m] (3,) in stations frame [XCS]
         """
         self.name = name
-        self.pos_du_n = pos_n
+        self.pos_du_xcs = pos_xcs
         self._update_dir_source()
 
     def set_freq_out_mhz(self, out_freq):
@@ -281,14 +288,14 @@ class DetectorUnitAntenna3Axis:
         freq_in_mhz = self.sn_leff.freq_mhz
         self.interp_leff.o_pre.init_linear_interpol(freq_in_mhz, out_freq)
 
-    def set_pos_source(self, pos_n):
+    def set_pos_source(self, pos_xcs):
         """
-        set of source mainly Xmax in [NET]
+        set of source mainly Xmax in [XCS]
 
-        :param pos_n:
-        :type pos_n:
+        :param pos_xcs:
+        :type pos_xcs:
         """
-        self.pos_src_n = pos_n
+        self.pos_src_xcs = pos_xcs
         self._update_dir_source()
 
     def set_dir_source(self, dir_du):
@@ -301,14 +308,14 @@ class DetectorUnitAntenna3Axis:
         :param self:
         :type self:
         """
-        diff_n = self.pos_src_n - self.pos_du_n
-        # Hypothesis: small network  (20-30km ) => [NET]=[DU]+offset, so direction ar same
+        diff_n = self.pos_src_xcs - self.pos_du_xcs
+        # Hypothesis: small network  (20-30km ) => [XCS]=[DU]+offset, so direction ar same
         self.cart_src_du = diff_n
         self.dir_src_du = coord.du_cart_to_dir(diff_n)
         self.interp_leff.set_dir_source(self.dir_src_du)
 
     def get_resp_3d_efield_du(self, fft_efield_du):
-        """Return fft of antennas response for 3 axis with efield in [NET] frame
+        """Return fft of antennas response for 3 axis with efield in [XCS] frame
 
         :param fft_efield_du: electric field at DU in [DU]
         :type fft_efield_du: float (3, n_s)

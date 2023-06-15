@@ -19,8 +19,8 @@ Frame available:
               * above ellipsoide or geoide EGM96
               
 
-    [XC] is the frame associated to XCore of air shower
-        * Origin [W84]: xcore position
+    [XCS] is the frame associated to XCore of air shower used by ZHAireS
+        * Origin [W84]: XCore position at Sea level
         * Cartesian: NWU ie tangential to the surface of the earth
           * X: North mag, Y: West mag, Z: normal up to earth 
         * Spherical
@@ -31,7 +31,7 @@ Frame available:
         
 
     [NET] is the frame associated to NETwork stations
-        * Origin [W84]: can be center of network 
+        * Origin [W84]: TBD, can be center of network or x core
         * Cartesian: NWU ie tangential to the surface of the earth
           * X: North mag, Y: West mag, Z: normal up to earth 
         * Spherical

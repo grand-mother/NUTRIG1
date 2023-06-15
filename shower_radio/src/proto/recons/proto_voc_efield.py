@@ -14,7 +14,7 @@ import matplotlib.pylab as plt
 import sradio.manage_log as mlg
 from sradio.basis.traces_event import Handling3dTracesOfEvent
 import sradio.io.sradio_asdf as fsr
-from sradio.num.signal import WienerDeconvolution
+from sradio.num.signal import WienerDeconvolutionWhiteNoise
 import sradio.model.ant_resp as ant
 from sradio.basis.frame import FrameDuFrameTan
 from sradio.basis import coord
@@ -25,7 +25,7 @@ from sradio import set_path_model_du
 # logger
 #
 logger = mlg.get_logger_for_script("script")
-mlg.create_output_for_logger("debug", log_root="script")
+
 
 
 #
@@ -114,7 +114,7 @@ def check_recons_with_white_noise_ref():
     pprint.pprint(d_simu)
     assert isinstance(evt, Handling3dTracesOfEvent)
     # 2)
-    wiener = WienerDeconvolution(evt.f_samp_mhz * 1e-6)
+    wiener = WienerDeconvolutionWhiteNoise(evt.f_samp_mhz * 1e-6)
     # 3)
     ant3d = ant.DetectorUnitAntenna3Axis(ant.get_leff_from_files(PATH_leff))
     evt.plot_footprint_val_max()
@@ -218,7 +218,7 @@ def check_recons_with_white_noise():
     pprint.pprint(d_simu)
     assert isinstance(evt, Handling3dTracesOfEvent)
     # 2)
-    wiener = WienerDeconvolution(evt.f_samp_mhz * 1e6)
+    wiener = WienerDeconvolutionWhiteNoise(evt.f_samp_mhz * 1e6)
     # 3)
     ant3d = ant.DetectorUnitAntenna3Axis(ant.get_leff_from_files(PATH_leff))
     # evt.plot_footprint_val_max()
@@ -395,7 +395,7 @@ def deconv_with_polar_fit_all_event(coef_func2=0.5, sigma=10):
     assert isinstance(evt, Handling3dTracesOfEvent)
     pprint.pprint(d_simu)
     ## pre-compute
-    wiener = WienerDeconvolution(evt.f_samp_mhz * 1e6)
+    wiener = WienerDeconvolutionWhiteNoise(evt.f_samp_mhz * 1e6)
     # 3)
     ant3d = ant.DetectorUnitAntenna3Axis(ant.get_leff_from_files())
     ## compute relative xmax and direction
@@ -553,7 +553,7 @@ def deconv_with_dir_polar_fit():
     evt.plot_footprint_val_max()
     assert isinstance(evt, Handling3dTracesOfEvent)
     # 2)
-    wiener = WienerDeconvolution(evt.f_samp_mhz * 1e6)
+    wiener = WienerDeconvolutionWhiteNoise(evt.f_samp_mhz * 1e6)
     # 3)
     ant3d = ant.DetectorUnitAntenna3Axis(ant.get_leff_from_files(PATH_leff))
     ## compute relative xmax and direction
@@ -644,6 +644,7 @@ def deconv_with_dir_polar_fit():
 
 
 if __name__ == "__main__":
+    mlg.create_output_for_logger("debug", log_root="script")
     logger.info(mlg.string_begin_script())
     # check_recons_with_white_noise()
     # deconv_with_polar_fit()
