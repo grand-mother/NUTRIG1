@@ -173,7 +173,10 @@ class DetectorUnitNetwork:
                 if idx != cur_idx_plot:
                     cur_idx_plot = idx
                     anch_du.txt.set_text(f"DU={self.idx2idt[idx]}")
-                    anch_val.txt.set_text(f"{a_values[idx]:.2e}")
+                    if scale == "lin":
+                        anch_val.txt.set_text(f"{a_values[idx]:.2f}")
+                    else:
+                        anch_val.txt.set_text(f"{a_values[idx]:.2e}")
                     plt.draw()
 
         def on_click(event):

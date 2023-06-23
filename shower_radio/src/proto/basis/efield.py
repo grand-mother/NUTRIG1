@@ -6,7 +6,7 @@ Created on 15 mai 2023
 import pprint
 import matplotlib.pylab as plt
 from sradio.io.shower.zhaires_master import ZhairesMaster
-from sradio.io.shower.zhaires_base import get_simu_xmax
+from sradio.io.shower.zhaires_base import get_simu_xmax, get_simu_magnetic_vector
 import sradio.manage_log as mlg
 import sradio.basis.coord as coord
 from sradio.basis.efield_event import HandlingEfieldOfEvent
@@ -19,8 +19,8 @@ G_path_simu = (
     "/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1"
 )
 #G_path_simu = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
-#G_path_simu = "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
-G_path_simu = "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_LH_EPLHC_Proton_3.98_84.5_180.0_2"
+G_path_simu = "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
+#G_path_simu = "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_LH_EPLHC_Proton_3.98_84.5_180.0_2"
 #
 # Logger
 #
@@ -58,6 +58,21 @@ def test_fit_polar(f_simu):
     #print(a_pol)
     evt.plot_polar_check_fit()
     
+    
+    
+def compare_polar_angle(f_simu):
+    f_zh = ZhairesMaster(f_simu)
+    i_sim = f_zh.get_simu_info()
+    pprint.pprint(f_zh.get_simu_info())
+    evt = f_zh.get_object_3dtraces()
+    evt.set_xmax(get_simu_xmax(i_sim))
+    mfield = get_simu_magnetic_vector(i_sim)
+    pol_ef = evt.get_polar_angle_efield()
+    pol_mf = evt.get_polar_angle_geomagnetic(mfield)
+    #print(pol_ef)
+    evt.network.plot_footprint_1d(pol_ef, "Polar angle with E field (True)", scale="lin", unit="deg")
+    evt.network.plot_footprint_1d(pol_mf, "Polar angle geomagnetic", scale="lin", unit="deg")
+    evt.network.plot_footprint_1d(pol_mf-pol_ef, "Error polar angle (geomagnetic-True)", scale="lin", unit="deg")
 
 def test_filter(f_simu):
     f_zh = ZhairesMaster(f_simu)
@@ -73,5 +88,6 @@ def test_filter(f_simu):
 if __name__ == '__main__':
     #test_fit_polar(G_path_simu)
     #get_polar_angle_by_efield(G_path_simu)
-    test_filter(G_path_simu)
+    #test_filter(G_path_simu)
+    compare_polar_angle(G_path_simu)
     plt.show()

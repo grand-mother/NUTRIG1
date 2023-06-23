@@ -8,7 +8,8 @@ import matplotlib.pylab as plt
 
 from .traces_event import Handling3dTracesOfEvent
 import sradio.num.signal as sns
-
+from sradio.basis.frame import FrameDuFrameTan
+import sradio.basis.coord as coord 
 
 logger = getLogger(__name__)
 
@@ -282,11 +283,24 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
 
     def __init__(self, name="NotDefined"):
         super().__init__(name)
+        self.xmax = -1
 
     ### INTERNAL
 
+    ### SETTER
+
+    def set_xmax(self, xmax):
+        """Set Xmax position
+
+        :param xmax: [m] cartesian position in same frame as DU position
+        :type xmax: float (3,)
+        """
+        assert xmax.ndim == 1
+        assert xmax.shape[0] == 3
+        self.xmax = xmax
+
     ### INIT/SETTER
-    
+
     def get_polar_vec(self, threshold=40):
         a_vec_pol = np.empty((self.get_nb_du(), 3), dtype=np.float32)
         for idx in range(self.get_nb_du()):
@@ -318,11 +332,69 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
         return np.squeeze(t_max), np.squeeze(v_max)
 
     def get_traces_passband(self, f_mhz=[30, 250]):
+        """Return array traces with passband filter
+
+        :param f_mhz: [MHz] border
+        :type f_mhz: list of 2 number
+        """
         return sns.filter_butter_band(self.traces, f_mhz[0], f_mhz[1], self.f_samp_mhz)
+
+    def get_polar_angle_geomagnetic(self, m_field_u, degree=True):
+        """Return polar angle estimation with geomagnetic model for all DUs
+
+        Hypothesis: small network, magnetic field is almost same for all positions
+        
+        :param m_field_u: unit vector of earth magnetic field
+        :type m_field_u: float (3,)
+        :param degree: flag to set return angle in degree
+        :type degree: bool         
+        
+        :return: polar angle estimation with geomagnetic model for all DUs
+        :rtype: float (nb_du,)
+        """
+        assert isinstance(self.xmax, np.ndarray)
+        polars = np.empty(self.get_nb_du(), dtype=np.float32)
+        for idx in range(self.get_nb_du()):
+            # direction toward source
+            v_dux = self.xmax - self.network.du_pos[idx]
+            v_pol = np.cross(v_dux, m_field_u)
+            v_pol /= np.linalg.norm(v_pol)
+            vec_dir_du = coord.du_cart_to_dir(v_dux)
+            t_dutan = FrameDuFrameTan(vec_dir_du)
+            v_pol_tan = t_dutan.vec_to(v_pol, "TAN")
+            polars[idx] = coord.tan_cart_to_polar_angle(v_pol_tan)
+        if degree:
+            return np.rad2deg(polars)
+        return polars
+
+    def get_polar_angle_efield(self, degree=True):
+        """Return polar angle estimation with traces E field for all DUs
+        
+        :param degree: flag to set return angle in degree
+        :type degree: bool 
+        
+        :return: polar angle estimation with traces E field for all DUs
+        :rtype: float (nb_du,)        
+        """
+        assert isinstance(self.xmax, np.ndarray)
+        # in DU frame
+        vec_polar = self.get_polar_vec()
+        polars = np.empty(self.get_nb_du(), dtype=np.float32)
+        for idx in range(self.get_nb_du()):
+            # direction toward source
+            v_dux = self.xmax - self.network.du_pos[idx]
+            vec_dir_du = coord.du_cart_to_dir(v_dux)
+            t_dutan = FrameDuFrameTan(vec_dir_du)
+            v_pol_tan = t_dutan.vec_to(vec_polar[idx], "TAN")
+            polars[idx] = coord.tan_cart_to_polar_angle(v_pol_tan)
+        if degree:
+            return np.rad2deg(polars)
+        return polars
 
     #
     # PLOTS
     #
+
     def plot_polar_check_fit(self, threshold=40):
         nb_du = self.get_nb_du()
         a_vec_pol = np.empty((nb_du, 3), dtype=np.float32)

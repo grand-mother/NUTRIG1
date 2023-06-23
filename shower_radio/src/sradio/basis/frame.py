@@ -152,6 +152,11 @@ class FrameDuFrameTan(FrameAFrameB):
     """
 
     def __init__(self, vec_dir_du):
+        """
+        
+        :param vec_dir_du: angle azi, dist zen
+        :type vec_dir_du:
+        """
         offset_ab_a = np.zeros(3, dtype=vec_dir_du.dtype)
         azi_w = vec_dir_du[0]
         d_zen = vec_dir_du[1]
