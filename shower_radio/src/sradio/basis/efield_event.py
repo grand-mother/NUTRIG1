@@ -4,7 +4,7 @@ Handling a set of 3D traces
 from logging import getLogger
 
 import numpy as np
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 
 from .traces_event import Handling3dTracesOfEvent
 import sradio.num.signal as sns
@@ -339,33 +339,6 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
         """
         return sns.filter_butter_band(self.traces, f_mhz[0], f_mhz[1], self.f_samp_mhz)
 
-    def get_polar_angle_geomagnetic(self, m_field_u, degree=True):
-        """Return polar angle estimation with geomagnetic model for all DUs
-
-        Hypothesis: small network, magnetic field is almost same for all positions
-        
-        :param m_field_u: unit vector of earth magnetic field
-        :type m_field_u: float (3,)
-        :param degree: flag to set return angle in degree
-        :type degree: bool         
-        
-        :return: polar angle estimation with geomagnetic model for all DUs
-        :rtype: float (nb_du,)
-        """
-        assert isinstance(self.xmax, np.ndarray)
-        polars = np.empty(self.get_nb_du(), dtype=np.float32)
-        for idx in range(self.get_nb_du()):
-            # direction toward source
-            v_dux = self.xmax - self.network.du_pos[idx]
-            v_pol = np.cross(v_dux, m_field_u)
-            v_pol /= np.linalg.norm(v_pol)
-            vec_dir_du = coord.du_cart_to_dir(v_dux)
-            t_dutan = FrameDuFrameTan(vec_dir_du)
-            v_pol_tan = t_dutan.vec_to(v_pol, "TAN")
-            polars[idx] = coord.tan_cart_to_polar_angle(v_pol_tan)
-        if degree:
-            return np.rad2deg(polars)
-        return polars
 
     def get_polar_angle_efield(self, degree=True):
         """Return polar angle estimation with traces E field for all DUs

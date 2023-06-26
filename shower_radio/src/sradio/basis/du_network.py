@@ -12,6 +12,8 @@ from matplotlib.offsetbox import AnchoredText
 from matplotlib.backend_bases import MouseButton
 from scipy.spatial import Delaunay
 
+from sradio.basis.frame import FrameDuFrameTan
+import sradio.basis.coord as coord 
 
 logger = getLogger(__name__)
 
@@ -74,6 +76,36 @@ class DetectorUnitNetwork:
         self.idx2idt = self.idx2idt[:new_nb_du]
         self.du_pos = self.du_pos[:new_nb_du, :]
         self.area_km2 = -1
+        
+    def get_polar_angle_geomagnetic(self, m_field_u, xmax, degree=True):
+        """Return polar angle estimation with geomagnetic model for all DUs
+
+        Hypothesis: small network, magnetic field is almost same for all positions
+        
+        :param m_field_u: unit vector of earth magnetic field
+        :type m_field_u: float (3,)
+        :param degree: flag to set return angle in degree
+        :type degree: bool         
+        
+        :return: polar angle estimation with geomagnetic model for all DUs
+        :rtype: float (nb_du,)
+        """
+        assert isinstance(m_field_u, np.ndarray)
+        assert isinstance(xmax, np.ndarray)
+        polars = np.empty(self.get_nb_du(), dtype=np.float32)
+        for idx in range(self.get_nb_du()):
+            # direction toward source
+            v_dux = xmax - self.du_pos[idx]
+            v_pol = np.cross(v_dux, m_field_u)
+            v_pol /= np.linalg.norm(v_pol)
+            vec_dir_du = coord.du_cart_to_dir(v_dux)
+            t_dutan = FrameDuFrameTan(vec_dir_du)
+            v_pol_tan = t_dutan.vec_to(v_pol, "TAN")
+            polars[idx] = coord.tan_cart_to_polar_angle(v_pol_tan)
+        if degree:
+            return np.rad2deg(polars)
+        return polars
+    
         
     def get_sub_network(self, l_id):
         """
@@ -211,9 +243,9 @@ class DetectorUnitNetwork:
         )
         fig.colorbar(scm, label=unit)
         xlabel = "meters,          North =>"
+        xlabel += f"\n{self.name}"
         if traces is not None:
-            xlabel += f"\nFile: {traces.name}"
-        xlabel += f"\n{self.name}"    
+            xlabel += f"\n{traces.name}"    
         plt.xlabel(xlabel)
         plt.ylabel(fr"meters,          West (azimuth=90°) => ")
         ax1.grid()
