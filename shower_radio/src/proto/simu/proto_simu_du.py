@@ -8,7 +8,7 @@ import copy
 
 import numpy as np
 import scipy.fft as sf
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 
 from sradio.simu.du_resp import SimuDetectorUnitResponse
 from sradio.io.shower.zhaires_master import ZhairesMaster

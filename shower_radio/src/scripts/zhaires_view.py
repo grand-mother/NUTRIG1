@@ -7,7 +7,7 @@ Created on 6 avr. 2023
 
 
 import argparse
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 from pathlib import Path
 import pprint
 

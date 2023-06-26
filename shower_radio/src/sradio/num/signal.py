@@ -8,7 +8,7 @@ import numpy as np
 from scipy.signal import hilbert, butter, lfilter, freqz, filtfilt
 import scipy.fft as sf
 from scipy import interpolate
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 
 logger = getLogger(__name__)
 

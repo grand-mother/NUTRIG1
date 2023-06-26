@@ -9,7 +9,7 @@ import pprint
 import numpy as np
 import scipy.fft as sf
 import scipy.optimize as sco
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 import scipy.signal as ssig
 
 import sradio.manage_log as mlg

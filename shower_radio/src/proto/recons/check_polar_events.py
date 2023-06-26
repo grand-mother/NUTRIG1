@@ -7,7 +7,7 @@ Created on 11 avr. 2023
 import sqlite3
 
 import numpy as np
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 
 from sradio.io.shower.zhaires_master import ZhairesMaster
 import sradio.manage_log as mlg

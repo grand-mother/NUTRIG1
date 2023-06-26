@@ -12,7 +12,7 @@ import sqlite3
 from sqlite3 import Error
 
 import numpy as np
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 
 from sradio.io.shower.zhaires_txt import ZhairesSingleEventText
 

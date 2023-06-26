@@ -9,7 +9,7 @@ import pprint
 import numpy as np
 import scipy.fft as sf
 import scipy.optimize as sco
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 import scipy.signal as ssig
 
 from sradio.io.shower.zhaires_master import ZhairesMaster
@@ -211,7 +211,7 @@ def check_recons_ew():
     plt.semilogy(wiener.a_freq_mhz, psd_sig)
     psd_galelc = wiener.get_interpol(freq_noise, psd_galelc[1])
     wiener.set_psd_noise(psd_galelc)
-    sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig)
+    sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig- psd_galelc)
     wiener.plot_measure_signal("EW")
     wiener.plot_psd(False)
     wiener.plot_snr()
@@ -299,14 +299,20 @@ def check_recons_all_ew():
         idx_max = np.argmax(np.abs(evt.traces[idx_du]).sum(axis=1))
         logger.debug(f"idx_max {idx_max}")
         freq_sig, psd_sig = get_psd(evt.traces[idx_du, idx_max], evt.f_samp_mhz, 147)
+        print(psd_sig.dtype)
         psd_sig = wiener.get_interpol(freq_sig, psd_sig)
+        print(psd_sig.dtype)
+        raise
         if flag_psd_gal:
             print(freq_noise.shape, psd_galelc.shape)
             psd_galelc_w = wiener.get_interpol(freq_noise, psd_galelc[1])
             wiener.set_psd_noise(psd_galelc_w)
             flag_psd_gal = False
             wiener.set_band(53, 190)
-        sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig)
+        sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig/10000)
+        if idx_du == 7:
+            wiener.plot_psd(False)
+            wiener.plot_snr()
         evt_wnr.traces[idx_du][1] = sig[:size_trace]
     #evt_wnr.plot_footprint_val_max()
     return evt_wnr
@@ -346,7 +352,7 @@ def compare_evt(efield, wiener):
     print(em_diff)
     plt.figure()
     plt.title(f"diff E_max relative\n{efield.name}")
-    plt.hist(em_diff)
+    plt.hist(em_diff,bins=50)
     plt.xlabel("%")
     plt.grid()
     

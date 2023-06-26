@@ -9,7 +9,7 @@ import pprint
 import numpy as np
 import scipy.fft as sf
 import scipy.optimize as sco
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 
 import sradio.manage_log as mlg
 from sradio.basis.traces_event import Handling3dTracesOfEvent

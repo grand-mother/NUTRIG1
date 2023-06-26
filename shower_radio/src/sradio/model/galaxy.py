@@ -10,7 +10,7 @@ import os.path
 
 import h5py
 import numpy as np
-import matplotlib.pylab as plt
+import matplotlib.pyplot as plt
 
 from sradio.num.signal import interpol_at_new_x
 from sradio import get_path_model_du
