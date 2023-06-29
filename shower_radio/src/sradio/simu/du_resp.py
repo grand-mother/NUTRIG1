@@ -60,7 +60,12 @@ class SimuDetectorUnitResponse:
         Constructor
         """
         # Parameters
-        self.params = {"flag_add_leff": True,"flag_add_gal": True, "flag_add_rf": False, "lst": 18.0}
+        self.params = {
+            "flag_add_leff": True,
+            "flag_add_gal": True,
+            "flag_add_rf": False,
+            "lst": 18.0,
+        }
         # object contents Efield and network information
         self.o_efield = Handling3dTracesOfEvent()
         self.o_rfchain = RfChainGP300()
@@ -117,23 +122,14 @@ class SimuDetectorUnitResponse:
                 self.freqs_out_mhz,
                 self.o_efield.get_nb_du(),
             )
-    
+
     def set_xmax(self, xmax_xcs):
         """
-        
-        :param xmax_xcs: position Xmax  in frame [XCore]  
+
+        :param xmax_xcs: position Xmax  in frame [XCore]
         :type xmax_xcs: float (3,)
         """
         self.o_ant3d.set_pos_source(xmax_xcs)
-
-    def set_data_shower(self, shower):
-        """
-
-        :param shower: object contents shower parameters
-        :type shower: ShowerEvent
-        """
-        self.shower = shower
-        self.o_ant3d.set_pos_source(shower["xmax"])
 
     ### GETTER / COMPUTER
 
@@ -158,7 +154,9 @@ class SimuDetectorUnitResponse:
         :type  idx_du: int
         """
         logger.info(f"==============>  Processing DU with id: {self.o_efield.idx2idt[idx_du]}")
-        self.o_ant3d.set_name_pos(self.o_efield.idx2idt[idx_du], self.o_efield.network.du_pos[idx_du])
+        self.o_ant3d.set_name_pos(
+            self.o_efield.idx2idt[idx_du], self.o_efield.network.du_pos[idx_du]
+        )
         ########################
         # 1) Antenna responses
         ########################
@@ -175,11 +173,13 @@ class SimuDetectorUnitResponse:
             # logger.debug(np.std(noise_gal, axis=1))
             # self.voc[idx_du] += noise_gal
             fft_3d += self.fft_noise_gal_3d[idx_du]
+            raise
         ########################
         # 3) RF chain
         ########################
         if self.params["flag_add_rf"]:
             fft_3d *= self.o_rfchain.get_tf_3d()
+            raise
         # inverse FFT and remove zero-padding
         # WARNING: do not used sf.irfft(fft_vlna, self.sig_size) to remove padding
         self.v_out[idx_du] = sf.irfft(fft_3d)[:, : self.sig_size]
