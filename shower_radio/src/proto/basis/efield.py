@@ -71,7 +71,7 @@ def compare_polar_angle(f_simu):
     evt = f_zh.get_object_3dtraces()
     evt.set_xmax(get_simu_xmax(i_sim))
     mfield = get_simu_magnetic_vector(i_sim)
-    pol_ef = evt.get_polar_angle_efield()
+    pol_ef_deg = evt.get_polar_angle_efield(degree=True)
     pol_mf = evt.network.get_polar_angle_geomagnetic(mfield, evt.xmax)
     # print(pol_ef)
     evt.network.plot_footprint_1d(

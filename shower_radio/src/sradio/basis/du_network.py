@@ -60,7 +60,7 @@ class DetectorUnitNetwork:
         assert du_pos.shape[0] == len(du_id)
         assert du_pos.shape[1] == 3
 
-    def reduce_l_idx(self, l_idx):
+    def reduce_l_index(self, l_idx):
         du_id = [self.idx2idt[idx] for idx in l_idx]
         self.idx2idt = du_id
         self.du_pos = self.du_pos[l_idx]

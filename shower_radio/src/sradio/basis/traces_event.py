@@ -168,8 +168,12 @@ class Handling3dTracesOfEvent:
             )
             self.t_samples = t_trace.transpose()
             logger.info(f"shape t_samples =  {self.t_samples.shape}")
+            
+    def reduce_l_ident(self, l_idt):
+        l_idx = [self.idt2idx[idt] for idt in l_idt]
+        self.reduce_l_index(l_idx)
 
-    def reduce_l_idx(self, l_idx):
+    def reduce_l_index(self, l_idx):
         print(self.idx2idt)
         print(type(self.idx2idt))
         print(type(l_idx))
@@ -184,7 +188,7 @@ class Handling3dTracesOfEvent:
         if self.t_samples.shape[0] > 0:
             self.t_samples = self.t_samples[l_idx]
         self.network = copy.deepcopy(self.network)
-        self.network.reduce_l_idx(l_idx)
+        self.network.reduce_l_index(l_idx)
 
     def reduce_nb_du(self, new_nb_du):
         """
@@ -217,7 +221,7 @@ class Handling3dTracesOfEvent:
                 l_idx_ok.append(idx)
         print(l_idx_ok)
         # l_idx_ok  = np.array(l_idx_ok)
-        self.reduce_l_idx(l_idx_ok)
+        self.reduce_l_index(l_idx_ok)
         return l_idx_ok
 
     ### GETTER :

@@ -340,7 +340,7 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
         return sns.filter_butter_band(self.traces, f_mhz[0], f_mhz[1], self.f_samp_mhz)
 
 
-    def get_polar_angle_efield(self, degree=True):
+    def get_polar_angle_efield(self, degree=False):
         """Return polar angle estimation with traces E field for all DUs
         
         :param degree: flag to set return angle in degree
