@@ -98,6 +98,7 @@ class PreComputeInterpolFreq:
             # check it !
             assert np.allclose(self.c_sup[-1], 0)        
         self.c_inf = 1 - self.c_sup
+        self.range_itp = range(self.idx_first,self.idx_lastp1)
 
     def get_linear_interpol(self, a_val):
         """
@@ -203,6 +204,9 @@ class LengthEffectiveInterpolation:
         l_x = l_t * c_t * c_p - s_p * l_p
         l_y = l_t * c_t * s_p + c_p * l_p
         l_z = -s_t * l_t
+        self.l_x = l_x
+        self.l_y = l_y
+        self.l_z = l_z
         return np.array([l_x, l_y, l_z])
 
     def get_fft_leff_pol(self, leff):
@@ -247,6 +251,20 @@ class LengthEffectiveInterpolation:
         )
         plt.plot(self.o_pre.freq_out_mhz, leff_pol.real, label="Leff polar real")
         plt.plot(self.o_pre.freq_out_mhz, leff_pol.imag, label="Leff polar imag")
+        plt.plot(self.o_pre.freq_out_mhz, np.abs(leff_pol), label="|Leff|")
+        plt.grid()
+        plt.xlabel("MHz")
+        plt.legend()
+    
+    def plot_leff_xyz(self):
+        plt.figure()
+        plt.title(
+            f"Interpolated Leff {self.leff.name} x, y, z at phi={self.dir_src_deg[0]:.1f}, theta={self.dir_src_deg[1]:.1f}"
+        )
+        plt.plot(self.o_pre.freq_out_mhz, np.abs(self.l_x), label="abs(Leff_x)")
+        plt.plot(self.o_pre.freq_out_mhz, np.abs(self.l_y), label="abs(Leff_y)")
+        plt.plot(self.o_pre.freq_out_mhz, np.abs(self.l_z), label="abs(Leff_z)")
+        plt.xlim([0,300])
         plt.grid()
         plt.xlabel("MHz")
         plt.legend()
@@ -324,6 +342,7 @@ class DetectorUnitAntenna3Axis:
         itp = self.interp_leff
         resp[0] = np.sum(itp.get_fft_leff_du(self.sn_leff) * fft_efield_du, axis=0)
         resp[1] = np.sum(itp.get_fft_leff_du(self.ew_leff) * fft_efield_du, axis=0)
+        itp.plot_leff_xyz()
         resp[2] = np.sum(itp.get_fft_leff_du(self.up_leff) * fft_efield_du, axis=0)
         return resp
 

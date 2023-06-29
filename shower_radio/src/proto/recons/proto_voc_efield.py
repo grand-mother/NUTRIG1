@@ -11,6 +11,7 @@ import scipy.fft as sf
 import scipy.optimize as sco
 import matplotlib.pyplot as plt
 
+from sradio.io.shower.zhaires_master import ZhairesMaster
 import sradio.manage_log as mlg
 from sradio.basis.traces_event import Handling3dTracesOfEvent
 import sradio.io.sradio_asdf as fsr
@@ -21,11 +22,15 @@ from sradio.basis import coord
 from sradio.num.signal import get_fastest_size_rfft
 from sradio import set_path_model_du
 
+
+from proto.simu.proto_simu_du import FILE_vout, FILE_efield
+
+
+
 #
 # logger
 #
 logger = mlg.get_logger_for_script("script")
-
 
 
 #
@@ -35,6 +40,20 @@ FILE_voc = "/home/jcolley/projet/nutrig_wk/NUTRIG1/shower_radio/src/proto/simu/o
 PATH_leff = "/home/jcolley/projet/grand_wk/data/model/detector"
 
 set_path_model_du("/home/jcolley/projet/grand_wk/data/model")
+
+
+def get_true_angle_polar(n_file, l_idt):
+    print(n_file)
+    f_zh = ZhairesMaster(n_file)
+    evt = f_zh.get_object_3dtraces()
+    evt.reduce_l_ident(l_idt)
+    s_info = f_zh.get_simu_info()
+    evt.set_xmax(get_simu_xmax(s_info))
+    a_pol_rad = evt.get_polar_angle_efield(False)
+    evt.network.plot_footprint_1d(
+        np.rad2deg(a_pol_rad), "true angle polar", evt, scale="lin", unit="deg"
+    )
+    return a_pol_rad
 
 
 def get_simu_magnetic_vector(d_simu):
@@ -59,9 +78,6 @@ def get_max_energy_spectrum(trace, wiener):
     idx = np.argmax(np.mean(ar_es, axis=1))
     logger.debug(f"idx max energy spectrum  is {idx}")
     return ar_es[idx]
-
-
-
 
 
 def weight_efield_estimation(e_field, weight, plot=False):
@@ -412,7 +428,7 @@ def deconv_with_polar_fit_all_event(coef_func2=0.5, sigma=10):
     for idx_du in range(evt.get_nb_du()):
         noise = np.random.normal(0, sigma, (3, evt.get_size_trace()))
         evt.traces[idx_du] += noise
-        #evt.plot_trace_idx(idx_du)
+        # evt.plot_trace_idx(idx_du)
         # 2)
         ant3d.interp_leff.set_angle_polar(0)
         ant3d.set_name_pos(evt.idx2idt[idx_du], evt.network.du_pos[idx_du])
@@ -444,9 +460,9 @@ def deconv_with_polar_fit_all_event(coef_func2=0.5, sigma=10):
         if coef_func2 == "auto":
             max = np.max(np.abs(evt.traces[idx_du]))
             logger.info(f" max {max} of idx DU {idx_du}")
-            snr = max**2/sigma**2
-            half_snr = 1/(80**2)
-            coef_func2 = 1/(1+half_snr*snr**2)
+            snr = max ** 2 / sigma ** 2
+            half_snr = 1 / (80 ** 2)
+            coef_func2 = 1 / (1 + half_snr * snr ** 2)
         data[6] = coef_func2
         logger.info(mlg.chrono_start())
         res = sco.minimize_scalar(
@@ -471,16 +487,21 @@ def master_fit_polar():
     a_pol_2 = deconv_with_polar_fit_all_event(0.5, sigma)
     a_pol_3 = deconv_with_polar_fit_all_event("auto", sigma)
     a_pol = np.array([a_pol_0, a_pol_1, a_pol_2, a_pol_3])
-    labels = [fr"||$\Delta$V||","||$\Delta$V||+||$\Delta$E||","||$\Delta$V||+||$\Delta$E||/2","auto SNR"]
+    labels = [
+        fr"||$\Delta$V||",
+        "||$\Delta$V||+||$\Delta$E||",
+        "||$\Delta$V||+||$\Delta$E||/2",
+        "auto SNR",
+    ]
     plt.figure()
     plt.title(f"Fit polar angle with voltage and Wierner estimator\n sigma noise {sigma} ")
-    plt.boxplot(a_pol.T , showmeans=True,labels=labels)
-    #plt.boxplot(a_pol_1 , autorange=True, showmeans=True)
+    plt.boxplot(a_pol.T, showmeans=True, labels=labels)
+    # plt.boxplot(a_pol_1 , autorange=True, showmeans=True)
     plt.ylabel("degree")
     plt.legend()
     plt.grid()
-    
-    
+
+
 def loss_func_dir_polar(dir_pol, *data):
     fft_volt = data[0]
     spect_volt = data[1]
@@ -643,15 +664,61 @@ def deconv_with_dir_polar_fit():
     logger.info(f"True dir : {true_dir}")
 
 
+def check_recons_all_no_noise():
+    f_plot_leff = False
+    # 1)
+    evt, d_simu = fsr.load_asdf(FILE_vout)
+    pprint.pprint(d_simu)
+    assert isinstance(evt, Handling3dTracesOfEvent)
+    evt.type_trace = "$V_{out}$"
+    # evt.remove_traces_low_signal(5000)
+    # evt.plot_ps_trace_idx(idx_du)
+    # evt.plot_trace_idx(idx_du)
+    evt.downsize_sampling(4)
+    evt_wnr = evt.get_copy(0)
+    evt_wnr.type_trace = "E field wiener"
+    evt.plot_footprint_val_max()
+    ant3d = ant.DetectorUnitAntenna3Axis(ant.get_leff_from_files())
+    # evt.plot_trace_idx(idx_du)
+    ## compute relative xmax and direction
+    ant3d.set_pos_source(get_simu_xmax(d_simu["sim_shower"]))
+    size_trace = evt.get_size_trace()
+    size_with_pad, freqs_out_mhz = get_fastest_size_rfft(
+        evt.get_size_trace(),
+        evt.f_samp_mhz,
+        1.4,
+    )
+    ant3d.set_freq_out_mhz(freqs_out_mhz)
+    ## compute polarization angle
+    v_a_pol = get_true_angle_polar(d_simu["efield_file"], evt.idx2idt)
+    for idx_du in range(evt.get_nb_du()):
+        ant3d.set_name_pos(evt.idx2idt[idx_du], evt.network.du_pos[idx_du])
+        ant3d.interp_leff.set_angle_polar(v_a_pol[idx_du])
+        ## get Leff for polar direction  and deconv
+        # EW
+        leff_pol_ew = ant3d.interp_leff.get_fft_leff_pol(ant3d.ew_leff)
+        ant3d.interp_leff.plot_leff_pol()
+        # kernel  EW
+        fft_tr = sf.rfft(evt.traces[idx_du][1], size_with_pad)
+        r_leff = ant3d.interp_leff.o_pre.range_itp
+        fft_sig_ew = np.zeros_like(fft_tr)
+        fft_sig_ew[r_leff] =  fft_tr[r_leff]/ leff_pol_ew[r_leff]
+        sig = sf.irfft(fft_sig_ew)
+        evt_wnr.traces[idx_du][1] = sig[:size_trace]
+    evt_wnr.plot_footprint_val_max()
+    return evt_wnr
+
+
 if __name__ == "__main__":
     mlg.create_output_for_logger("debug", log_root="script")
     logger.info(mlg.string_begin_script())
     # check_recons_with_white_noise()
     # deconv_with_polar_fit()
-    #deconv_with_dir_polar_fit()
-    #deconv_with_polar_fit_all_event(1)
-    master_fit_polar()
+    # deconv_with_dir_polar_fit()
+    # deconv_with_polar_fit_all_event(1)
+    #master_fit_polar()
+    check_recons_all_no_noise()
     #
-    # 
+    #
     logger.info(mlg.string_end_script())
     plt.show()

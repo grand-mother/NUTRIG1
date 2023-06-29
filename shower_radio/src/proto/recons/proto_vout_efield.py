@@ -28,6 +28,7 @@ import sradio.model.ant_resp as ant
 
 from proto.recons.proto_voc_efield import get_max_energy_spectrum
 from proto.simu.proto_simu_du import FILE_vout, FILE_efield
+
 #
 # logger
 #
@@ -47,6 +48,7 @@ set_path_model_du("/home/jcolley/projet/grand_wk/data/model")
 # FILE_efield = (
 #     "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
 #     )
+
 
 def check_galaxyGP300():
     logger.info("check_galaxyGP300")
@@ -114,7 +116,7 @@ def plot_psd_galrfchain(rfchain=None):
 def define_psd_galrfchain(rfchain=None, lst=18):
     if rfchain is None:
         f_s = 2000
-        size_with_pad, freqs_out_mhz = get_fastest_size_rfft(200000, f_s,1.8)
+        size_with_pad, freqs_out_mhz = get_fastest_size_rfft(200000, f_s, 1.8)
         rfchain = RfChainGP300()
         rfchain.compute_for_freqs(freqs_out_mhz)
     assert isinstance(rfchain, RfChainGP300)
@@ -130,7 +132,7 @@ def define_psd_galrfchain(rfchain=None, lst=18):
     logger.info(v_galelec.shape)
     freq, pxx_den = get_psd(v_galelec[0], f_sampl_mhz, 250)
     logger.info(f"{freq.shape} {pxx_den.shape}")
-    return freq , pxx_den
+    return freq, pxx_den
 
 
 def check_recons_ew():
@@ -200,7 +202,7 @@ def check_recons_ew():
     rfchain.compute_for_freqs(freqs_out_mhz)
     kernel = leff_pol_ew * rfchain.get_tf_3d()[1]
     wiener.set_rfft_kernel(kernel)
-    #wiener.set_band(53, 190)
+    # wiener.set_band(53, 190)
     ## define power spectrum density
     idx_max = np.argmax(np.abs(evt.traces[idx_du]).sum(axis=1))
     logger.debug(f"idx_max {idx_max}")
@@ -211,7 +213,7 @@ def check_recons_ew():
     plt.semilogy(wiener.a_freq_mhz, psd_sig)
     psd_galelc = wiener.get_interpol(freq_noise, psd_galelc[1])
     wiener.set_psd_noise(psd_galelc)
-    sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig- psd_galelc)
+    sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig - psd_galelc)
     wiener.plot_measure_signal("EW")
     wiener.plot_psd(False)
     wiener.plot_snr()
@@ -224,9 +226,22 @@ def check_recons_ew():
     plt.xlabel(f"ns")
     plt.grid()
     plt.legend()
-    
-    
-    
+
+
+def get_true_angle_polar(n_file, l_idt):
+    print(n_file)
+    f_zh = ZhairesMaster(n_file)
+    evt = f_zh.get_object_3dtraces()
+    evt.reduce_l_ident(l_idt)
+    s_info = f_zh.get_simu_info()
+    evt.set_xmax(get_simu_xmax(s_info))
+    a_pol_rad = evt.get_polar_angle_efield(False)
+    evt.network.plot_footprint_1d(
+        np.rad2deg(a_pol_rad), "true angle polar", evt, scale="lin", unit="deg"
+    )
+    return a_pol_rad
+
+
 def check_recons_all_ew():
     """
     1) read v_out file
@@ -239,13 +254,13 @@ def check_recons_all_ew():
     4) plot result
     """
     f_plot_leff = False
-    
+
     # 1)
     evt, d_simu = fsr.load_asdf(FILE_vout)
     pprint.pprint(d_simu)
     assert isinstance(evt, Handling3dTracesOfEvent)
     evt.type_trace = "$V_{out}$"
-    #evt.remove_traces_low_signal(5000)
+    # evt.remove_traces_low_signal(5000)
     # evt.plot_ps_trace_idx(idx_du)
     # evt.plot_trace_idx(idx_du)
     evt.downsize_sampling(4)
@@ -259,7 +274,7 @@ def check_recons_all_ew():
     ant3d = ant.DetectorUnitAntenna3Axis(ant.get_leff_from_files())
     # evt.plot_trace_idx(idx_du)
     ## compute relative xmax and direction
-    ant3d.set_pos_source(get_simu_xmax(d_simu))
+    ant3d.set_pos_source(get_simu_xmax(d_simu["sim_shower"]))
     size_trace = evt.get_size_trace()
     size_with_pad, freqs_out_mhz = get_fastest_size_rfft(
         evt.get_size_trace(),
@@ -268,10 +283,12 @@ def check_recons_all_ew():
     )
     ant3d.set_freq_out_mhz(freqs_out_mhz)
     ## compute polarization angle
-    v_b = get_simu_magnetic_vector(d_simu)
+    v_b = get_simu_magnetic_vector(d_simu["sim_shower"])
     v_pol = np.cross(ant3d.cart_src_du, v_b)
     v_pol /= np.linalg.norm(v_pol)
     logger.info(f"vec pol: {v_pol}")
+    v_a_pol = get_true_angle_polar(d_simu["efield_file"], evt.idx2idt)
+    print(v_a_pol)
     # v_pol = np.array([0.8374681 , 0.32868347 ,0.43659407])
     # TEST: v_pol  and v_b must be orthogonal
     # assert np.allclose(np.dot(v_pol, v_b), 0)
@@ -288,13 +305,14 @@ def check_recons_all_ew():
         logger.debug(v_pol_tan[2])
         polar = coord.tan_cart_to_polar_angle(v_pol_tan)
         logger.debug(f"polar angle: {np.rad2deg(polar)}")
-        ant3d.interp_leff.set_angle_polar(polar)
+        # ant3d.interp_leff.set_angle_polar(polar)
+        ant3d.interp_leff.set_angle_polar(v_a_pol[idx_du])
         ## get Leff for polar direction  and deconv
         # EW
         leff_pol_ew = ant3d.interp_leff.get_fft_leff_pol(ant3d.ew_leff)
         # kernel  EW
         kernel = leff_pol_ew * rfchain.get_tf_3d()[1]
-        wiener.set_rfft_kernel(kernel)        
+        wiener.set_rfft_kernel(kernel)
         ## define power spectrum density
         idx_max = np.argmax(np.abs(evt.traces[idx_du]).sum(axis=1))
         logger.debug(f"idx_max {idx_max}")
@@ -302,20 +320,20 @@ def check_recons_all_ew():
         print(psd_sig.dtype)
         psd_sig = wiener.get_interpol(freq_sig, psd_sig)
         print(psd_sig.dtype)
-        raise
         if flag_psd_gal:
             print(freq_noise.shape, psd_galelc.shape)
             psd_galelc_w = wiener.get_interpol(freq_noise, psd_galelc[1])
             wiener.set_psd_noise(psd_galelc_w)
             flag_psd_gal = False
             wiener.set_band(53, 190)
-        sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig/10000)
+        sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig * 1000)
         if idx_du == 7:
             wiener.plot_psd(False)
             wiener.plot_snr()
         evt_wnr.traces[idx_du][1] = sig[:size_trace]
-    #evt_wnr.plot_footprint_val_max()
+    # evt_wnr.plot_footprint_val_max()
     return evt_wnr
+
 
 def compare_efield(evt_wnr):
     zh_f = ZhairesMaster(FILE_efield)
@@ -323,14 +341,14 @@ def compare_efield(evt_wnr):
     assert isinstance(efield, Handling3dTracesOfEvent)
     l_idx = [efield.idt2idx[idt] for idt in evt_wnr.idx2idt]
     logger.info(l_idx)
-    efield.reduce_l_idx(l_idx)
+    efield.reduce_l_index(l_idx)
     evt_band = efield.get_copy(efield.get_traces_passband([53, 190]))
     evt_band.type_trace = "E field [53, 190]MHz"
     evt_band.plot_footprint_val_max()
     evt_wnr.plot_footprint_val_max()
     compare_evt(evt_band, evt_wnr)
-    
-    
+
+
 def compare_evt(efield, wiener):
     assert isinstance(efield, Handling3dTracesOfEvent)
     assert isinstance(wiener, Handling3dTracesOfEvent)
@@ -341,31 +359,33 @@ def compare_evt(efield, wiener):
     tm_ef, em_ef = efield_ok.get_tmax_vmax("parab")
     tm_v, em_v = wiener_ok.get_tmax_vmax("parab")
     tm_diff = tm_v - tm_ef
-    wiener_ok.network.plot_footprint_1d(tm_diff, "diff t_max (wiener - Efield band)", wiener_ok, "lin", "ns")
+    wiener_ok.network.plot_footprint_1d(
+        tm_diff, "diff t_max (wiener - Efield band)", wiener_ok, "lin", "ns"
+    )
     plt.figure()
     plt.title(f"diff t_max (wiener - Efield band)\n{efield.name}")
     plt.hist(tm_diff)
     plt.xlabel("ns")
     plt.grid()
-    em_diff = 100*(em_ef - em_v)/em_ef
+    em_diff = 100 * (em_ef - em_v) / em_ef
     wiener_ok.network.plot_footprint_1d(em_diff, "diff E_max ", wiener_ok, "lin", "%")
     print(em_diff)
     plt.figure()
     plt.title(f"diff E_max relative\n{efield.name}")
-    plt.hist(em_diff,bins=50)
+    plt.hist(em_diff, bins=50)
     plt.xlabel("%")
     plt.grid()
-    
+
 
 if __name__ == "__main__":
     mlg.create_output_for_logger("debug")
     logger.info(mlg.string_begin_script())
     #
     # check_recons_ew()
-    #check_galaxyGP300()
-    #define_psd_galrfchain()
-    #plot_psd_galrfchain()
-    #check_recons_ew()
+    # check_galaxyGP300()
+    # define_psd_galrfchain()
+    # plot_psd_galrfchain()
+    # check_recons_ew()
     evt_wnr = check_recons_all_ew()
     compare_efield(evt_wnr)
     #

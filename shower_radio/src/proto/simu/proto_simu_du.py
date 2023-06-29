@@ -36,7 +36,7 @@ FILE_efield = (
 # FILE_efield = (
 #     "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
 #     )
-FILE_vout = "/home/jcolley/projet/grand_wk/data/volt/out4_v_out.asdf"
+FILE_vout = "/home/jcolley/projet/grand_wk/data/volt/no_gal.asdf"
 
 #
 # Logger
@@ -220,23 +220,23 @@ def proto_simu_vout(f_out=None):
     dus = SimuDetectorUnitResponse()
     dus.params = {
         "flag_add_leff": True,
-        "flag_add_gal": True,
-        "flag_add_rf": True,
+        "flag_add_gal": False,
+        "flag_add_rf": False,
         "lst": 18.0,
     }
     zh_f = ZhairesMaster(FILE_efield)
     efield = zh_f.get_object_3dtraces()
+    efield.reduce_l_ident(["A90", "A250", "A228"])
     # efield.plot_all_traces_as_image()
     assert isinstance(efield, Handling3dTracesOfEvent)
     d_info = zh_f.get_simu_info()
     #
-    evt_band = efield.get_copy(efield.get_traces_passband([50, 180]))
-    evt_band.type_trace = "E field [50, 180]MHz"
+    bandwich = [30, 250]
+    evt_band = efield.get_copy(efield.get_traces_passband(bandwich))
+    evt_band.type_trace = f"E field {bandwich} MHz"
     evt_band.plot_footprint_val_max()
     dus.set_data_efield(efield)
-    shower = {}
-    shower["xmax"] = zbase.get_simu_xmax(d_info)
-    dus.set_data_shower(shower)
+    dus.set_xmax(zbase.get_simu_xmax(d_info))
     dus.compute_du_all()
     efield.plot_footprint_val_max()
     # create object volt
@@ -248,11 +248,15 @@ def proto_simu_vout(f_out=None):
     volt.set_unit_axis("$\mu$V", "dir", r"$V_{out}$")
     volt.plot_footprint_val_max()
     # volt.plot_all_traces_as_image()
-    volt.remove_traces_low_signal(16000)
+    volt_filter = volt.get_copy(deepcopy=True)
+    #volt_filter.remove_traces_low_signal(16)
     if f_out:
-        d_info["efield_file"] = FILE_efield.split("/")[-1]
-        d_info["du simu"] = dus.params
-        fsrad.save_asdf_single_event(f_out, volt, d_info)
+        #d_info["efield_file"] = FILE_efield.split("/")[-1]
+        d_glob = {}
+        d_glob["sim_shower"] = d_info
+        d_glob["efield_file"] = FILE_efield
+        d_glob["sim_pars"] = dus.params
+        fsrad.save_asdf_single_event(f_out, volt_filter, d_glob)
     return efield, volt
 
 
@@ -263,7 +267,7 @@ def compare_efield_volt(efield, volt):
     l_idx_ok = volt_ok.remove_traces_low_signal(0)
     efield_ok = efield.get_copy(deepcopy=True)
     l_idx = [efield.idt2idx[idt] for idt in volt.idx2idt]
-    efield_ok.reduce_l_idx(l_idx)
+    efield_ok.reduce_l_index(l_idx)
     efield_ok.traces  = efield_ok.get_traces_passband([53, 190])
     assert isinstance(efield_ok, Handling3dTracesOfEvent)
     assert isinstance(volt_ok, Handling3dTracesOfEvent)
