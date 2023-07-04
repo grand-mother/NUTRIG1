@@ -342,7 +342,7 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
     #     self.e_max = np.squeeze(e_max)
     #     return self.t_max, self.e_max
 
-    def get_traces_passband(self, f_mhz=[30, 250], causal=True):
+    def get_traces_passband(self, f_mhz=[30, 250], causal=False):
         """Return array traces with passband filter
 
         :param f_mhz: [MHz] border

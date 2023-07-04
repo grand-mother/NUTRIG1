@@ -49,6 +49,8 @@ set_path_model_du("/home/jcolley/projet/grand_wk/data/model")
 #     "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
 #     )
 
+BANDWIDTH = [52, 185]
+
 
 def check_galaxyGP300():
     logger.info("check_galaxyGP300")
@@ -317,16 +319,14 @@ def check_recons_all_ew():
         idx_max = np.argmax(np.abs(evt.traces[idx_du]).sum(axis=1))
         logger.debug(f"idx_max {idx_max}")
         freq_sig, psd_sig = get_psd(evt.traces[idx_du, idx_max], evt.f_samp_mhz, 147)
-        print(psd_sig.dtype)
         psd_sig = wiener.get_interpol(freq_sig, psd_sig)
-        print(psd_sig.dtype)
         if flag_psd_gal:
             print(freq_noise.shape, psd_galelc.shape)
             psd_galelc_w = wiener.get_interpol(freq_noise, psd_galelc[1])
             wiener.set_psd_noise(psd_galelc_w)
             flag_psd_gal = False
-            wiener.set_band(53, 190)
-        sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig)
+            wiener.set_band(BANDWIDTH)
+        sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig-psd_galelc_w)
         if idx_du == 7:
             wiener.plot_psd(False)
             wiener.plot_snr()
@@ -342,8 +342,8 @@ def compare_efield(evt_wnr):
     l_idx = [efield.idt2idx[idt] for idt in evt_wnr.idx2idt]
     logger.info(l_idx)
     efield.reduce_l_index(l_idx)
-    evt_band = efield.get_copy(efield.get_traces_passband([53, 190]))
-    evt_band.type_trace = "E field [53, 190]MHz"
+    evt_band = efield.get_copy(efield.get_traces_passband(BANDWIDTH))
+    evt_band.type_trace = f"E field {BANDWIDTH} MHz"
     evt_band.plot_footprint_val_max()
     evt_wnr.plot_footprint_val_max()
     compare_evt(evt_band, evt_wnr)
@@ -356,8 +356,8 @@ def compare_evt(efield, wiener):
     efield_ok = efield
     assert isinstance(efield_ok, Handling3dTracesOfEvent)
     assert isinstance(wiener_ok, Handling3dTracesOfEvent)
-    tm_ef, em_ef = efield_ok.get_tmax_vmax("parab")
-    tm_v, em_v = wiener_ok.get_tmax_vmax("parab")
+    tm_ef, em_ef = efield_ok.get_tmax_vmax(False, "parab")
+    tm_v, em_v = wiener_ok.get_tmax_vmax(False,"parab")
     tm_diff = tm_v - tm_ef
     wiener_ok.network.plot_footprint_1d(
         tm_diff, "diff t_max (wiener - Efield band)", wiener_ok, "lin", "ns"

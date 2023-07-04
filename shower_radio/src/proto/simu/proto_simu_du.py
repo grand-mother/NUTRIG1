@@ -36,7 +36,7 @@ FILE_efield = (
 # FILE_efield = (
 #     "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
 #     )
-FILE_vout = "/home/jcolley/projet/grand_wk/data/volt/no_gal.asdf"
+FILE_vout = "/home/jcolley/projet/grand_wk/data/volt/with_noise.asdf"
 
 #
 # Logger
@@ -221,32 +221,32 @@ def proto_simu_vout(f_in,f_out=None):
     dus.params.update(
         {
             "flag_add_leff": True,
-            "flag_add_gal": False,
-            "flag_add_rf": False,
+            "flag_add_gal": True,
+            "flag_add_rf": True,
             "fact_padding" : 6,
             "lst": 18.0,
         }
     )
     zh_f = ZhairesMaster(f_in)
     efield = zh_f.get_object_3dtraces()
-    efield.reduce_l_ident(["A90", "A250", "A228"])
+    #efield.reduce_l_ident(["A90", "A250", "A228"])
     # efield.plot_all_traces_as_image()
     assert isinstance(efield, Handling3dTracesOfEvent)
     d_info = zh_f.get_simu_info()
     #
-    bandwich = [40, 240]
-    evt_band = efield.get_copy(efield.get_traces_passband(bandwich))
-    evt_band.type_trace = f"E field {bandwich} MHz"
+    #bandwich = [40, 240]
+    #evt_band = efield.get_copy(efield.get_traces_passband(bandwich))
+    #evt_band.type_trace = f"E field {bandwich} MHz"
     #evt_band.downsize_sampling(4)
-    evt_band.get_tmax_vmax("parab")
-    print(type(evt_band))
-    evt_band.plot_footprint_val_max()
-    dus.set_data_efield(evt_band)
+    # evt_band.get_tmax_vmax("parab")
+    # print(type(evt_band))
+    # evt_band.plot_footprint_val_max()
+    dus.set_data_efield(efield)
     dus.set_xmax(zbase.get_simu_xmax(d_info))
     dus.compute_du_all()
     efield.plot_footprint_val_max()
     # create object volt
-    volt = evt_band.get_copy(dus.v_out)
+    volt = efield.get_copy(dus.v_out)
     volt.downsize_sampling(4)
     assert isinstance(volt, Handling3dTracesOfEvent)
     # print(np.std(volt.traces, axis=2)[:, 0])
@@ -256,7 +256,7 @@ def proto_simu_vout(f_in,f_out=None):
     volt.plot_footprint_val_max()
     # volt.plot_all_traces_as_image()
     volt_filter = volt.get_copy(deepcopy=True)
-    # volt_filter.remove_traces_low_signal(16)
+    volt_filter.remove_traces_low_signal(1200)
     if f_out:
         # d_info["efield_file"] = FILE_efield.split("/")[-1]
         d_glob = {}

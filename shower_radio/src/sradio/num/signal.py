@@ -50,7 +50,8 @@ def find_max_with_parabola_interp_3pt(x_trace, y_trace, idx_max):
     x_max = x_trace[idx_max - 1] + x_m
     y_max = y_trace[idx_max - 1] + x_m * c_b / 2
     return x_max, y_max
-    
+
+
 def find_max_with_parabola_interp(x_trace, y_trace, idx_max, factor_hill=0.8):
     """
     parabola : ax^2 + bx + c
@@ -127,7 +128,7 @@ def find_max_with_parabola_interp(x_trace, y_trace, idx_max, factor_hill=0.8):
 def filter_butter_band(t_series, fr_min, fr_max, f_sample):
     """
     band filter with butterfly
-    
+
     :return: filtered trace in time domain
     """
     low = fr_min * 1e6
@@ -137,6 +138,7 @@ def filter_butter_band(t_series, fr_min, fr_max, f_sample):
     coeff_b, coeff_a = butter(order, [low, high], btype="bandpass", fs=f_hz)
     filtered = filtfilt(coeff_b, coeff_a, t_series)
     return filtered.real
+
 
 def filter_butter_band_fft(t_series, fr_min, fr_max, f_sample):
     """
@@ -221,7 +223,7 @@ def filter_butter_band_lfilter(t_series, fr_min, fr_max, f_sample):
     order = 9
     coeff_b, coeff_a = butter(order, [low, high], btype="bandpass", fs=f_hz)
     filtered = lfilter(coeff_b, coeff_a, t_series)
-    return filtered.real    
+    return filtered.real
 
 
 def filter_butter_band_causal(t_series, fr_min, fr_max, f_sample, f_plot=False):
@@ -374,9 +376,7 @@ def interpol_at_new_x(a_x, a_y, new_x, kind="cubic"):
     :return: F(new_x) (float, (M)): interpolation of F at new_x
     """
     assert a_x.shape[0] > 0
-    func_interpol = interpolate.interp1d(
-        a_x, a_y, kind, bounds_error=False, fill_value=(0.0, 0.0)
-    )
+    func_interpol = interpolate.interp1d(a_x, a_y, kind, bounds_error=False, fill_value=(0.0, 0.0))
     return func_interpol(new_x)
 
 
@@ -386,7 +386,7 @@ class WienerDeconvolutionWhiteNoise:
         logger.info(f"f_sample_hz : {f_sample_hz}")
         self.f_ifftshift = False
         self.es_sig = None
-        
+
     def set_flag_ifftshift(self, flag):
         self.f_ifftshift = flag
 
@@ -404,7 +404,6 @@ class WienerDeconvolutionWhiteNoise:
         self.rfft_ker_c = np.conj(self.rfft_ker)
         self.es_ker = (rfft_ker * self.rfft_ker_c).real
         self.a_freq_mhz = sf.rfftfreq(self.sig_size, 1 / self.f_hz) * 1e-6
-        
 
     def set_spectrum_sig(self, es_sig):
         """
@@ -570,10 +569,11 @@ class WienerDeconvolution:
         self.a_freq_mhz = sf.rfftfreq(self.sig_size, 1 / self.f_hz) * 1e-6
         self.idx_max = s_rfft
 
-    def set_band(self, f_min, f_max):
+    def set_band(self, f_band_mhz):
         delta_f = self.a_freq_mhz[1]
-        self.idx_min = int(f_min / delta_f)
-        self.idx_max = int(0.5 + f_max / delta_f)
+        idx_min = int(f_band_mhz[0] / delta_f)
+        idx_max = int(0.5 + f_band_mhz[1] / delta_f)
+        self.r_freq = range(idx_min, idx_max)
 
     def set_psd_noise(self, psd_noise):
         """
@@ -585,7 +585,7 @@ class WienerDeconvolution:
         self.psd_noise = psd_noise
 
     def get_interpol(self, freq_mhz, sig):
-        return interpol_at_new_x(freq_mhz, sig, self.a_freq_mhz,"linear")
+        return interpol_at_new_x(freq_mhz, sig, self.a_freq_mhz, "linear")
 
     def deconv_fft_measure(self, rfft_measure, psd_sig):
         """
@@ -598,11 +598,9 @@ class WienerDeconvolution:
         rfft_m = rfft_measure
         # coeff normalisation of se is sig_size
         wiener = (self.rfft_ker_c * psd_sig) / (self.ker_pow2 * psd_sig + self.psd_noise)
-        fft_sig = rfft_m * wiener
-        fft_sig[:self.idx_min] = 0
-        fft_sig[self.idx_max:] = 0
+        fft_sig = np.zeros_like(rfft_m)
+        fft_sig[self.r_freq] = rfft_m[self.r_freq] * wiener[self.r_freq]
         sig = sf.irfft(fft_sig)
-        # sig[:2] = 0
         if self.f_ifftshift:
             sig = sf.ifftshift(sig)
         self.wiener = wiener
