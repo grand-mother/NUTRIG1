@@ -80,23 +80,28 @@ def get_max_energy_spectrum(trace, wiener):
     return ar_es[idx]
 
 
-def weight_efield_estimation(e_field, weight, plot=False):
+def weight_efield_estimation(tfd_ef, weight, plot=False):
     """
 
-    :param e_field:
-    :type e_field: float (3,n_f)
+    :param tfd_ef:
+    :type tfd_ef: float (3,n_f)
     :param weight:
     :type weight: float (3,n_f)
     """
-    assert e_field.shape == weight.shape
-
-    w_ef = np.sum(e_field * weight, axis=0)
-    best_ef = w_ef / np.sum(weight, axis=0)
+    assert tfd_ef.shape == weight.shape
+    l2_2 = False
+    if l2_2:
+        w_2 = weight*weight
+        w_ef = np.sum(tfd_ef * w_2, axis=0)
+        best_ef = w_ef / np.sum(w_2, axis=0)        
+    else:
+        w_ef = np.sum(tfd_ef * weight, axis=0)
+        best_ef = w_ef / np.sum(weight, axis=0)
     if plot:
         plt.figure()
-        plt.plot(np.abs(e_field[0]), label="0")
-        plt.plot(np.abs(e_field[1]), label="1")
-        plt.plot(np.abs(e_field[2]), label="2")
+        plt.plot(np.abs(tfd_ef[0]), label="0")
+        plt.plot(np.abs(tfd_ef[1]), label="1")
+        plt.plot(np.abs(tfd_ef[2]), label="2")
         plt.plot(np.abs(best_ef), label="weight sol")
         plt.grid()
         plt.legend()
@@ -674,7 +679,7 @@ def check_recons_all_no_noise():
     # evt.remove_traces_low_signal(5000)
     # evt.plot_ps_trace_idx(idx_du)
     # evt.plot_trace_idx(idx_du)
-    evt.downsize_sampling(4)
+    #evt.downsize_sampling(4)
     evt_wnr = evt.get_copy(0)
     evt_wnr.type_trace = "E field wiener"
     evt.plot_footprint_val_max()
@@ -705,6 +710,7 @@ def check_recons_all_no_noise():
         fft_sig_ew[r_leff] =  fft_tr[r_leff]/ leff_pol_ew[r_leff]
         sig = sf.irfft(fft_sig_ew)
         evt_wnr.traces[idx_du][1] = sig[:size_trace]
+    evt_wnr.get_tmax_vmax("parab")
     evt_wnr.plot_footprint_val_max()
     return evt_wnr
 

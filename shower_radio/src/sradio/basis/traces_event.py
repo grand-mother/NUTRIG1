@@ -168,7 +168,7 @@ class Handling3dTracesOfEvent:
             )
             self.t_samples = t_trace.transpose()
             logger.info(f"shape t_samples =  {self.t_samples.shape}")
-            
+
     def reduce_l_ident(self, l_idt):
         l_idx = [self.idt2idx[idt] for idt in l_idt]
         self.reduce_l_index(l_idx)
@@ -207,7 +207,8 @@ class Handling3dTracesOfEvent:
         self.network.reduce_nb_du(new_nb_du)
 
     def downsize_sampling(self, fact):
-        self.traces = self.traces[:, :, ::fact]
+        # self.traces = self.traces[:, :, ::fact]
+        self.traces = ssig.decimate(self.traces, fact)
         self.f_samp_mhz /= fact
         self.t_samples = np.zeros((0, 0), dtype=np.float64)
         self._define_t_samples()
@@ -241,15 +242,20 @@ class Handling3dTracesOfEvent:
         :return:
         """
         if deepcopy:
-            my_copy = copy.copy(self)
-        else:
             my_copy = copy.deepcopy(self)
+        else:
+            my_copy = copy.copy(self)
         if new_traces is not None:
             if isinstance(new_traces, np.ndarray):
                 assert self.traces.shape == new_traces.shape
             elif new_traces == 0:
                 new_traces = np.zeros_like(self.traces)
             my_copy.traces = new_traces
+            try:
+                delattr(self, "t_max")
+                delattr(self, "v_max")
+            except:
+                pass
         return my_copy
 
     def get_delta_t_ns(self):
@@ -288,33 +294,49 @@ class Handling3dTracesOfEvent:
         """
         return np.linalg.norm(self.traces, axis=1)
 
-    def get_tmax_vmax(self, interpol="auto"):
+    def get_tmax_vmax(self, hilbert=True, interpol="auto"):
         """
         Return time where norm of the amplitude of the Hilbert tranform  is max
 
-        :return:  time of max and max
+        :param hilbert: True for Hilbert envelop else norm L2
+        :type hilbert: bool
+        :param interpol: keyword in no, auto, parab
+        :type interpol: string
+        :return: time of max and max
         :rtype: float(nb_du,) , float(nb_du,)
         """
-        tmax, vmax, idx_max, norm_hilbert_amp = sns.get_peakamptime_norm_hilbert(
-            self.t_samples, self.traces
-        )
-        if interpol == "no":
-            return tmax, vmax
-        if interpol == "parab":
-            factor_hill = 1
-        elif interpol == "auto":
-            factor_hill = 0.8
+        if hilbert:
+            tmax, vmax, idx_max, tr_norm = sns.get_peakamptime_norm_hilbert(
+                self.t_samples, self.traces
+            )
         else:
+            tr_norm = np.linalg.norm(self.traces, axis=1)
+            idx_max = np.argmax(tr_norm, axis=1)
+            idx_max = idx_max[:, np.newaxis]
+            tmax = np.squeeze(np.take_along_axis(self.t_samples, idx_max, axis=1))
+            vmax = np.squeeze(np.take_along_axis(tr_norm, idx_max, axis=1))
+        if interpol == "no":
+            self.t_max = tmax
+            self.v_max = vmax
+            return tmax, vmax
+        if not interpol in ["parab", "auto"]:
             raise
         t_max = np.empty_like(tmax)
-        e_max = np.empty_like(tmax)
+        v_max = np.empty_like(tmax)
         for idx in range(self.get_nb_du()):
             logger.debug(f"{idx} {self.idx2idt[idx]} {idx_max[idx]}")
-            t_max[idx], e_max[idx] = sns.find_max_with_parabola_interp(
-                self.t_samples[idx], norm_hilbert_amp[idx], int(idx_max[idx]), factor_hill
-            )
-            logger.debug(f"{t_max[idx]} ; {e_max[idx]}")
-        return t_max, e_max
+            if interpol == "parab":
+                t_max[idx], v_max[idx] = sns.find_max_with_parabola_interp_3pt(
+                    self.t_samples[idx], tr_norm[idx], int(idx_max[idx])
+                )
+            else:
+                t_max[idx], v_max[idx] = sns.find_max_with_parabola_interp(
+                    self.t_samples[idx], tr_norm[idx], int(idx_max[idx])
+                )
+            logger.debug(f"{t_max[idx]} ; {v_max[idx]}")
+        self.t_max = t_max
+        self.v_max = v_max
+        return t_max, v_max
 
     def get_min_max_t_start(self):
         """
@@ -370,7 +392,9 @@ class Handling3dTracesOfEvent:
         """
         self._define_t_samples()
         plt.figure()
-        plt.title(f"{self.type_trace}, DU {self.idx2idt[idx]} (idx={idx})")
+        plt.title(
+            f"{self.type_trace}, DU {self.idx2idt[idx]} (idx={idx}) \n$F_{{sampling}}$={self.f_samp_mhz}MHz"
+        )
         for idx_axis, axis in enumerate(self.axis_name):
             if str(idx_axis) in to_draw:
                 plt.plot(
@@ -379,6 +403,13 @@ class Handling3dTracesOfEvent:
                     self._color[idx_axis],
                     label=axis,
                 )
+        if hasattr(self, "t_max"):
+            plt.plot(
+                self.t_max[idx],
+                self.v_max[idx],
+                "d",
+                label=f"max {self.v_max[idx]:e}",
+            )
         plt.ylabel(f"{self.unit_trace}")
         plt.xlabel(f"ns\n{self.name}")
         plt.grid()

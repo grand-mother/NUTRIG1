@@ -263,7 +263,7 @@ def check_recons_all_ew():
     # evt.remove_traces_low_signal(5000)
     # evt.plot_ps_trace_idx(idx_du)
     # evt.plot_trace_idx(idx_du)
-    evt.downsize_sampling(4)
+    #evt.downsize_sampling(4)
     evt_wnr = evt.get_copy(0)
     evt_wnr.type_trace = "E field wiener"
     evt.plot_footprint_val_max()
@@ -326,7 +326,7 @@ def check_recons_all_ew():
             wiener.set_psd_noise(psd_galelc_w)
             flag_psd_gal = False
             wiener.set_band(53, 190)
-        sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig * 1000)
+        sig, fft_sig_ew = wiener.deconv_measure(evt.traces[idx_du][1], psd_sig)
         if idx_du == 7:
             wiener.plot_psd(False)
             wiener.plot_snr()

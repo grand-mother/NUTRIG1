@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from .traces_event import Handling3dTracesOfEvent
 import sradio.num.signal as sns
 from sradio.basis.frame import FrameDuFrameTan
-import sradio.basis.coord as coord 
+import sradio.basis.coord as coord
 
 logger = getLogger(__name__)
 
@@ -307,47 +307,59 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
             a_vec_pol[idx, :], _ = fit_vec_linear_polar_l2(self.traces[idx], threshold)
         return a_vec_pol
 
-    def get_tmax_vmax(self, interpol=True):
-        """Return time where norm is max
+    # def get_tmax_vmax(self, interpol="auto"):
+    #     """Return time where norm is max
+    #
+    #     :return:  time of max and max
+    #     :rtype: float(nb_du,) , float(nb_du,)
+    #     """
+    #     tr_norm = np.linalg.norm(self.traces, axis=1)
+    #     idx_max = np.argmax(tr_norm, axis=1)
+    #     if interpol != "no":
+    #         if not interpol in ["parab", "auto"]:
+    #             raise
+    #         t_max = np.empty_like(idx_max, dtype=np.float32)
+    #         e_max = np.empty_like(idx_max, dtype=np.float32)
+    #         for idx in range(len(idx_max)):
+    #             logger.debug(f"{idx} {self.idx2idt[idx]} {idx_max[idx]}")
+    #             if interpol == "parab":
+    #                 t_max[idx], e_max[idx] = sns.find_max_with_parabola_interp_3pt(
+    #                     self.t_samples[idx], tr_norm[idx], int(idx_max[idx])
+    #                 )
+    #             else:
+    #                 t_max[idx], e_max[idx] = sns.find_max_with_parabola_interp(
+    #                     self.t_samples[idx], tr_norm[idx], int(idx_max[idx])
+    #                 )
+    #                 logger.debug(f"{t_max[idx]} ; {e_max[idx]}")
+    #         self.t_max = t_max
+    #         self.e_max = e_max
+    #         return t_max, e_max
+    #     idx_max = idx_max[:, np.newaxis]
+    #     t_max = np.take_along_axis(self.t_samples, idx_max, axis=1)
+    #     v_max = np.take_along_axis(tr_norm, idx_max, axis=1)
+    #     # remove dimension (np.squeeze) to have ~vector ie shape is (n,) instead (n,1)
+    #     self.t_max = np.squeeze(t_max)
+    #     self.e_max = np.squeeze(e_max)
+    #     return self.t_max, self.e_max
 
-        :return:  time of max and max
-        :rtype: float(nb_du,) , float(nb_du,)
-        """
-        tr_norm = np.linalg.norm(self.traces, axis=1)
-        idx_max = np.argmax(tr_norm, axis=1)
-        if interpol:
-            t_max = np.empty_like(idx_max, dtype=np.float32)
-            e_max = np.empty_like(idx_max, dtype=np.float32)
-            for idx in range(len(idx_max)):
-                logger.debug(f"{idx} {self.idx2idt[idx]} {idx_max[idx]}")
-                t_max[idx], e_max[idx] = sns.find_max_with_parabola_interp(
-                    self.t_samples[idx], tr_norm[idx], int(idx_max[idx])
-                )
-                logger.debug(f"{t_max[idx]} ; {e_max[idx]}")
-            return t_max, e_max
-        idx_max = idx_max[:, np.newaxis]
-        t_max = np.take_along_axis(self.t_samples, idx_max, axis=1)
-        v_max = np.take_along_axis(tr_norm, idx_max, axis=1)
-        # remove dimension (np.squeeze) to have ~vector ie shape is (n,) instead (n,1)
-        return np.squeeze(t_max), np.squeeze(v_max)
-
-    def get_traces_passband(self, f_mhz=[30, 250]):
+    def get_traces_passband(self, f_mhz=[30, 250], causal=True):
         """Return array traces with passband filter
 
         :param f_mhz: [MHz] border
         :type f_mhz: list of 2 number
         """
+        if causal:
+            return sns.filter_butter_band_lfilter(self.traces, f_mhz[0], f_mhz[1], self.f_samp_mhz)
         return sns.filter_butter_band(self.traces, f_mhz[0], f_mhz[1], self.f_samp_mhz)
-
 
     def get_polar_angle_efield(self, degree=False):
         """Return polar angle estimation with traces E field for all DUs
-        
+
         :param degree: flag to set return angle in degree
-        :type degree: bool 
-        
+        :type degree: bool
+
         :return: polar angle estimation with traces E field for all DUs
-        :rtype: float (nb_du,)        
+        :rtype: float (nb_du,)
         """
         assert isinstance(self.xmax, np.ndarray)
         # in DU frame

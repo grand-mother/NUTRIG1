@@ -13,7 +13,7 @@ from matplotlib.backend_bases import MouseButton
 from scipy.spatial import Delaunay
 
 from sradio.basis.frame import FrameDuFrameTan
-import sradio.basis.coord as coord 
+import sradio.basis.coord as coord
 
 logger = getLogger(__name__)
 
@@ -52,7 +52,7 @@ class DetectorUnitNetwork:
         :type idx2idt: int[nb_DU]
         """
         if du_id is None:
-            du_id = list(range(du_pos.shape[0])) 
+            du_id = list(range(du_pos.shape[0]))
         self.du_pos = du_pos
         self.idx2idt = du_id
         assert isinstance(self.du_pos, np.ndarray)
@@ -65,7 +65,7 @@ class DetectorUnitNetwork:
         self.idx2idt = du_id
         self.du_pos = self.du_pos[l_idx]
         self.area_km2 = -1
-        
+
     def reduce_nb_du(self, new_nb_du):
         """
         Feature to debug and reduce computation
@@ -76,17 +76,17 @@ class DetectorUnitNetwork:
         self.idx2idt = self.idx2idt[:new_nb_du]
         self.du_pos = self.du_pos[:new_nb_du, :]
         self.area_km2 = -1
-        
+
     def get_polar_angle_geomagnetic(self, m_field_u, xmax, degree=True):
         """Return polar angle estimation with geomagnetic model for all DUs
 
         Hypothesis: small network, magnetic field is almost same for all positions
-        
+
         :param m_field_u: unit vector of earth magnetic field
         :type m_field_u: float (3,)
         :param degree: flag to set return angle in degree
-        :type degree: bool         
-        
+        :type degree: bool
+
         :return: polar angle estimation with geomagnetic model for all DUs
         :rtype: float (nb_du,)
         """
@@ -105,8 +105,7 @@ class DetectorUnitNetwork:
         if degree:
             return np.rad2deg(polars)
         return polars
-    
-        
+
     def get_sub_network(self, l_id):
         """
         Reduce networh to DU in list l_id
@@ -117,7 +116,7 @@ class DetectorUnitNetwork:
         sub_net = DetectorUnitNetwork("sub-network of " + self.name)
         sub_net.init_pos_id(self.du_pos[l_id], self.idx2idt[l_id])
         return sub_net
-    
+
     def get_nb_du(self):
         return len(self.idx2idt)
 
@@ -245,7 +244,7 @@ class DetectorUnitNetwork:
         xlabel = "meters,          North =>"
         xlabel += f"\n{self.name}"
         if traces is not None:
-            xlabel += f"\n{traces.name}"    
+            xlabel += f"\n{traces.name}"
         plt.xlabel(xlabel)
         plt.ylabel(fr"meters,          West (azimuth=90°) => ")
         ax1.grid()

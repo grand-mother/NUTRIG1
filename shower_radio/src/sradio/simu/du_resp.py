@@ -64,6 +64,7 @@ class SimuDetectorUnitResponse:
             "flag_add_leff": True,
             "flag_add_gal": True,
             "flag_add_rf": False,
+            "fact_padding": 1.0,
             "lst": 18.0,
         }
         # object contents Efield and network information
@@ -75,7 +76,6 @@ class SimuDetectorUnitResponse:
         self.o_shower = None
         # FFT info
         self.sig_size = 0
-        self.fact_padding = 6
         #  size_with_pad ~ sig_size*fact_padding
         self.size_with_pad = 0
         # float (size_with_pad,) array of frequencies in MHz in Fourier domain
@@ -101,7 +101,7 @@ class SimuDetectorUnitResponse:
         self.size_with_pad, self.freqs_out_mhz = get_fastest_size_rfft(
             self.sig_size,
             self.o_efield.f_samp_mhz,
-            self.fact_padding,
+            self.params["fact_padding"]
         )
         logger.debug(self.size_with_pad)
         logger.debug(self.sig_size)
@@ -169,17 +169,11 @@ class SimuDetectorUnitResponse:
         # 2) Add galactic noise
         ########################
         if self.params["flag_add_gal"]:
-            # noise_gal = sf.irfft(self.fft_noise_gal_3d[idx_du])[:, : self.sig_size]
-            # logger.debug(np.std(noise_gal, axis=1))
-            # self.voc[idx_du] += noise_gal
             fft_3d += self.fft_noise_gal_3d[idx_du]
-            raise
         ########################
         # 3) RF chain
         ########################
         if self.params["flag_add_rf"]:
             fft_3d *= self.o_rfchain.get_tf_3d()
-            raise
-        # inverse FFT and remove zero-padding
-        # WARNING: do not used sf.irfft(fft_vlna, self.sig_size) to remove padding
+        # inverse FFT and remove zero-padding wiht vec[:, : self.sig_size]
         self.v_out[idx_du] = sf.irfft(fft_3d)[:, : self.sig_size]

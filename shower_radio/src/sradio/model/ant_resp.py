@@ -62,7 +62,14 @@ class PreComputeInterpolFreq:
         # c_inf + c_sup = 1
         self.c_sup = None
         self.size_out = 0
-
+    
+    def get_idx_range(self, r_mhz=[55,185]):
+        d_freq_out = self.freq_out_mhz[1]
+        idx_first = int(r_mhz[0] / d_freq_out) + 1
+        # index of freq in last plus one, + 1 to have first out band
+        idx_lastp1 = int(r_mhz[1] / d_freq_out) + 1
+        return range(idx_first, idx_lastp1)
+     
     def init_linear_interpol(self, freq_in_mhz, freq_out_mhz):
         """
         Precompute coefficient of linear interpolation for freq_out_mhz with reference defined at freq_in_mhz
@@ -342,7 +349,7 @@ class DetectorUnitAntenna3Axis:
         itp = self.interp_leff
         resp[0] = np.sum(itp.get_fft_leff_du(self.sn_leff) * fft_efield_du, axis=0)
         resp[1] = np.sum(itp.get_fft_leff_du(self.ew_leff) * fft_efield_du, axis=0)
-        itp.plot_leff_xyz()
+        #itp.plot_leff_xyz()
         resp[2] = np.sum(itp.get_fft_leff_du(self.up_leff) * fft_efield_du, axis=0)
         return resp
 

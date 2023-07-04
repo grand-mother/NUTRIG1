@@ -216,31 +216,38 @@ def proto_simu_voc(f_out=None):
         fsrad.save_asdf_single_event(f_out, out, d_info)
 
 
-def proto_simu_vout(f_out=None):
+def proto_simu_vout(f_in,f_out=None):
     dus = SimuDetectorUnitResponse()
-    dus.params = {
-        "flag_add_leff": True,
-        "flag_add_gal": False,
-        "flag_add_rf": False,
-        "lst": 18.0,
-    }
-    zh_f = ZhairesMaster(FILE_efield)
+    dus.params.update(
+        {
+            "flag_add_leff": True,
+            "flag_add_gal": False,
+            "flag_add_rf": False,
+            "fact_padding" : 6,
+            "lst": 18.0,
+        }
+    )
+    zh_f = ZhairesMaster(f_in)
     efield = zh_f.get_object_3dtraces()
     efield.reduce_l_ident(["A90", "A250", "A228"])
     # efield.plot_all_traces_as_image()
     assert isinstance(efield, Handling3dTracesOfEvent)
     d_info = zh_f.get_simu_info()
     #
-    bandwich = [30, 250]
+    bandwich = [40, 240]
     evt_band = efield.get_copy(efield.get_traces_passband(bandwich))
     evt_band.type_trace = f"E field {bandwich} MHz"
+    #evt_band.downsize_sampling(4)
+    evt_band.get_tmax_vmax("parab")
+    print(type(evt_band))
     evt_band.plot_footprint_val_max()
-    dus.set_data_efield(efield)
+    dus.set_data_efield(evt_band)
     dus.set_xmax(zbase.get_simu_xmax(d_info))
     dus.compute_du_all()
     efield.plot_footprint_val_max()
     # create object volt
-    volt = efield.get_copy(dus.v_out)
+    volt = evt_band.get_copy(dus.v_out)
+    volt.downsize_sampling(4)
     assert isinstance(volt, Handling3dTracesOfEvent)
     # print(np.std(volt.traces, axis=2)[:, 0])
     # print(volt.traces.std(axis=-1)[:, 1])
@@ -249,9 +256,9 @@ def proto_simu_vout(f_out=None):
     volt.plot_footprint_val_max()
     # volt.plot_all_traces_as_image()
     volt_filter = volt.get_copy(deepcopy=True)
-    #volt_filter.remove_traces_low_signal(16)
+    # volt_filter.remove_traces_low_signal(16)
     if f_out:
-        #d_info["efield_file"] = FILE_efield.split("/")[-1]
+        # d_info["efield_file"] = FILE_efield.split("/")[-1]
         d_glob = {}
         d_glob["sim_shower"] = d_info
         d_glob["efield_file"] = FILE_efield
@@ -268,7 +275,7 @@ def compare_efield_volt(efield, volt):
     efield_ok = efield.get_copy(deepcopy=True)
     l_idx = [efield.idt2idx[idt] for idt in volt.idx2idt]
     efield_ok.reduce_l_index(l_idx)
-    efield_ok.traces  = efield_ok.get_traces_passband([53, 190])
+    efield_ok.traces = efield_ok.get_traces_passband([53, 190])
     assert isinstance(efield_ok, Handling3dTracesOfEvent)
     assert isinstance(volt_ok, Handling3dTracesOfEvent)
     tm_ef, em_ef = efield_ok.get_tmax_vmax(True)
@@ -276,9 +283,11 @@ def compare_efield_volt(efield, volt):
     # id = "A79"
     # idx = volt_ok.idt2idx[id]
     # volt_ok.plot_trace_du(id)
-    #plt.plot(tm_v[idx], em_v[idx], "d")
+    # plt.plot(tm_v[idx], em_v[idx], "d")
     tm_diff = tm_v - tm_ef
-    efield_ok.network.plot_footprint_1d(tm_diff, "diff t_max (V_out - Efield band)", volt_ok, "lin", "ns")
+    efield_ok.network.plot_footprint_1d(
+        tm_diff, "diff t_max (V_out - Efield band)", volt_ok, "lin", "ns"
+    )
     plt.figure()
     plt.title(f"diff t_max (V_out - Efield band)\nFile: {efield.name}")
     plt.hist(tm_diff)
@@ -296,9 +305,9 @@ if __name__ == "__main__":
     logger.info(mlg.string_begin_script())
     #
     #
-    efield, volt = proto_simu_vout(FILE_vout)
-    #proto_simu_vout(FILE_vout)
-    #compare_efield_volt(efield, volt)
+    efield, volt = proto_simu_vout(FILE_efield, FILE_vout)
+    # proto_simu_vout(FILE_vout)
+    # compare_efield_volt(efield, volt)
     # proto_read()
     # test_simu_in_frame_pol(FILE_efield)
     # view_efield_passband("/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2", 52)
