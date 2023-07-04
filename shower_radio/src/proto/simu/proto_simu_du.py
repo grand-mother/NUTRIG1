@@ -247,7 +247,6 @@ def proto_simu_vout(f_in,f_out=None):
     efield.plot_footprint_val_max()
     # create object volt
     volt = efield.get_copy(dus.v_out)
-    volt.downsize_sampling(4)
     assert isinstance(volt, Handling3dTracesOfEvent)
     # print(np.std(volt.traces, axis=2)[:, 0])
     # print(volt.traces.std(axis=-1)[:, 1])
@@ -255,8 +254,9 @@ def proto_simu_vout(f_in,f_out=None):
     volt.set_unit_axis("$\mu$V", "dir", r"$V_{out}$")
     volt.plot_footprint_val_max()
     # volt.plot_all_traces_as_image()
-    volt_filter = volt.get_copy(deepcopy=True)
-    volt_filter.remove_traces_low_signal(1200)
+    volt.remove_traces_low_signal(1200)
+    volt.downsize_sampling(4)
+    volt_filter = volt
     if f_out:
         # d_info["efield_file"] = FILE_efield.split("/")[-1]
         d_glob = {}

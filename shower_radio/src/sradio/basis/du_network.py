@@ -77,7 +77,7 @@ class DetectorUnitNetwork:
         self.du_pos = self.du_pos[:new_nb_du, :]
         self.area_km2 = -1
 
-    def get_polar_angle_geomagnetic(self, m_field_u, xmax, degree=True):
+    def get_polar_angle_geomagnetic(self, m_field_u, xmax, degree=False):
         """Return polar angle estimation with geomagnetic model for all DUs
 
         Hypothesis: small network, magnetic field is almost same for all positions
