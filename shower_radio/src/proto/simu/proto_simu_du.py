@@ -33,9 +33,9 @@ FILE_efield = "/home/jcolley/projet/grand_wk/bug/BugExample/Coarse2"
 FILE_efield = (
     "/home/jcolley/projet/grand_wk/data/zhaires/set500/GP300Outbox/GP300_Proton_3.97_74.8_0.0_1"
 )
-# FILE_efield = (
-#     "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
-#     )
+FILE_efield = (
+    "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
+    )
 FILE_vout = "/home/jcolley/projet/grand_wk/data/volt/with_noise.asdf"
 
 #
@@ -254,7 +254,7 @@ def proto_simu_vout(f_in,f_out=None):
     volt.set_unit_axis("$\mu$V", "dir", r"$V_{out}$")
     volt.plot_footprint_val_max()
     # volt.plot_all_traces_as_image()
-    volt.remove_traces_low_signal(1200)
+    volt.remove_traces_low_signal(450)
     volt.downsize_sampling(4)
     volt_filter = volt
     if f_out:

@@ -38,7 +38,9 @@ def find_max_with_parabola_interp_3pt(x_trace, y_trace, idx_max):
     :param factor_hill:
     :type factor_hill:
     """
-    logger.debug(f"Parabola interp: mode pic")
+    if idx_max >= len(x_trace)-1:
+        return x_trace[idx_max], y_trace[idx_max]
+    logger.debug(f"Parabola interp: mode pic {idx_max} {len(x_trace)}")
     y_pic = y_trace[idx_max : idx_max + 2] - y_trace[idx_max - 1]
     x_pic = x_trace[idx_max : idx_max + 2] - x_trace[idx_max - 1]
     logger.debug(x_trace[idx_max : idx_max + 2])
@@ -574,6 +576,7 @@ class WienerDeconvolution:
         idx_min = int(f_band_mhz[0] / delta_f)
         idx_max = int(0.5 + f_band_mhz[1] / delta_f)
         self.r_freq = range(idx_min, idx_max)
+        logger.info(f"Bandxitch {len(self.r_freq)} modes")
 
     def set_psd_noise(self, psd_noise):
         """

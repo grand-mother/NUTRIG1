@@ -339,25 +339,39 @@ def check_recons_with_ew():
 
 def check_recons_all():
     """
-    1) read v_out file
-    2) create wiener object
-    3) on trace
-        * compute relative xmax and direction
-        * compute polarization angle with Bxp
-        * get Leff for polar direction
-        * deconv and store
-    4) plot result
+    Read voltage
+    create efield Wiener container
+    create object DetectorUnitAntenna3Axis
+    get xmax position
+    define size FFT
+    compute angle of polarization for each DU
+    define object rfchain
+    get psd of noise for each axis, v_gal throught rf chain
+    for each DU, voltage
+        define psd estimation of signal
+        set direction of xmax in DU frame
+        set angle of polarization
+        for each axis (3)
+            get TF L_eff
+            set total TF L_eff*rf chain
+            set psd of noise
+            get Wiener estimation of E field in bandwidth
+        weight estimation of E field
     """
     f_plot_leff = False
     flag_true_polar = False
     # Read voltage
     volt, d_simu = fsr.load_asdf(FILE_vout)
     volt.set_periodogram(150)
-    volt.remove_traces_low_signal(3500)
+    volt.remove_traces_low_signal(2000)
+    t_max, v_max = volt.get_tmax_vmax()
+    std_noise = 150
+    snr_volt = v_max / std_noise
+    logger.info(f"SNR {snr_volt}")
     pprint.pprint(d_simu)
     assert isinstance(volt, Handling3dTracesOfEvent)
     volt.type_trace = "$V_{out}$"
-    #volt.reduce_l_ident(["A31", "A33", "A36"])
+    # volt.reduce_l_ident(["A31", "A33", "A36"])
     # create efield Wiener container
     ef_wnr = HandlingEfieldOfEvent()
     ef_wnr.init_traces(np.zeros_like(volt.traces), volt.idx2idt, volt.t_start_ns, volt.f_samp_mhz)
@@ -375,11 +389,7 @@ def check_recons_all():
     ## compute relative xmax and direction
     ant3d.set_pos_source(get_simu_xmax(d_simu["sim_shower"]))
     size_trace = volt.get_size_trace()
-    size_with_pad, freqs_out_mhz = get_fastest_size_rfft(
-        volt.get_size_trace(),
-        volt.f_samp_mhz,
-        3,
-    )
+    size_with_pad, freqs_out_mhz = get_fastest_size_rfft(volt.get_size_trace(), volt.f_samp_mhz, 6)
     ant3d.set_freq_out_mhz(freqs_out_mhz)
     ## compute polarization angle
     if flag_true_polar:
@@ -406,10 +416,14 @@ def check_recons_all():
     fft_volt = sf.rfft(volt.traces, n=size_with_pad)
     norm2_fft_volt = (fft_volt * np.conj(fft_volt)).real
     for idx_du in range(volt.get_nb_du()):
+        # if idx_du == 0:
+        #     sig_noise_123 = np.std(volt.traces[idx_du][:,:100], axis=1)
+        #     sig_noise_max = np.max(sig_noise_123)
+        #     logger.info(f"std noise {sig_noise_max}")
         # define PSD of signal
         idx_max = np.argmax(np.abs(volt.traces[idx_du]).sum(axis=1))
         logger.debug(f"idx_max {idx_max}")
-        freq_sig, psd_sig = get_psd(volt.traces[idx_du, idx_max], volt.f_samp_mhz, 147)
+        freq_sig, psd_sig = get_psd(volt.traces[idx_du, idx_max], volt.f_samp_mhz)
         psd_sig = wiener.get_interpol(freq_sig, psd_sig)
         # define relative position of DU with Xmax and set polar angle
         ant3d.set_name_pos(volt.idx2idt[idx_du], volt.network.du_pos[idx_du])
@@ -420,19 +434,19 @@ def check_recons_all():
         leff_pol_sn = ant3d.interp_leff.get_fft_leff_pol(ant3d.sn_leff)
         wiener.set_rfft_kernel(leff_pol_sn * tf_elec[0])
         wiener.set_psd_noise(psd_galelc_sn)
-        sig1, ef_wiener[0] = wiener.deconv_fft_measure(fft_volt[idx_du][0], psd_sig-psd_galelc_sn)
+        sig1, ef_wiener[0] = wiener.deconv_fft_measure(fft_volt[idx_du][0], psd_sig - psd_galelc_sn)
         ef_wnr.traces[idx_du][0] = sig1[:size_trace]
         # EW
         leff_pol_ew = ant3d.interp_leff.get_fft_leff_pol(ant3d.ew_leff)
         wiener.set_rfft_kernel(leff_pol_ew * tf_elec[1])
         wiener.set_psd_noise(psd_galelc_ew)
-        sig2, ef_wiener[1] = wiener.deconv_fft_measure(fft_volt[idx_du][1], psd_sig-psd_galelc_ew )
+        sig2, ef_wiener[1] = wiener.deconv_fft_measure(fft_volt[idx_du][1], psd_sig - psd_galelc_ew)
         ef_wnr.traces[idx_du][1] = sig2[:size_trace]
         # UP
         leff_pol_up = ant3d.interp_leff.get_fft_leff_pol(ant3d.up_leff)
         wiener.set_rfft_kernel(leff_pol_up * tf_elec[2])
         wiener.set_psd_noise(psd_galelc_up)
-        sig3, ef_wiener[2] = wiener.deconv_fft_measure(fft_volt[idx_du][2], psd_sig-psd_galelc_up)
+        sig3, ef_wiener[2] = wiener.deconv_fft_measure(fft_volt[idx_du][2], psd_sig - psd_galelc_up)
         ef_wnr.traces[idx_du][2] = sig3[:size_trace]
         # best Wiener solution
         best_tfd_ef = pvoc.weight_efield_estimation(ef_wiener, norm2_fft_volt[idx_du])
@@ -442,11 +456,11 @@ def check_recons_all():
         #     wiener.plot_psd(False)
         #     wiener.plot_snr()
     ef_wnr.plot_footprint_val_max()
-    #ef_best.plot_footprint_val_max()
-    return ef_best
+    # ef_best.plot_footprint_val_max()
+    return ef_best, snr_volt
 
 
-def compare_efield(ef_wnr):
+def compare_efield(ef_wnr, snr_volt):
     zh_f = ZhairesMaster(FILE_efield)
     efield = zh_f.get_object_3dtraces()
     assert isinstance(efield, Handling3dTracesOfEvent)
@@ -457,13 +471,14 @@ def compare_efield(ef_wnr):
     evt_band.type_trace = f"E field {BANDWIDTH} MHz"
     evt_band.plot_footprint_val_max()
     ef_wnr.plot_footprint_val_max()
-    compare_evt(evt_band, ef_wnr)
+    compare_evt(evt_band, ef_wnr, snr_volt)
 
 
-def compare_evt(efield, wiener):
+def compare_evt(efield, wiener, snr_volt):
     assert isinstance(efield, Handling3dTracesOfEvent)
     assert isinstance(wiener, Handling3dTracesOfEvent)
     wiener_ok = wiener
+    wiener.name = efield.name
     efield_ok = efield
     assert isinstance(efield_ok, Handling3dTracesOfEvent)
     assert isinstance(wiener_ok, Handling3dTracesOfEvent)
@@ -482,10 +497,45 @@ def compare_evt(efield, wiener):
     wiener_ok.network.plot_footprint_1d(em_diff, "diff E_max ", wiener_ok, "lin", "%")
     print(em_diff)
     plt.figure()
-    plt.title(f"diff E_max relative\n{efield.name}")
+    plt.title(
+        f"Relative error of E_max (Wiener - Efield band)\nmean={em_diff.mean():.2f} std={em_diff.std():.2f}"
+    )
     plt.hist(em_diff, bins=50)
-    plt.xlabel("%")
+    plt.xlabel(f"%\n{efield.name}")
     plt.grid()
+    bbox_snr(em_diff, np.array(snr_volt), efield.name, "%", f"Relative error of Wiener Emax in {BANDWIDTH} MHz by bin of SNR")
+    bbox_snr(tm_diff, np.array(snr_volt), efield.name, "ns", f"Error of Wiener Tmax in {BANDWIDTH} MHz by bin of SNR")
+
+def bbox_snr(em_diff, snr_volt, f_name="", ylab="", m_title=""):
+    l_snr = [50, 100, 200, 400]
+    idx_last = len(l_snr) - 1
+    l_er = []
+    l_nb_er = []
+    for idx, snr in enumerate(l_snr):
+        if idx == 0:
+            idx_ok = np.argwhere(snr_volt <= snr).ravel()
+        else:
+            idx_ok = np.argwhere(np.logical_and(snr_volt <= snr, snr_volt > l_snr[idx - 1])).ravel()
+        l_er.append(em_diff[idx_ok])
+        l_nb_er.append(len(l_er[-1]))
+    idx_ok = np.argwhere(snr_volt >= l_snr[-1]).ravel()
+    l_er.append(em_diff[idx_ok])
+    l_nb_er.append(len(l_er[-1]))
+    labels = [
+        f"<50\n{l_nb_er[0]}",
+        f"<100\n{l_nb_er[1]}",
+        f"<200\n{l_nb_er[2]}",
+        f"<400\n{l_nb_er[3]}",
+        f">400\n{l_nb_er[4]}",
+    ]
+    plt.figure()
+    plt.title(m_title)
+    plt.boxplot(l_er, labels=labels, showfliers=False)
+    plt.ylabel(ylab)
+    plt.xlabel(f"SNR, nb DU in bin\n{f_name}")
+    plt.legend()
+    plt.grid()
+    print(len(em_diff), len(snr_volt))
 
 
 if __name__ == "__main__":
@@ -497,10 +547,10 @@ if __name__ == "__main__":
     # define_psd_galrfchain()
     # plot_psd_galrfchain()
     # check_recons_ew()
-    #ef_wnr = check_recons_with_ew()
-    #compare_efield(ef_wnr)
-    ef_wnr= check_recons_all()
-    compare_efield(ef_wnr)
+    # ef_wnr = check_recons_with_ew()
+    # compare_efield(ef_wnr)
+    ef_wnr, snr = check_recons_all()
+    compare_efield(ef_wnr, snr)
     #
     logger.info(mlg.string_end_script())
     plt.show()

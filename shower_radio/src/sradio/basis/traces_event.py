@@ -19,7 +19,7 @@ logger = getLogger(__name__)
 
 def get_psd(trace, f_samp_mhz, nperseg=0):
     if nperseg == 0:
-        nperseg = trace.shape[0]
+        nperseg = trace.shape[0]//2
 
     freq, pxx_den = ssig.welch(
         trace, f_samp_mhz * 1e6, nperseg=nperseg, window="taylor", scaling="density"
