@@ -1,4 +1,8 @@
 from setuptools import setup
+import sys.path
+
+sys.path.append('shower_radio/src')
+
 import sradio
 from pip._internal.req import parse_requirements
 
