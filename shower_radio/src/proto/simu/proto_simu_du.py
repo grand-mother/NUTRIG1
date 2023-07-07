@@ -35,7 +35,9 @@ FILE_efield = (
 )
 FILE_efield = (
     "/home/jcolley/projet/grand_wk/data/zhaires/Stshp_MZS_QGS204JET_Proton_0.21_56.7_90.0_5"
-    )
+)
+FILE_efield = "/home/jcolley/projet/grand_wk/data/zhaires/GP300_Proton_0.631_87.1_132.07_15"
+FILE_efield = "/home/jcolley/projet/grand_wk/data/zhaires/GP300_Iron_1.58_85.0_164.41_12"
 FILE_vout = "/home/jcolley/projet/grand_wk/data/volt/with_noise.asdf"
 
 #
@@ -216,28 +218,28 @@ def proto_simu_voc(f_out=None):
         fsrad.save_asdf_single_event(f_out, out, d_info)
 
 
-def proto_simu_vout(f_in,f_out=None):
+def proto_simu_vout(f_in, f_out=None):
     dus = SimuDetectorUnitResponse()
     dus.params.update(
         {
             "flag_add_leff": True,
             "flag_add_gal": True,
             "flag_add_rf": True,
-            "fact_padding" : 6,
+            "fact_padding": 6,
             "lst": 18.0,
         }
     )
     zh_f = ZhairesMaster(f_in)
     efield = zh_f.get_object_3dtraces()
-    #efield.reduce_l_ident(["A90", "A250", "A228"])
+    # efield.reduce_l_ident(["A90", "A250", "A228"])
     # efield.plot_all_traces_as_image()
     assert isinstance(efield, Handling3dTracesOfEvent)
     d_info = zh_f.get_simu_info()
     #
-    #bandwich = [40, 240]
-    #evt_band = efield.get_copy(efield.get_traces_passband(bandwich))
-    #evt_band.type_trace = f"E field {bandwich} MHz"
-    #evt_band.downsize_sampling(4)
+    # bandwich = [40, 240]
+    # evt_band = efield.get_copy(efield.get_traces_passband(bandwich))
+    # evt_band.type_trace = f"E field {bandwich} MHz"
+    # evt_band.downsize_sampling(4)
     # evt_band.get_tmax_vmax("parab")
     # print(type(evt_band))
     # evt_band.plot_footprint_val_max()
@@ -252,10 +254,10 @@ def proto_simu_vout(f_in,f_out=None):
     # print(volt.traces.std(axis=-1)[:, 1])
     # print(volt.traces.std(axis=-1)[:, 2])
     volt.set_unit_axis("$\mu$V", "dir", r"$V_{out}$")
-    volt.plot_footprint_val_max()
     # volt.plot_all_traces_as_image()
     volt.remove_traces_low_signal(450)
     volt.downsize_sampling(4)
+    volt.plot_footprint_val_max()
     volt_filter = volt
     if f_out:
         # d_info["efield_file"] = FILE_efield.split("/")[-1]
