@@ -1,5 +1,5 @@
 from setuptools import setup
-import sys.path
+import sys
 
 sys.path.append('shower_radio/src')
 
