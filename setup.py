@@ -26,7 +26,8 @@ setup(
         "Topic :: Scientific/Engineering :: Physics",
     ],
     url="https://github.com/grand-mother/NUTRIG1",
-    package_dir={"sradio": "shower_radio/src/sradio"}, 
+    package_dir={"sradio": "shower_radio/src/sradio"},
+    scripts=["shower_radio/src/scripts/zhaires_view.py"]
     license='MIT', 
     python_requires='>=3.4', 
     #install_requires=["numpy","scipy","matplotlib","asdf","h5py"]
