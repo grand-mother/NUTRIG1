@@ -135,12 +135,13 @@ class DetectorUnitNetwork:
         :return: [km2] surface of network envelop
         :rtype: float
         """
-        if self.area_km2 > 0:
+        if self.area_km2 >= 0:
             return self.area_km2
+        if self.du_pos.shape[0] < 3:
+            self.area_km2 = 0
         pts = self.du_pos[:, :2].astype(np.float64)
         self.delaunay = Delaunay(self.du_pos[:, :2])
         triangle = self.delaunay.simplices
-        print(triangle[:20])
         a_area = np.abs(
             np.cross(
                 pts[triangle[:, 1], :] - pts[triangle[:, 0], :],

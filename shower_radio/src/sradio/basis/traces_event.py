@@ -448,8 +448,7 @@ class Handling3dTracesOfEvent:
                         scaling="density",
                     )
                 else:
-                    freq, pxx_den = get_ps_trace(self.traces[idx, idx_axis], self.f_samp_mhz)
-                logger.info(f"{freq[:3]}")
+                    freq, pxx_den = get_psd(self.traces[idx, idx_axis], self.f_samp_mhz)
                 plt.semilogy(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
                 # plt.plot(freq[2:] * 1e-6, pxx_den[2:], self._color[idx_axis], label=axis)
         m_title = f"Power spectrum density of {self.type_trace}, DU {self.idx2idt[idx]} (idx={idx})"

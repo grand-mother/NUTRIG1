@@ -72,14 +72,14 @@ def compare_polar_angle(f_simu):
     evt.set_xmax(get_simu_xmax(i_sim))
     mfield = get_simu_magnetic_vector(i_sim)
     pol_ef_deg = evt.get_polar_angle_efield(degree=True)
-    pol_mf = evt.network.get_polar_angle_geomagnetic(mfield, evt.xmax)
+    pol_mf_deg = evt.network.get_polar_angle_geomagnetic(mfield, evt.xmax,degree=True)
     # print(pol_ef)
     evt.network.plot_footprint_1d(
-        pol_ef, "Polar angle with E field (True)", evt, scale="lin", unit="deg"
+        pol_ef_deg, "Polar angle with E field (True)", evt, scale="lin", unit="deg"
     )
-    evt.network.plot_footprint_1d(pol_mf, "Polar angle geomagnetic", evt, scale="lin", unit="deg")
+    evt.network.plot_footprint_1d(pol_mf_deg, "Polar angle geomagnetic", evt, scale="lin", unit="deg")
     evt.network.plot_footprint_1d(
-        pol_mf - pol_ef, "Error polar angle (geomagnetic-True)", evt, scale="lin", unit="deg"
+        pol_mf_deg - pol_ef_deg, "Error polar angle (geomagnetic-True)", evt, scale="lin", unit="deg"
     )
 
 
