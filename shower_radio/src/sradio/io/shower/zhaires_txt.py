@@ -60,6 +60,8 @@ class ZhairesSummaryFileVers28:
         self.d_re = {
             "t_sample_ns": rf"Time bin size:\s+(?P<t_sample_ns>{REAL})ns",
             "x_max": rf"Location of max\.\((?P<unit>\w+)\):\s+(?P<alt>{REAL})\s+(?P<dist>{REAL})\s+(?P<x>{REAL})\s+(?P<y>{REAL})\s+(?P<z>{REAL})",
+            "sl_depth_of_max": rf"Sl\. depth of max\. \((?P<unit>[\w/]+)\):\s+(?P<mean>{REAL})",
+            "ground_altitude" : rf"Ground altitude:\s+(?P<alt>{REAL})\s+(?P<unit>\w+)\s+",
             "vers_aires": r"This is AIRES version\s+(?P<vers_aires>\w+\.\w+\.\w+)\s+\(",
             "vers_zhaires": r"With ZHAireS version (?P<vers_zhaires>\w+\.\w+\.\w+) \(",
             "primary": r"Primary particle:\s+(?P<primary>[\w^0-9]*)\s+",
@@ -89,7 +91,7 @@ class ZhairesSummaryFileVers28:
                     # set of values in sub dictionary with key {key}
                     d_sry[key] = d_ret
             else:
-                # logger.warning(f"Can't find {key} with {s_re}")
+                logger.warning(f"Can't find {key} with {s_re}")
                 self.l_error.append(key)
                 break
         self.d_sry = convert_str2number(d_sry)
