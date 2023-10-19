@@ -4,6 +4,82 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import colors
+
+
+def plot_extra_relatif(extra_rel, dir_angle=None):
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    if dir_angle is not None:
+        vmin = np.nanmin(dir_angle)
+        vmax = np.nanmax(dir_angle)
+        norm_user = colors.Normalize(vmin=vmin, vmax=vmax)
+        scm = ax.scatter(extra_rel[:, 0], extra_rel[:, 1], extra_rel[:, 2], 
+                         c=dir_angle, norm=norm_user)
+    else:
+        scm = ax.scatter(extra_rel[:, 0], extra_rel[:, 1], extra_rel[:, 2])
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
+    ax.set_zlim(-1, 1)
+    fig.colorbar(scm, label="degree")
+
+
+def extract_extreltraces_3d(traces3d):
+    '''
+    Extraction des extremas relatifs sur chaque port
+    
+    :param traces3: float(nb_trace, 3, idx_sample)
+    '''
+    nb_trace = traces3d.shape[0]
+    size_trace = traces3d.shape[2]
+    # extremum absolute, ie > 0
+    out_ext_abs = np.empty(nb_trace, dtype=np.float32)
+    out_ext_idx = np.empty(nb_trace, dtype=np.int16)
+    ext_3d = np.empty(3, dtype=np.float32)
+    out_extrel_3d = np.empty((nb_trace, 3), dtype=np.float32)
+    for idx_t in range(nb_trace):
+        ext_3d_abs = 0.0
+        ext_3d_val = 0.0
+        ext_3d_port = 0
+        ext_3d_idx = 0
+        for idx_p in range(3):
+            i_max, i_min = 0, 0
+            v_max, v_min = 0.0, 0.0
+            trace = traces3d[idx_t, idx_p]
+            # find extremum in trace
+            for idx_s in range(1, size_trace):
+                val = trace[idx_s]                
+                if val > v_max:
+                    i_max = idx_s
+                    v_max = val
+                elif val < v_min:
+                    i_min = idx_s
+                    v_min = val
+            # with min and max defined the extremum
+            abs_min = np.fabs(v_min)
+            if abs_min > v_max:
+                ext_port = v_min
+                ext_port_abs = abs_min
+                ext_port_idx = i_min
+            else:
+                ext_port = v_max
+                ext_port_abs = v_max
+                ext_port_idx = i_max          
+            ext_3d[idx_p] = ext_port
+            # check if is the extremum of 3d trace
+            if ext_port_abs > ext_3d_abs:
+                ext_3d_abs = ext_port_abs
+                ext_3d_val = ext_port
+                ext_3d_port = idx_p 
+                ext_3d_idx = ext_port_idx
+        out_ext_abs[idx_t] = ext_3d_abs
+        out_ext_idx[idx_t] = ext_3d_idx
+        out_extrel_3d[idx_t] = ext_3d / ext_3d_abs
+        print(idx_t, ext_3d_abs, ext_3d_port, ext_3d_idx, out_extrel_3d[idx_t])
+    return out_extrel_3d, out_ext_abs, out_ext_idx,
 
 
 class PulsExtractor(object):
@@ -165,6 +241,9 @@ class PulsExtractor(object):
             plt.figure()
             plt.plot(trace)
             plt.plot(trace, "*")
+            plt.axvline(a_idx_sig[idx_t, 0] , color='b', label='begin')
+            plt.axvline(a_idx_sig[idx_t, 1] , color='b', label='begin')
+            plt.xlim([450, self.size_trace - 1])            
             plt.show()            
             # processing long pulse        
             if a_idx_sig[idx_t, 1] == 0:
@@ -270,7 +349,7 @@ class PulsExtractor(object):
                 if (pulse_main[0] - l_pulse[idx_main - 1][1]) < max_inter_pulse:
                     pulse_main[0] = l_pulse[idx_main - 1][0]
                     print(f"fusion backward  with {l_pulse[idx_main-1]}")
-            for idx_pulse in range(idx_main + 1, len(l_pulse)):             
+            for idx_pulse in range(idx_main + 1, len(l_pulse)): 
                 if (l_pulse[idx_pulse][0] - pulse_main[1]) < max_inter_pulse:
                     pulse_main[1] = l_pulse[idx_pulse][1]                    
                     print(f"fusion forward  with {l_pulse[idx_pulse]}")
@@ -281,10 +360,14 @@ class PulsExtractor(object):
             print(a_idx_sig[idx_t])
             plt.figure()
             plt.plot(trace)
+            plt.grid()
             plt.plot(trace, "*")
+            plt.axvline(pulse_main[0], color='b', label='begin')
+            plt.axvline(pulse_main[1], color='b', label='begin')
+            plt.xlim([450, self.size_trace - 1])
             plt.show()                       
         self.a_idx_sig = a_idx_sig
-
+    
     def estimate_std_noise(self):
         '''
         return array of std deviation for sample [0:self.idx_end_noise]

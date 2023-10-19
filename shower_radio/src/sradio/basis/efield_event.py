@@ -375,6 +375,20 @@ class HandlingEfieldOfEvent(Handling3dTracesOfEvent):
         if degree:
             return np.rad2deg(polars)
         return polars
+    
+    def get_xmax_direction(self, degree=False):
+        """
+        return azimuth, distance zenithal of Xmax for each DU
+        """
+        xmax_dir = np.empty((self.get_nb_du(),2), dtype=np.float32)
+        for idx in range(self.get_nb_du()):
+            # direction toward source
+            v_dux = self.xmax - self.network.du_pos[idx]
+            xmax_dir[idx] = coord.du_cart_to_dir(v_dux)
+        if degree:
+            return np.rad2deg(xmax_dir)
+        return xmax_dir
+        
 
     #
     # PLOTS
