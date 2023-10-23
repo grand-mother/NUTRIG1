@@ -34,10 +34,16 @@ def proto_extremas_relatif(file_simu):
 
 def proto_extremas_relatif_volt(file_simu):
     efield, volt, s_info = simu.proto_simu_vout(file_simu, "/home/jcolley/temp/grand/volt.asdf")
-    #volt.remove_traces_low_signal(2000)
+    volt.remove_traces_low_signal(700)
     assert isinstance(volt, Handling3dTracesOfEvent)
     assert isinstance(efield, Handling3dTracesOfEvent)
+    efield.remove_traces_low_signal(110)
+    efield.get_tmax_vmax(True)
     efield.plot_footprint_val_max()
+    efield2 = efield.get_copy(deepcopy=True)
+    efield.get_tmax_vmax(False)
+    efield2.plot_footprint_val_max()
+    volt.get_tmax_vmax(True)
     volt.plot_footprint_val_max()
     r1, _, _ = tt.extract_extreltraces_3d(volt.traces)
     x_dir = volt.get_pos_direction(zbase.get_simu_xmax(s_info), True)
@@ -55,11 +61,11 @@ if __name__ == "__main__":
     file_trace = "MLhybrid_selected.bin"
     root_path_zhaires = '/home/jcolley/projet/grand_wk/data/zhaires/'
     file_efield = root_path_zhaires + 'GP300_Xi_Sib_Iron_3.85_64.4_256.1_19063/'
-    file_efield = root_path_zhaires + 'GP300_Iron_1.58_85.0_164.41_12'
+    #file_efield = root_path_zhaires + 'GP300_Iron_1.58_85.0_164.41_12'
     # no voltage
-    file_efield = root_path_zhaires + "GP300_Proton_0.631_87.1_132.07_15"
-    file_efield = root_path_zhaires + "Stshp_Iron_3.98_87.1_0.0_1"
-    file_efield = root_path_zhaires + "GP300_Xi_Sib_Iron_0.17_84.7_188.6_24023"
+    #file_efield = root_path_zhaires + "GP300_Proton_0.631_87.1_132.07_15"
+    #file_efield = root_path_zhaires + "Stshp_Iron_3.98_87.1_0.0_1"
+    #file_efield = root_path_zhaires + "GP300_Xi_Sib_Iron_0.17_84.7_188.6_24023"
     signalfilename = PATH_DATA + file_trace
     data_title = signalfilename.split('/')[-1]
     print(data_title)
