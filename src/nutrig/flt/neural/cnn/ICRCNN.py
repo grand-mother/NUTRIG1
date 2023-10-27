@@ -23,14 +23,13 @@ day = 1
 nbant = 3
 expsize = 1024
 # packdir='/sps/grand/slecoz/ICRC23pack/'
-traindir = 'datasetsICRC23/train/'
-testdir = 'datasetsICRC23/test/'
+traindir = '/home/jcolley/projet/grand_wk/data/npy/'
+testdir = traindir
 
 # backg_train=np.load(traindir+'day_backgpack.npy')
 if day:
-    backg_train = np.load(traindir + 'day_backgpack_doublepic_3sigma_cpt14687.npy')  # day
-    # backg_train=np.load(traindir+'day_backgpack_doublepic_3sigma_cpt14761_morerand.npy')
-    simu_train = np.load(traindir + 'day_inserted_simupack_doublepic3_3+_train.npy') 
+    backg_train = np.load(traindir + 'day_backg_train.npy')
+    simu_train = np.load(traindir + 'day_simu_train.npy') 
 else: 
     backg_train = np.load(traindir + 'night_backgpack_doublepic_3sigma_cpt16193.npy')  # night
     simu_train = np.load(traindir + 'night_inserted_simupack_doublepic3_3+_train.npy') 
@@ -196,6 +195,7 @@ if 1:
         model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
 
         history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
+        model.save(traindir+f'trigger_icrc_{epochs}.keras')
         plt.plot(history.epoch, np.array(history.history['loss']), label='Train loss')
         plt.plot(history.epoch, np.array(history.history['val_loss']), label='Validation loss')
         plt.grid()
@@ -281,215 +281,216 @@ maxipos_backgbadclass=maxipostest[(predictions[:,0]>=0.5) & (y_test==0)]
 
 '''
 
-# chromatograhy std
-meanpred = np.zeros(6)
-accuracy = np.zeros(6)
-pred = np.zeros(0)
-stdpred = np.zeros(0)
-for i in range(6):
-    # simutestfile=np.load(testdir+'day_inserted_simupack_'+str(i+1)+'.npy')
-    if i < 5:
-        if day:
-            simu_test = np.load(testdir + 'day_inserted_simupack_doublepic3_' + str(i + 3) + '_test.npy')
-        else:
-            simu_test = np.load(testdir + 'night_inserted_simupack_doublepic3_' + str(i + 3) + '_test.npy')
-    if i == 5:
-        if day:
-            simu_test = np.load(testdir + 'day_inserted_simupack_8+.npy')
-        else:
-            simu_test = np.load(testdir + 'night_inserted_simupack_8+.npy')
-    print(len(simu_test))
-    stdsimu, maxistdsimu, maxipossimu = stats(simu_test)
-    allmaxipossimu = np.sum((maxipossimu < 100) | (maxipossimu > 924), axis=1)  # if true, to banish
-    simu_test = simu_test[(allmaxipossimu == 0)]
-    stdsimu, maxistdsimu, maxipossimu = stats(simu_test)
+if False:
+    # chromatograhy std
+    meanpred = np.zeros(6)
+    accuracy = np.zeros(6)
+    pred = np.zeros(0)
+    stdpred = np.zeros(0)
+    for i in range(6):
+        # simutestfile=np.load(testdir+'day_inserted_simupack_'+str(i+1)+'.npy')
+        if i < 5:
+            if day:
+                simu_test = np.load(testdir + 'day_inserted_simupack_doublepic3_' + str(i + 3) + '_test.npy')
+            else:
+                simu_test = np.load(testdir + 'night_inserted_simupack_doublepic3_' + str(i + 3) + '_test.npy')
+        if i == 5:
+            if day:
+                simu_test = np.load(testdir + 'day_inserted_simupack_8+.npy')
+            else:
+                simu_test = np.load(testdir + 'night_inserted_simupack_8+.npy')
+        print(len(simu_test))
+        stdsimu, maxistdsimu, maxipossimu = stats(simu_test)
+        allmaxipossimu = np.sum((maxipossimu < 100) | (maxipossimu > 924), axis=1)  # if true, to banish
+        simu_test = simu_test[(allmaxipossimu == 0)]
+        stdsimu, maxistdsimu, maxipossimu = stats(simu_test)
+        
+        if noZ:
+            simu_test = simu_test[:,:, 2]
+        score = model.evaluate(simu_test / quant, np.zeros(len(simu_test)) + 1, verbose=0)
+        predictions = model.predict(simu_test / quant)
+        accuracy[i] = len(predictions[predictions >= 0.5]) / len(predictions)
+        stdpred = np.concatenate((stdpred, np.random.rand(len(predictions)) + (1 + np.zeros(len(predictions))) * (i + 3)))
+        pred = np.concatenate((pred, predictions[:, 0]))
+        meanpred[i] = np.mean(predictions)
+        print(meanpred[i])
+        print("Test loss:", score[0])
+        print("Test accuracy:", score[1])
+        
+    print(meanpred)
+    print(accuracy)
+    
+    plt.scatter(stdpred, pred, c='orange', alpha=0.2)
+    for i in range(6):
+        plt.plot(np.arange(i + 3, i + 5), (meanpred[i], meanpred[i]), c='red', linestyle='dotted')
+        plt.plot(np.arange(i + 3, i + 5), (accuracy[i], accuracy[i]), c='red')
+    plt.xlabel('3D-SNR maximum')
+    plt.ylabel('Score')
+    plt.legend(['Prediction', 'Averaged prediction', 'Accuracy'])
+    plt.plot(np.arange(3, 10), np.zeros(7) + 0.5, c='black', linestyle='dotted')
+    plt.title('Air shower test dataset')
+    plt.grid()
+    plt.savefig('airshowerperf')
+    plt.show()    
+    
+    airshowerstdpred = stdpred
+    print(len(airshowerstdpred), len(stdpred))
+    
+    # chromatography std for backg
+    # backg_test=np.load(testdir+'day_backgpack.npy')
+    if day:
+        # backg_test=np.load(testdir+'day_backgpack_doublepic_3sigma_cpt14664.npy')
+        backg_test = np.load(testdir + 'day_backgpack_doublepic_3sigma_cpt15094_morerand.npy')
+    else:
+        # backg_test=np.load(testdir+'night_backgpack_doublepic_3sigma_cpt15589.npy')
+        backg_test = np.load(testdir + 'night_backgpack_doublepic_3sigma_cpt15890_morerand.npy')
+    
+    stdbackg, maxistdbackg, maxiposbackg = stats(backg_test)
+    allmaxiposbackg = np.sum((maxiposbackg < 100) | (maxiposbackg > 924), axis=1)  # if true, to banish
+    backg_test = backg_test[(allmaxiposbackg == 0)]
+    stdbackg, maxistdbackg, maxiposbackg = stats(backg_test)
     
     if noZ:
-        simu_test = simu_test[:,:, 2]
-    score = model.evaluate(simu_test / quant, np.zeros(len(simu_test)) + 1, verbose=0)
-    predictions = model.predict(simu_test / quant)
-    accuracy[i] = len(predictions[predictions >= 0.5]) / len(predictions)
-    stdpred = np.concatenate((stdpred, np.random.rand(len(predictions)) + (1 + np.zeros(len(predictions))) * (i + 3)))
-    pred = np.concatenate((pred, predictions[:, 0]))
-    meanpred[i] = np.mean(predictions)
-    print(meanpred[i])
+        backg_test = backg_test[:,:, 2]
+    score = model.evaluate(backg_test / quant, np.zeros(len(backg_test)), verbose=0)
     print("Test loss:", score[0])
     print("Test accuracy:", score[1])
+    predictions = model.predict(backg_test / quant)
     
-print(meanpred)
-print(accuracy)
-
-plt.scatter(stdpred, pred, c='orange', alpha=0.2)
-for i in range(6):
-    plt.plot(np.arange(i + 3, i + 5), (meanpred[i], meanpred[i]), c='red', linestyle='dotted')
-    plt.plot(np.arange(i + 3, i + 5), (accuracy[i], accuracy[i]), c='red')
-plt.xlabel('3D-SNR maximum')
-plt.ylabel('Score')
-plt.legend(['Prediction', 'Averaged prediction', 'Accuracy'])
-plt.plot(np.arange(3, 10), np.zeros(7) + 0.5, c='black', linestyle='dotted')
-plt.title('Air shower test dataset')
-plt.grid()
-plt.savefig('airshowerperf')
-plt.show()    
-
-airshowerstdpred = stdpred
-print(len(airshowerstdpred), len(stdpred))
-
-# chromatography std for backg
-# backg_test=np.load(testdir+'day_backgpack.npy')
-if day:
-    # backg_test=np.load(testdir+'day_backgpack_doublepic_3sigma_cpt14664.npy')
-    backg_test = np.load(testdir + 'day_backgpack_doublepic_3sigma_cpt15094_morerand.npy')
-else:
-    # backg_test=np.load(testdir+'night_backgpack_doublepic_3sigma_cpt15589.npy')
-    backg_test = np.load(testdir + 'night_backgpack_doublepic_3sigma_cpt15890_morerand.npy')
-
-stdbackg, maxistdbackg, maxiposbackg = stats(backg_test)
-allmaxiposbackg = np.sum((maxiposbackg < 100) | (maxiposbackg > 924), axis=1)  # if true, to banish
-backg_test = backg_test[(allmaxiposbackg == 0)]
-stdbackg, maxistdbackg, maxiposbackg = stats(backg_test)
-
-if noZ:
-    backg_test = backg_test[:,:, 2]
-score = model.evaluate(backg_test / quant, np.zeros(len(backg_test)), verbose=0)
-print("Test loss:", score[0])
-print("Test accuracy:", score[1])
-predictions = model.predict(backg_test / quant)
-
-sortedpred = sorted(predictions)
-print(sortedpred)
-nreject90 = int(0.9 * len(predictions))
-threshold90 = sortedpred[nreject90]
-print("threshold for 90% rejection backg:", nreject90, threshold90)
-nreject99 = int(0.99 * len(predictions))
-threshold99 = sortedpred[nreject99]
-print("threshold for 99% rejection backg:", nreject99, threshold99)
-
-for i in range(6):
-    airshower90 = len(pred[(airshowerstdpred >= i + 3) & (airshowerstdpred < i + 4) & (pred > threshold90)]) / len(pred[(airshowerstdpred >= i + 3) & (airshowerstdpred < i + 4)])
-    airshower99 = len(pred[(airshowerstdpred >= i + 3) & (airshowerstdpred < i + 4) & (pred > threshold99)]) / len(pred[(airshowerstdpred >= i + 3) & (airshowerstdpred < i + 4)])
-    print("air shower for 90%,99% rejection backg:", i + 3, airshower90, airshower99)
-
-stdbackg, maxistdbackg, maxiposbackg = stats(backg_test)
-stdpred = maxistdbackg
-
-stdpred[stdpred >= 8] = np.random.rand(len(stdpred[stdpred >= 8])) + 8  # tu put them is the same bin
-
-meanpred = np.zeros(6)
-accuracy = np.zeros(6)
-
-for i in range(6):
-    meanpred[i] = np.mean(predictions[(np.max(stdpred, axis=1) >= i + 3) & (np.max(stdpred, axis=1) < i + 4)])
-    accuracy[i] = len(predictions[(np.max(stdpred, axis=1) >= i + 3) & (np.max(stdpred, axis=1) < i + 4) & (predictions[:, 0] < 0.5)]) / len(predictions[(np.max(stdpred, axis=1) >= i + 3) & (np.max(stdpred, axis=1) < i + 4)])
-
-print(meanpred)
-print(accuracy)
-
-plt.scatter(np.max(stdpred, axis=1), predictions[:, 0], c='orange', alpha=0.2)
-for i in range(6):
-    plt.plot(np.arange(i + 3, i + 5), (meanpred[i], meanpred[i]), c='red', linestyle='dotted')
-    plt.plot(np.arange(i + 3, i + 5), (accuracy[i], accuracy[i]), c='red')
-   
-plt.xlabel('3D-trace maximum [std unit]')
-plt.ylabel('Score')
-plt.legend(['Prediction', 'Averaged prediction', 'Accuracy'])
-plt.plot(np.arange(3, 10), np.zeros(7) + 0.5, c='black', linestyle='dotted')
-plt.title('Background test dataset')
-plt.grid()
-plt.savefig('backgroundperf')
-plt.show()    
-
-print(len(airshowerstdpred), len(stdpred))
-
-for i in range(3, 9):
-
-    plt.hist(predictions[:, 0][np.max(stdpred, axis=1) >= i], bins=20, histtype='step', log=True, density=1)
-    plt.hist(pred[airshowerstdpred >= i], bins=20, histtype='step', log=True, density=1)
-    plt.xlabel('Prediction')
-    plt.title('SNR = ' + str(i))
-    plt.legend(['Background', 'Air shower'])
-    plt.ylim(1e-3, 100)
-    plt.savefig('histopred' + str(i) + '.png')
+    sortedpred = sorted(predictions)
+    print(sortedpred)
+    nreject90 = int(0.9 * len(predictions))
+    threshold90 = sortedpred[nreject90]
+    print("threshold for 90% rejection backg:", nreject90, threshold90)
+    nreject99 = int(0.99 * len(predictions))
+    threshold99 = sortedpred[nreject99]
+    print("threshold for 99% rejection backg:", nreject99, threshold99)
+    
+    for i in range(6):
+        airshower90 = len(pred[(airshowerstdpred >= i + 3) & (airshowerstdpred < i + 4) & (pred > threshold90)]) / len(pred[(airshowerstdpred >= i + 3) & (airshowerstdpred < i + 4)])
+        airshower99 = len(pred[(airshowerstdpred >= i + 3) & (airshowerstdpred < i + 4) & (pred > threshold99)]) / len(pred[(airshowerstdpred >= i + 3) & (airshowerstdpred < i + 4)])
+        print("air shower for 90%,99% rejection backg:", i + 3, airshower90, airshower99)
+    
+    stdbackg, maxistdbackg, maxiposbackg = stats(backg_test)
+    stdpred = maxistdbackg
+    
+    stdpred[stdpred >= 8] = np.random.rand(len(stdpred[stdpred >= 8])) + 8  # tu put them is the same bin
+    
+    meanpred = np.zeros(6)
+    accuracy = np.zeros(6)
+    
+    for i in range(6):
+        meanpred[i] = np.mean(predictions[(np.max(stdpred, axis=1) >= i + 3) & (np.max(stdpred, axis=1) < i + 4)])
+        accuracy[i] = len(predictions[(np.max(stdpred, axis=1) >= i + 3) & (np.max(stdpred, axis=1) < i + 4) & (predictions[:, 0] < 0.5)]) / len(predictions[(np.max(stdpred, axis=1) >= i + 3) & (np.max(stdpred, axis=1) < i + 4)])
+    
+    print(meanpred)
+    print(accuracy)
+    
+    plt.scatter(np.max(stdpred, axis=1), predictions[:, 0], c='orange', alpha=0.2)
+    for i in range(6):
+        plt.plot(np.arange(i + 3, i + 5), (meanpred[i], meanpred[i]), c='red', linestyle='dotted')
+        plt.plot(np.arange(i + 3, i + 5), (accuracy[i], accuracy[i]), c='red')
+       
+    plt.xlabel('3D-trace maximum [std unit]')
+    plt.ylabel('Score')
+    plt.legend(['Prediction', 'Averaged prediction', 'Accuracy'])
+    plt.plot(np.arange(3, 10), np.zeros(7) + 0.5, c='black', linestyle='dotted')
+    plt.title('Background test dataset')
+    plt.grid()
+    plt.savefig('backgroundperf')
+    plt.show()    
+    
+    print(len(airshowerstdpred), len(stdpred))
+    
+    for i in range(3, 9):
+    
+        plt.hist(predictions[:, 0][np.max(stdpred, axis=1) >= i], bins=20, histtype='step', log=True, density=1)
+        plt.hist(pred[airshowerstdpred >= i], bins=20, histtype='step', log=True, density=1)
+        plt.xlabel('Prediction')
+        plt.title('SNR = ' + str(i))
+        plt.legend(['Background', 'Air shower'])
+        plt.ylim(1e-3, 100)
+        plt.savefig('histopred' + str(i) + '.png')
+        plt.show()
+    
+    '''
+    for i in range(nbant):
+        maxistd_simuwellclass_h,b=np.histogram(maxistd_simuwellclass[:,i],bins=20,range=(np.min(maxistd_simu),np.max(maxistd_simu)))
+        maxistd_simu_h,b=np.histogram(maxistd_simu[:,i],bins=20,range=(np.min(maxistd_simu),np.max(maxistd_simu)))
+        plt.plot(b[:-1][maxistd_simu_h>0],100*maxistd_simuwellclass_h[maxistd_simu_h>0]/maxistd_simu_h[maxistd_simu_h>0])
+    
+    plt.vlines(np.max(maxistd_simu),0,100,colors='red')
+    plt.grid()
+    plt.legend(['X','Y','Z'])
+    plt.xlabel('Maximum [std unit]')
+    plt.ylabel('% of well classified air shower 3D-traces')
+    plt.savefig('wellclassified_airshower')
     plt.show()
-
-'''
-for i in range(nbant):
-    maxistd_simuwellclass_h,b=np.histogram(maxistd_simuwellclass[:,i],bins=20,range=(np.min(maxistd_simu),np.max(maxistd_simu)))
-    maxistd_simu_h,b=np.histogram(maxistd_simu[:,i],bins=20,range=(np.min(maxistd_simu),np.max(maxistd_simu)))
-    plt.plot(b[:-1][maxistd_simu_h>0],100*maxistd_simuwellclass_h[maxistd_simu_h>0]/maxistd_simu_h[maxistd_simu_h>0])
-
-plt.vlines(np.max(maxistd_simu),0,100,colors='red')
-plt.grid()
-plt.legend(['X','Y','Z'])
-plt.xlabel('Maximum [std unit]')
-plt.ylabel('% of well classified air shower 3D-traces')
-plt.savefig('wellclassified_airshower')
-plt.show()
-
-for i in range(nbant):
-    maxistd_backgwellclass_h,b=np.histogram(maxistd_backgwellclass[:,i],bins=20,range=(np.min(maxistd_backg),np.max(maxistd_backg)))
-    maxistd_backg_h,b=np.histogram(maxistd_backg[:,i],bins=20,range=(np.min(maxistd_backg),np.max(maxistd_backg)))
-    plt.plot(b[:-1][maxistd_backg_h>0],100*maxistd_backgwellclass_h[maxistd_backg_h>0]/maxistd_backg_h[maxistd_backg_h>0])
-
-plt.vlines(np.max(maxistd_backg),0,100,colors='red')
-plt.grid()
-plt.legend(['X','Y','Z'])
-plt.xlabel('Maximum [std unit]')
-plt.ylabel('% of well classified background 3D-traces')
-plt.savefig('wellclassified_background')
-plt.show()'''
-
-'''
-#threshold selection
-nthreshold=10
-nmaxistd=5
-nsimu=np.zeros((nthreshold,nmaxistd+1))
-nbackg=np.zeros((nthreshold,nmaxistd+1))
-for i in range(nthreshold):
-    threshold=i*0.1
-    for j in range(nmaxistd):
-        thismaxistd=j+2
-        thismaxistd_nsimu=len(predictions[(y_test==1) & (np.max(maxistdtest,axis=1).astype('int')==thismaxistd)] )
-        thismaxistd_nbackg=len(predictions[(y_test==0) & (np.max(maxistdtest,axis=1).astype('int')==thismaxistd)] )
-        print(threshold,thismaxistd,thismaxistd_nsimu,thismaxistd_nbackg)
-        if thismaxistd_nsimu >0:
-            nsimu[i,j]=len(predictions[(predictions[:,0]>=threshold) & (y_test==1) & (np.max(maxistdtest,axis=1).astype('int')==thismaxistd) ]) /thismaxistd_nsimu
+    
+    for i in range(nbant):
+        maxistd_backgwellclass_h,b=np.histogram(maxistd_backgwellclass[:,i],bins=20,range=(np.min(maxistd_backg),np.max(maxistd_backg)))
+        maxistd_backg_h,b=np.histogram(maxistd_backg[:,i],bins=20,range=(np.min(maxistd_backg),np.max(maxistd_backg)))
+        plt.plot(b[:-1][maxistd_backg_h>0],100*maxistd_backgwellclass_h[maxistd_backg_h>0]/maxistd_backg_h[maxistd_backg_h>0])
+    
+    plt.vlines(np.max(maxistd_backg),0,100,colors='red')
+    plt.grid()
+    plt.legend(['X','Y','Z'])
+    plt.xlabel('Maximum [std unit]')
+    plt.ylabel('% of well classified background 3D-traces')
+    plt.savefig('wellclassified_background')
+    plt.show()'''
+    
+    '''
+    #threshold selection
+    nthreshold=10
+    nmaxistd=5
+    nsimu=np.zeros((nthreshold,nmaxistd+1))
+    nbackg=np.zeros((nthreshold,nmaxistd+1))
+    for i in range(nthreshold):
+        threshold=i*0.1
+        for j in range(nmaxistd):
+            thismaxistd=j+2
+            thismaxistd_nsimu=len(predictions[(y_test==1) & (np.max(maxistdtest,axis=1).astype('int')==thismaxistd)] )
+            thismaxistd_nbackg=len(predictions[(y_test==0) & (np.max(maxistdtest,axis=1).astype('int')==thismaxistd)] )
+            print(threshold,thismaxistd,thismaxistd_nsimu,thismaxistd_nbackg)
+            if thismaxistd_nsimu >0:
+                nsimu[i,j]=len(predictions[(predictions[:,0]>=threshold) & (y_test==1) & (np.max(maxistdtest,axis=1).astype('int')==thismaxistd) ]) /thismaxistd_nsimu
+            if thismaxistd_nbackg>0:
+                nbackg[i,j]=len(predictions[(predictions[:,0]>=threshold) & (y_test==0) & (np.max(maxistdtest,axis=1).astype('int')==thismaxistd) ]) /thismaxistd_nbackg
+        
+        thismaxistd_nsimu=len(predictions[(y_test==1) & (np.max(maxistdtest,axis=1).astype('int')>thismaxistd)] )
+        thismaxistd_nbackg=len(predictions[(y_test==0) & (np.max(maxistdtest,axis=1).astype('int')>thismaxistd)] )
+        if thismaxistd_nsimu>0:
+            nsimu[i,-1]=len(predictions[(predictions[:,0]>=threshold) & (y_test==1) & (np.max(maxistdtest,axis=1).astype('int')>thismaxistd) ]) /thismaxistd_nsimu
         if thismaxistd_nbackg>0:
-            nbackg[i,j]=len(predictions[(predictions[:,0]>=threshold) & (y_test==0) & (np.max(maxistdtest,axis=1).astype('int')==thismaxistd) ]) /thismaxistd_nbackg
+            nbackg[i,-1]=len(predictions[(predictions[:,0]>=threshold) & (y_test==0) & (np.max(maxistdtest,axis=1).astype('int')>thismaxistd) ]) /thismaxistd_nbackg
+        
     
-    thismaxistd_nsimu=len(predictions[(y_test==1) & (np.max(maxistdtest,axis=1).astype('int')>thismaxistd)] )
-    thismaxistd_nbackg=len(predictions[(y_test==0) & (np.max(maxistdtest,axis=1).astype('int')>thismaxistd)] )
-    if thismaxistd_nsimu>0:
-        nsimu[i,-1]=len(predictions[(predictions[:,0]>=threshold) & (y_test==1) & (np.max(maxistdtest,axis=1).astype('int')>thismaxistd) ]) /thismaxistd_nsimu
-    if thismaxistd_nbackg>0:
-        nbackg[i,-1]=len(predictions[(predictions[:,0]>=threshold) & (y_test==0) & (np.max(maxistdtest,axis=1).astype('int')>thismaxistd) ]) /thismaxistd_nbackg
     
-
-
-
-for j in range(nmaxistd+1):
-
-    plt.plot(np.arange(nthreshold)*0.1,nbackg[:,j])
-
-plt.grid()
-plt.title('Background')
-plt.xlabel('Selection threshold')
-plt.ylabel('% of selected')
-plt.legend(['2','3','4','5','6','7+'])
-plt.savefig('selectionthreshold_background')
-plt.show()
-
-for j in range(nmaxistd+1):
-
-    plt.plot(np.arange(nthreshold)*0.1,nsimu[:,j])
-
-plt.grid()
-plt.title('Air shower')
-plt.xlabel('Selection threshold')
-plt.ylabel('% of selected')
-plt.legend(['2','3','4','5','6','7+'])
-plt.savefig('selectionthreshold_airshower')
-plt.show()
-
-'''
-
+    
+    for j in range(nmaxistd+1):
+    
+        plt.plot(np.arange(nthreshold)*0.1,nbackg[:,j])
+    
+    plt.grid()
+    plt.title('Background')
+    plt.xlabel('Selection threshold')
+    plt.ylabel('% of selected')
+    plt.legend(['2','3','4','5','6','7+'])
+    plt.savefig('selectionthreshold_background')
+    plt.show()
+    
+    for j in range(nmaxistd+1):
+    
+        plt.plot(np.arange(nthreshold)*0.1,nsimu[:,j])
+    
+    plt.grid()
+    plt.title('Air shower')
+    plt.xlabel('Selection threshold')
+    plt.ylabel('% of selected')
+    plt.legend(['2','3','4','5','6','7+'])
+    plt.savefig('selectionthreshold_airshower')
+    plt.show()
+    
+    '''
+    
