@@ -1,1 +1,1 @@
-neural network with CNN layers
+neural network with convolution layers
