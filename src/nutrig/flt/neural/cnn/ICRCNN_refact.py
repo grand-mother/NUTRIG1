@@ -120,130 +120,136 @@ def create_dataset_for_keras(data_ok, data_nok):
     return xdata, ydata
  
 
-#
-# ============================ MAIN
-#
-backg_train = np.load(traindir + 'day_backg_train.npy')
-simu_train = np.load(traindir + 'day_simu_train.npy') 
-
-
-# preprocess
-print("==================== preprocess")
-
-# simu_train
-# stdsimu, maxistdsimu, maxipossimu = stats(simu_train)
-# # if true, to banish
-# allmaxipossimu = np.sum((maxipossimu < 100) | (maxipossimu > (924)), axis=1)
-# simu_train = simu_train[(allmaxipossimu == 0)]
-simu_train = remove_pic_near_border(simu_train)
-stdsimu, maxistdsimu, maxipossimu = stats(simu_train)
-
-# backg_train
-# stdbackg, maxistdbackg, maxiposbackg = stats(backg_train)
-# # if true, to banish
-# allmaxiposbackg = np.sum((maxiposbackg < 100) | (maxiposbackg > (924)), axis=1)  
-# backg_train = backg_train[(allmaxiposbackg == 0)]
-backg_train = remove_pic_near_border(backg_train)
-stdbackg, maxistdbackg, maxiposbackg = stats(backg_train)
-
-
-
-# make dataset
-# same number of ok, nok traces
-#
-print("==================== make dataset")
-input_shape = (expsize, nbant)
-print(len(simu_train), len(backg_train))
-mini = np.min((len(simu_train), len(backg_train)))
-print(len(maxistdsimu[:mini]), len(maxistdbackg[:mini]))
-print(np.min((np.min(maxistdsimu[:mini]), np.min(maxistdbackg[:mini]))))
-minimini = np.min((np.min(maxistdsimu[:mini]), np.min(maxistdbackg[:mini])))
-maximaxi = np.max((np.max(maxistdsimu[:mini]), np.max(maxistdbackg[:mini])))
-plotstat(maxistdsimu[:mini], 'Trace maximum [std unit]', 'Air shower train dataset', minimum=minimini, maximum=maximaxi)
-plotstat(maxistdbackg[:mini], 'Trace maximum [std unit]', 'Background train dataset', minimum=minimini, maximum=maximaxi)
-xdata = np.zeros((mini * 2, expsize, nbant))
-xdata[:mini] = backg_train[:mini]
-xdata[mini:] = simu_train[:mini]
-ydata = np.zeros((mini * 2))
-ydata[:mini] = 0
-ydata[mini:] = 1
-
-
-
-# shuffle
-print("==================== shuffle")
-liste = np.arange(mini * 2)
-np.random.shuffle(liste)
-xdata = xdata[liste]
-ydata = ydata[liste]
-# print(ydata[0:999])
-# print(ydata[-999:])
-
-
-#sys.exit(-1)
-
-# here!!
-x_train = xdata
-y_train = ydata
-
-epochs = 12
-# regul=0.002
-regul = 0
-
-quant = 2 ** 13
-x_train = x_train / quant
-
-model = keras.Sequential(
-    [
-        keras.Input(shape=input_shape),
-        layers.Conv1D(32, kernel_size=(11,), padding='same', kernel_regularizer=keras.regularizers.l2(regul), activation="relu"),
-        layers.MaxPooling1D(pool_size=(2)),
-        layers.Dropout(0.5),
-        layers.Conv1D(32, kernel_size=(11,), padding='same', kernel_regularizer=keras.regularizers.l2(regul), activation="relu"),
-        layers.MaxPooling1D(pool_size=(2)),
-        layers.Dropout(0.5),
-        layers.Conv1D(32, kernel_size=(11,), padding='same', kernel_regularizer=keras.regularizers.l2(regul), activation="relu"),
-        layers.MaxPooling1D(pool_size=(2)),
-        layers.Flatten(),
-        layers.Dropout(0.5),
-        layers.Dense(1, activation="sigmoid"),
-        
-    ]
-)
-
-model.summary()
-
-batch_size = 128
-
-model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
-
-history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
-model.save(traindir + f'trigger_icrc_{epochs}.keras')
-plt.figure()
-plt.plot(history.epoch, np.array(history.history['loss']), label='Train loss')
-plt.plot(history.epoch, np.array(history.history['val_loss']), label='Validation loss')
-plt.grid()
-plt.legend()
-plt.xlabel('Epoch')
-plt.ylabel('Loss (binary crossentropy)')
-plt.savefig('ICRC_loss')
-plt.figure()
-plt.plot(history.epoch, np.array(history.history['accuracy']), label='Train accuracy')
-plt.plot(history.epoch, np.array(history.history['val_accuracy']), label='Validation accuracy')
-plt.grid()
-plt.legend()
-plt.title(str(int(np.ceil(history.history['accuracy'][-1] * 100))) + '%')
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
-plt.savefig('ICRC_accuracy')
-
-
-score = model.evaluate(x_train, y_train, verbose=0)
-
-predictions = model.predict(x_train)
-print(predictions)
-print(y_train)
-print("Train loss:", score[0])
-print("Train accuracy:", score[1])
-
-plt.show()
+def icrc_training():
+    #
+    # ============================ MAIN
+    #
+    backg_train = np.load(traindir + 'day_backg_train.npy')
+    simu_train = np.load(traindir + 'day_simu_train.npy') 
+    
+    
+    # preprocess
+    print("==================== preprocess")
+    
+    # simu_train
+    # stdsimu, maxistdsimu, maxipossimu = stats(simu_train)
+    # # if true, to banish
+    # allmaxipossimu = np.sum((maxipossimu < 100) | (maxipossimu > (924)), axis=1)
+    # simu_train = simu_train[(allmaxipossimu == 0)]
+    simu_train = remove_pic_near_border(simu_train)
+    stdsimu, maxistdsimu, maxipossimu = stats(simu_train)
+    
+    # backg_train
+    # stdbackg, maxistdbackg, maxiposbackg = stats(backg_train)
+    # # if true, to banish
+    # allmaxiposbackg = np.sum((maxiposbackg < 100) | (maxiposbackg > (924)), axis=1)  
+    # backg_train = backg_train[(allmaxiposbackg == 0)]
+    backg_train = remove_pic_near_border(backg_train)
+    stdbackg, maxistdbackg, maxiposbackg = stats(backg_train)
+    
+    
+    
+    # make dataset
+    # same number of ok, nok traces
+    #
+    print("==================== make dataset")
+    input_shape = (expsize, nbant)
+    print(len(simu_train), len(backg_train))
+    mini = np.min((len(simu_train), len(backg_train)))
+    print(len(maxistdsimu[:mini]), len(maxistdbackg[:mini]))
+    print(np.min((np.min(maxistdsimu[:mini]), np.min(maxistdbackg[:mini]))))
+    minimini = np.min((np.min(maxistdsimu[:mini]), np.min(maxistdbackg[:mini])))
+    maximaxi = np.max((np.max(maxistdsimu[:mini]), np.max(maxistdbackg[:mini])))
+    plotstat(maxistdsimu[:mini], 'Trace maximum [std unit]', 'Air shower train dataset', minimum=minimini, maximum=maximaxi)
+    plotstat(maxistdbackg[:mini], 'Trace maximum [std unit]', 'Background train dataset', minimum=minimini, maximum=maximaxi)
+    xdata = np.zeros((mini * 2, expsize, nbant))
+    xdata[:mini] = backg_train[:mini]
+    xdata[mini:] = simu_train[:mini]
+    ydata = np.zeros((mini * 2))
+    ydata[:mini] = 0
+    ydata[mini:] = 1
+    
+    
+    
+    # shuffle
+    print("==================== shuffle")
+    liste = np.arange(mini * 2)
+    np.random.shuffle(liste)
+    xdata = xdata[liste]
+    ydata = ydata[liste]
+    # print(ydata[0:999])
+    # print(ydata[-999:])
+    
+    
+    #sys.exit(-1)
+    
+    # here!!
+    x_train = xdata
+    y_train = ydata
+    
+    epochs = 12
+    # regul=0.002
+    regul = 0
+    
+    quant = 2 ** 13
+    x_train = x_train / quant
+    
+    model = keras.Sequential(
+        [
+            keras.Input(shape=input_shape),
+            layers.Conv1D(32, kernel_size=(11,), padding='same', kernel_regularizer=keras.regularizers.l2(regul), activation="relu"),
+            layers.MaxPooling1D(pool_size=(2)),
+            layers.Dropout(0.5),
+            layers.Conv1D(32, kernel_size=(11,), padding='same', kernel_regularizer=keras.regularizers.l2(regul), activation="relu"),
+            layers.MaxPooling1D(pool_size=(2)),
+            layers.Dropout(0.5),
+            layers.Conv1D(32, kernel_size=(11,), padding='same', kernel_regularizer=keras.regularizers.l2(regul), activation="relu"),
+            layers.MaxPooling1D(pool_size=(2)),
+            layers.Flatten(),
+            layers.Dropout(0.5),
+            layers.Dense(1, activation="sigmoid"),
+            
+        ]
+    )
+    
+    model.summary()
+    
+    batch_size = 128
+    
+    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
+    
+    history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
+    model.save(traindir + f'trigger_icrc_{epochs}.keras')
+    plt.figure()
+    plt.plot(history.epoch, np.array(history.history['loss']), label='Train loss')
+    plt.plot(history.epoch, np.array(history.history['val_loss']), label='Validation loss')
+    plt.grid()
+    plt.legend()
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss (binary crossentropy)')
+    plt.savefig('ICRC_loss')
+    plt.figure()
+    plt.plot(history.epoch, np.array(history.history['accuracy']), label='Train accuracy')
+    plt.plot(history.epoch, np.array(history.history['val_accuracy']), label='Validation accuracy')
+    plt.grid()
+    plt.legend()
+    plt.title(str(int(np.ceil(history.history['accuracy'][-1] * 100))) + '%')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.savefig('ICRC_accuracy')
+    
+    
+    score = model.evaluate(x_train, y_train, verbose=0)
+    
+    predictions = model.predict(x_train)
+    print(predictions)
+    print(y_train)
+    print("Train loss:", score[0])
+    print("Train accuracy:", score[1])
+    
+   
+    
+if __name__ == '__main__':
+    icrc_training()
+    # 
+    plt.show()
