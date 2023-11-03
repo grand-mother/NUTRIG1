@@ -457,7 +457,7 @@ class Handling3dTracesOfEvent:
                         self.traces[idx, idx_axis],
                         self.f_samp_mhz * 1e6,
                         nperseg=self.nperseg,
-                        window="taylor",
+                        window="bartlett",
                         scaling="density",
                     )
                 else:
