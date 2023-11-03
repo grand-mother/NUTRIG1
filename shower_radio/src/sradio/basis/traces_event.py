@@ -410,11 +410,12 @@ class Handling3dTracesOfEvent:
         )
         for idx_axis, axis in enumerate(self.axis_name):
             if str(idx_axis) in to_draw:
+                m_sig = np.std(self.traces[idx, idx_axis,:100])
                 plt.plot(
                     self.t_samples[idx],
                     self.traces[idx, idx_axis],
                     self._color[idx_axis],
-                    label=axis,
+                    label=axis+ f', $\sigma=${m_sig:.2e}',
                 )
         if hasattr(self, "t_max"):
             plt.plot(
