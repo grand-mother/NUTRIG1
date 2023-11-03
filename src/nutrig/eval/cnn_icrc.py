@@ -42,15 +42,17 @@ def plot_shower_trigged(data, proba_shower):
     print(proba_shower.shape)
     print(data.shape)
     max_proba = np.max(proba_shower)
-    min_proba = np.max(proba_shower)
+    min_proba = np.min(proba_shower)
     data_shower =  data[(proba_shower == max_proba)]
-    data_noshower =  data[(proba_shower == min_proba)]
+    data_noshower =  data[(proba_shower < 0.1)]
+    print(data_noshower.shape)
     event.init_traces(np.swapaxes(data_shower,1,2))
     event_nok.init_traces(np.swapaxes(data_noshower,1,2))
     for idx in range(event.get_nb_du()):
-        event.plot_trace_du(idx)
-    for idx in range(10):
-        event_nok.plot_trace_du(idx)
+        #event.plot_trace_idx(idx)
+        pass
+    for idx in range(20):
+        event_nok.plot_trace_idx(idx)
 
 
 def get_separability(model, data_ok, data_nok):
