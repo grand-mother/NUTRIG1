@@ -13,7 +13,6 @@ Refactoring for only training and pre-processing
 """
 import sys
 
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -35,9 +34,7 @@ keras.utils.set_random_seed(812)
 # This will make TensorFlow ops as deterministic as possible, but it will
 # affect the overall performance, so it's not enabled by default.
 # `enable_op_determinism()` is introduced in TensorFlow 2.9.
-#tf.config.experimental.enable_op_determinism()
-
-
+# tf.config.experimental.enable_op_determinism()
 
 nbant = 3
 expsize = 1024
@@ -118,6 +115,12 @@ def create_dataset_for_keras(data_ok, data_nok):
     ydata[:mini] = 0
     ydata[mini:] = 1
     return xdata, ydata
+
+
+def save_trace(f_name, traces, idx):
+    trace = traces[idx].T
+    assert trace.shape == (nbant, expsize)
+    np.savetxt(f_name + f"_{idx}.txt", trace, '%f', ',')
  
 
 def icrc_training():
@@ -126,7 +129,6 @@ def icrc_training():
     #
     backg_train = np.load(traindir + 'day_backg_train.npy')
     simu_train = np.load(traindir + 'day_simu_train.npy') 
-    
     
     # preprocess
     print("==================== preprocess")
@@ -146,8 +148,6 @@ def icrc_training():
     # backg_train = backg_train[(allmaxiposbackg == 0)]
     backg_train = remove_pic_near_border(backg_train)
     stdbackg, maxistdbackg, maxiposbackg = stats(backg_train)
-    
-    
     
     # make dataset
     # same number of ok, nok traces
@@ -169,8 +169,6 @@ def icrc_training():
     ydata[:mini] = 0
     ydata[mini:] = 1
     
-    
-    
     # shuffle
     print("==================== shuffle")
     liste = np.arange(mini * 2)
@@ -180,8 +178,7 @@ def icrc_training():
     # print(ydata[0:999])
     # print(ydata[-999:])
     
-    
-    #sys.exit(-1)
+    # sys.exit(-1)
     
     # here!!
     x_train = xdata
@@ -238,7 +235,6 @@ def icrc_training():
     plt.ylabel('Accuracy')
     plt.savefig('ICRC_accuracy')
     
-    
     score = model.evaluate(x_train, y_train, verbose=0)
     
     predictions = model.predict(x_train)
@@ -246,7 +242,6 @@ def icrc_training():
     print(y_train)
     print("Train loss:", score[0])
     print("Train accuracy:", score[1])
-    
    
     
 if __name__ == '__main__':
