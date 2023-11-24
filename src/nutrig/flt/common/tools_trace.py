@@ -14,7 +14,7 @@ def plot_extra_relatif(extra_rel, dir_angle=None):
         vmin = np.nanmin(dir_angle)
         vmax = np.nanmax(dir_angle)
         norm_user = colors.Normalize(vmin=vmin, vmax=vmax)
-        scm = ax.scatter(extra_rel[:, 0], extra_rel[:, 1], extra_rel[:, 2], 
+        scm = ax.scatter(extra_rel[:, 0], extra_rel[:, 1], extra_rel[:, 2],
                          c=dir_angle, norm=norm_user)
     else:
         scm = ax.scatter(extra_rel[:, 0], extra_rel[:, 1], extra_rel[:, 2])
@@ -81,6 +81,72 @@ def extract_extreltraces_3d(traces3d):
         print(idx_t, ext_3d_abs, ext_3d_port, ext_3d_idx, out_extrel_3d[idx_t])
     return out_extrel_3d, out_ext_abs, out_ext_idx,
 
+
+class PulsExtractor3D:
+
+    def __init__(self, traces3d):
+        '''
+        shape (nb_tr, nb_axis=3, nb_s)
+        
+        :param traces3d:
+        '''
+        
+        t_shape = traces3d.shape
+        assert t_shape[1] == 3
+        self.traces3d = traces3d
+        self.nb_traces = t_shape[0]
+        self.size_tr = t_shape[2]
+        self.pulse_idx = np.zeros((self.nb_traces, 2), dtype=np.int16)
+        # self.traces3d[:, 0, 300] = 200
+    
+    def extract_fixed_with_extremum(self, before_max=32, after_max=96):
+        self.pulses3d = np.empty((self.nb_traces, 3, after_max + before_max), dtype=np.float32)
+        for idx in range(self.nb_traces):
+            # print(self.traces3d[idx].shape)
+            tr_f = self.traces3d[idx].flatten()
+            idx_min = np.argmin(tr_f)
+            idx_max = np.argmax(tr_f)
+            # print(idx_min, idx_max)
+            val_min = tr_f[idx_min]
+            val_max = tr_f[idx_max]
+            if np.abs(val_min) > val_max:
+                idx_extm = idx_min % 1024
+                # print(idx_extm, idx_min, np.abs(val_min))
+            else:
+                idx_extm = idx_max % 1024
+                # print(idx_extm, idx_max, val_max)
+            i_beg = idx_extm - before_max
+            i_end = idx_extm + after_max
+            if i_beg < 0:
+                i_beg = 0
+                i_end = after_max + before_max
+            elif i_end > self.size_tr:
+                i_end = self.size_tr
+                i_beg = self.size_tr - (after_max + before_max)                
+            self.pulse_idx[idx] = np.array([i_beg, i_end])
+            # print(self.pulses3d.shape)
+            # print(idx_extm - before_max, idx_extm + after_max)
+            self.pulses3d[idx,:,:] = self.traces3d[idx,:, i_beg: i_end ] 
+            # print(f"trace {idx} : {self.pulse_idx[idx]}")
+            # print(len(tr_f[self.pulse_idx[idx, 0]:self.pulse_idx[idx, 1]]))
+            
+    def plot_pulse_selected(self, i_beg=3, i_end=6):
+        for idx in range(i_beg, i_end):
+            plt.figure()
+            plt.plot(self.traces3d[idx, 0])
+            plt.plot(self.traces3d[idx, 1])
+            plt.plot(self.traces3d[idx, 2])
+            # plt.plot(np.sum(self.traces3d[idx], axis=0) / 3)
+            plt.axvline(self.pulse_idx[idx, 0] , color='b', label='begin')
+            plt.axvline(self.pulse_idx[idx, 1] , color='k', label='end')
+            plt.legend()
+            plt.grid()
+            
+    def get_pulse3d(self):
+        self.extract_fixed_with_extremum(512, 512)
+        print(self.pulse_idx.shape, self.pulse_idx.dtype)
+        return self.pulses3d
+    
 
 class PulsExtractor(object):
     '''    
