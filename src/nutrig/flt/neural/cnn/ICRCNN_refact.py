@@ -20,21 +20,6 @@ import tensorflow as tf
 from tensorflow import keras
 from keras import layers
 
-#
-# https://keras.io/examples/keras_recipes/reproducibility_recipes/
-#
-#
-
-# Set the seed using keras.utils.set_random_seed. This will set:
-# 1) `numpy` seed
-# 2) `tensorflow` random seed
-# 3) `python` random seed
-keras.utils.set_random_seed(812)
-
-# This will make TensorFlow ops as deterministic as possible, but it will
-# affect the overall performance, so it's not enabled by default.
-# `enable_op_determinism()` is introduced in TensorFlow 2.9.
-# tf.config.experimental.enable_op_determinism()
 
 nbant = 3
 expsize = 1024
@@ -96,7 +81,7 @@ def remove_pic_near_border(data, marge=100):
     allmaxipossimu = np.sum((maxipossimu < marge) | (maxipossimu > high_marge), axis=1)
     print(allmaxipossimu.shape)
     print(allmaxipossimu.dtype)
-    print(allmaxipossimu == 0)
+    #print(allmaxipossimu == 0)
     data = data[(allmaxipossimu == 0)]
     nb_out = data.shape[0]
     print(f"PREPROC : remove {nb_in-nb_out} traces")
@@ -184,7 +169,7 @@ def icrc_training():
     x_train = xdata
     y_train = ydata
     
-    epochs = 12
+    epochs = 80
     # regul=0.002
     regul = 0
     
@@ -216,7 +201,7 @@ def icrc_training():
     model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
     
     history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
-    model.save(traindir + f'trigger_icrc_{epochs}.keras')
+    model.save(traindir + f'trigger_icrc2_{epochs}.keras')
     plt.figure()
     plt.plot(history.epoch, np.array(history.history['loss']), label='Train loss')
     plt.plot(history.epoch, np.array(history.history['val_loss']), label='Validation loss')
@@ -245,6 +230,22 @@ def icrc_training():
    
     
 if __name__ == '__main__':
+    #
+    # https://keras.io/examples/keras_recipes/reproducibility_recipes/
+    #
+    #
+    
+    # Set the seed using keras.utils.set_random_seed. This will set:
+    # 1) `numpy` seed
+    # 2) `tensorflow` random seed
+    # 3) `python` random seed
+    keras.utils.set_random_seed(812)
+    
+    # This will make TensorFlow ops as deterministic as possible, but it will
+    # affect the overall performance, so it's not enabled by default.
+    # `enable_op_determinism()` is introduced in TensorFlow 2.9.
+    # tf.config.experimental.enable_op_determinism()
+    
     icrc_training()
     # 
     plt.show()
