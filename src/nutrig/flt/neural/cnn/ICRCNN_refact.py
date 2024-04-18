@@ -141,6 +141,8 @@ def icrc_training():
     input_shape = (expsize, nbant)
     print(len(simu_train), len(backg_train))
     mini = np.min((len(simu_train), len(backg_train)))
+    mini = 3000
+    print(f"============= {mini} ==============")
     print(len(maxistdsimu[:mini]), len(maxistdbackg[:mini]))
     print(np.min((np.min(maxistdsimu[:mini]), np.min(maxistdbackg[:mini]))))
     minimini = np.min((np.min(maxistdsimu[:mini]), np.min(maxistdbackg[:mini])))
@@ -169,7 +171,7 @@ def icrc_training():
     x_train = xdata
     y_train = ydata
     
-    epochs = 80
+    epochs = 100
     # regul=0.002
     regul = 0
     
@@ -203,22 +205,25 @@ def icrc_training():
     history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
     model.save(traindir + f'trigger_icrc2_{epochs}.keras')
     plt.figure()
+    plt.title(f'Loss function for {mini} background traces.')
     plt.plot(history.epoch, np.array(history.history['loss']), label='Train loss')
     plt.plot(history.epoch, np.array(history.history['val_loss']), label='Validation loss')
     plt.grid()
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss (binary crossentropy)')
-    plt.savefig('ICRC_loss')
+    plt.savefig(f'ICRC_loss_{mini}')
     plt.figure()
+    accuracy = history.history['accuracy'][-1]*100
+    plt.title(f'Accuracy value for {mini} background traces. {accuracy:.1f}%')
     plt.plot(history.epoch, np.array(history.history['accuracy']), label='Train accuracy')
     plt.plot(history.epoch, np.array(history.history['val_accuracy']), label='Validation accuracy')
     plt.grid()
     plt.legend()
-    plt.title(str(int(np.ceil(history.history['accuracy'][-1] * 100))) + '%')
+    #plt.title(str(int(np.ceil(history.history['accuracy'][-1] * 100))) + '%')
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy')
-    plt.savefig('ICRC_accuracy')
+    plt.savefig(f'ICRC_accuracy_{mini}')
     
     score = model.evaluate(x_train, y_train, verbose=0)
     
@@ -239,7 +244,7 @@ if __name__ == '__main__':
     # 1) `numpy` seed
     # 2) `tensorflow` random seed
     # 3) `python` random seed
-    keras.utils.set_random_seed(812)
+    keras.utils.set_random_seed(813)
     
     # This will make TensorFlow ops as deterministic as possible, but it will
     # affect the overall performance, so it's not enabled by default.

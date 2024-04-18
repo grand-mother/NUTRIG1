@@ -50,6 +50,7 @@ def training():
     nb_train = simu_train.shape[0]
     nb_back = backg_train.shape[0]
     min_nb = np.min([nb_train, nb_back])
+    min_nb = 3000
     xdata = np.zeros((min_nb * 2, nb_axis, nb_sple))
     xdata[:min_nb] = backg_train[:min_nb]
     xdata[min_nb:] = simu_train[:min_nb]
@@ -96,27 +97,40 @@ def training():
     
     batch_size = 128
     
-    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
-    
+    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])    
     history = model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
-    model.save(traindir + f'trigger2l.keras')
+    pnf_model = traindir + 'test2_fmt' 
+    pnf_model_keras = pnf_model+'.keras'
+    model.save(pnf_model_keras)
+    #converter = tf.lite.TFLiteConverter.from_saved_model(traindir)
+    #converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    #converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    #converter.target_spec.supported_types = [tf.float16]    
+    #tflite_model = converter.convert()
+    # Save the model.
+    # with open(pnf_model+'.tflite', 'wb') as f:
+    #     f.write(tflite_model)
+
     plt.figure()
+    plt.title(f'Loss function CNN 2 layers for {min_nb} background traces.')
     plt.plot(history.epoch, np.array(history.history['loss']), label='Train loss')
     plt.plot(history.epoch, np.array(history.history['val_loss']), label='Validation loss')
     plt.grid()
     plt.legend()
     plt.xlabel('Epoch')
     plt.ylabel('Loss (binary crossentropy)')
-    plt.savefig('ICRC_loss')
+    plt.savefig(f'CNN_2_layer_loss_{min_nb}')
     plt.figure()
+    accuracy = history.history['accuracy'][-1]*100
+    plt.title(f'Accuracy value, CNN 2 layers for {min_nb} background traces. {accuracy:.1f}%')    
     plt.plot(history.epoch, np.array(history.history['accuracy']), label='Train accuracy')
     plt.plot(history.epoch, np.array(history.history['val_accuracy']), label='Validation accuracy')
     plt.grid()
     plt.legend()
-    plt.title(str(int(np.ceil(history.history['accuracy'][-1] * 100))) + '%')
+    #plt.title(str(int(np.ceil(history.history['accuracy'][-1] * 100))) + '%')
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy')
-    plt.savefig('ICRC_accuracy')
+    plt.savefig(f'CNN_2_layer_accuracy_{min_nb}')
     
     score = model.evaluate(x_train, y_train, verbose=0)
     
