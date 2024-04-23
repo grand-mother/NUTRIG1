@@ -15,10 +15,45 @@ from nutrig.flt.neural.cnn.ICRCNN_refact import remove_pic_near_border, save_tra
 from sradio.basis.traces_event import Handling3dTracesOfEvent
 
 
-datadir = '/home/jcolley/projet/grand_wk/data/npy/'
+G_datadir = '/home/jcolley/projet/grand_wk/data/npy/' 
 
+def tflite_inference_fp16_REF(input_data, f_tf="converted_model.tflite"):
+    """
+    input_data shape (1024,3) only
+    """
+    print(input_data.dtype)
+    print(input_data.shape)
+    # Load the TFLite model and allocate tensors.
+    interpreter_fp16 = tf.lite.Interpreter(model_path=f_tf)
+    interpreter_fp16.allocate_tensors()
+    output_index = interpreter_fp16.get_output_details()[0]["index"]
+    input_index = interpreter_fp16.get_input_details()[0]["index"]
+    print(input_data.shape)
+    print(input_data[0].shape)
+    input_fmt = np.expand_dims(input_data[0], axis=0).astype(np.float32)
+    print(input_fmt.shape)
+    interpreter_fp16.set_tensor(input_index, input_fmt)
+    interpreter_fp16.invoke()
+    output = interpreter_fp16.get_tensor(output_index)
+    print(output.shape)
+    print(output.dtype)
+    print(output)
 
-def load_model_ccn(f_model):
+def tflite_inference_fp16(input_data, f_tf="converted_model.tflite"):
+    print(input_data.dtype)
+    print(input_data.shape)
+    # Load the TFLite model and allocate tensors.
+    interpreter_fp16 = tf.lite.Interpreter(model_path=f_tf)
+    interpreter_fp16.allocate_tensors()
+    output_index = interpreter_fp16.get_output_details()[0]["index"]
+    input_index = interpreter_fp16.get_input_details()[0]["index"]
+    input_fmt = np.expand_dims(input_data[0], axis=0).astype(np.float32)
+    interpreter_fp16.set_tensor(input_index, input_fmt)
+    interpreter_fp16.invoke()
+    output = interpreter_fp16.get_tensor(output_index)
+    return output
+
+def load_model_cnn(f_model):
     model = keras.models.load_model(f_model)
     return model
 
@@ -45,26 +80,26 @@ def get_distrib(model, data):
 
 
 def concatenate_test_ok():
-    pf_data_ok = datadir + 'day_simu_test_3.npy'
+    pf_data_ok = G_datadir + 'day_simu_test_3.npy'
     data_ok = load_data_and_preproc(pf_data_ok)
     print(data_ok.shape)
-    pf_data_ok = datadir + 'day_simu_test_4.npy'
+    pf_data_ok = G_datadir + 'day_simu_test_4.npy'
     temp = load_data_and_preproc(pf_data_ok)
     print(temp.shape)
     data_ok = np.concatenate((data_ok, temp), axis=0)
-    pf_data_ok = datadir + 'day_simu_test_5.npy'
+    pf_data_ok = G_datadir + 'day_simu_test_5.npy'
     temp = load_data_and_preproc(pf_data_ok)
     print(temp.shape)
     data_ok = np.concatenate((data_ok, temp), axis=0)
-    pf_data_ok = datadir + 'day_simu_test_6.npy'
+    pf_data_ok = G_datadir + 'day_simu_test_6.npy'
     temp = load_data_and_preproc(pf_data_ok)
     print(temp.shape)
     data_ok = np.concatenate((data_ok, temp), axis=0)
-    pf_data_ok = datadir + 'day_simu_test_7.npy'
+    pf_data_ok = G_datadir + 'day_simu_test_7.npy'
     temp = load_data_and_preproc(pf_data_ok)
     print(temp.shape)
     data_ok = np.concatenate((data_ok, temp), axis=0)
-    pf_data_ok = datadir + 'day_simu_test_8+.npy'
+    pf_data_ok = G_datadir + 'day_simu_test_8+.npy'
     temp = load_data_and_preproc(pf_data_ok)
     print(temp.shape)
     data_ok = np.concatenate((data_ok, temp), axis=0)
@@ -114,11 +149,11 @@ def get_separability(model, data_ok, data_nok, f_data_ok=""):
 
 
 def icrc_perfo_all(file_model):
-    pf_data_nok = datadir + 'day_backg_test.npy'
-    f_model = datadir + file_model
-    #f_model = datadir + 'trigger_icrc_80_acc96.keras'
+    pf_data_nok = G_datadir + 'day_backg_test.npy'
+    f_model = G_datadir + file_model
+    #f_model = G_datadir + 'trigger_icrc_80_acc96.keras'
     #
-    model = load_model_ccn(f_model)
+    model = load_model_cnn(f_model)
     data_ok = concatenate_test_ok()
     data_nok = load_data_and_preproc(pf_data_nok)
     get_separability(model, data_ok, data_nok)
@@ -144,18 +179,29 @@ def icrc_perfo_all(file_model):
             
         # 
         # plot_shower_trigged(data_ok, proba_ok[:, 0])
-    
+def test_quant():
+    pf_data_nok = G_datadir + 'day_backg_test.npy'
+    f_model = G_datadir + 'test2_fmt.tflite'
+    #f_model = G_datadir + 'trigger_icrc_80_acc96.keras'
+    #
+    #model = load_model_cnn(f_model)
+    data_ok = concatenate_test_ok()
+    data_nok = load_data_and_preproc(pf_data_nok)
+    tflite_inference_fp16(data_ok[:10],f_model )
+    #get_separability(model, data_ok, data_nok)
+
+
 def icrc_perfo():
     
-    pf_data_nok = datadir + 'day_backg_test.npy'
+    pf_data_nok = G_datadir + 'day_backg_test.npy'
     f_data_ok = 'day_simu_test_8+.npy'
     #f_data_ok = 'day_simu_test_3.npy'
-    pf_data_ok = datadir + f_data_ok
-    #f_model = datadir + "trigger_pulse256_512_120.keras"
-    f_model = datadir + 'trigger2l.keras'
-    #f_model = datadir + 'trigger_icrc_80_acc96.keras'
+    pf_data_ok = G_datadir + f_data_ok
+    #f_model = G_datadir + "trigger_pulse256_512_120.keras"
+    f_model = G_datadir + 'trigger2l.keras'
+    #f_model = G_datadir + 'trigger_icrc_80_acc96.keras'
     #
-    model = load_model_ccn(f_model)
+    model = load_model_cnn(f_model)
     data_ok = load_data_and_preproc(pf_data_ok)
     data_nok = load_data_and_preproc(pf_data_nok)
     get_separability(model, data_ok, data_nok, f_data_ok)
@@ -203,12 +249,13 @@ def plot_critere_2():
     plt.xlabel("Efficacité\nVaut 1 pour aucune perte d'événement gerbe cosmique")
     
 if __name__ == '__main__':
-    tf.config.threading.set_intra_op_parallelism_threads(1)
-    tf.config.threading.set_inter_op_parallelism_threads(1)
+    #tf.config.threading.set_intra_op_parallelism_threads(1)
+    #tf.config.threading.set_inter_op_parallelism_threads(1)
     #icrc_perfo()
     #concatenate_test_ok()
     #icrc_perfo_all()
     #plot_critere_1()
-    plot_critere_2()
+    #plot_critere_2()
+    test_quant()
     # 
     plt.show()
