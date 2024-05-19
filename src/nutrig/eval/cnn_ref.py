@@ -10,13 +10,16 @@ import tensorflow as tf
 
 from tensorflow import keras
 import matplotlib.pyplot as plt
+from scipy import integrate
+
 
 from nutrig.flt.neural.cnn.ICRCNN_refact import remove_pic_near_border, save_trace
 from sradio.basis.traces_event import Handling3dTracesOfEvent
 
+
 ## GLOBAL
 
-G_datadir = '/home/jcolley/projet/grand_wk/data/npy/' 
+#G_datadir = '/home/jcolley/projet/grand_wk/data/npy/dataset_icrc/' 
 G_datadir = "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_1.0/"
 quant = 2 ** 13
 
@@ -73,26 +76,26 @@ def get_distrib(model, data):
 
 
 def concatenate_test_ok():
-    pf_data_ok = datadir + 'day_simu_test_3.npy'
+    pf_data_ok =G_datadir + 'day_simu_test_3.npy'
     data_ok = load_data_and_preproc(pf_data_ok)
     print(data_ok.shape)
-    pf_data_ok = datadir + 'day_simu_test_4.npy'
+    pf_data_ok =G_datadir + 'day_simu_test_4.npy'
     temp = load_data_and_preproc(pf_data_ok)
     print(temp.shape)
     data_ok = np.concatenate((data_ok, temp), axis=0)
-    pf_data_ok = datadir + 'day_simu_test_5.npy'
+    pf_data_ok =G_datadir + 'day_simu_test_5.npy'
     temp = load_data_and_preproc(pf_data_ok)
     print(temp.shape)
     data_ok = np.concatenate((data_ok, temp), axis=0)
-    pf_data_ok = datadir + 'day_simu_test_6.npy'
+    pf_data_ok =G_datadir + 'day_simu_test_6.npy'
     temp = load_data_and_preproc(pf_data_ok)
     print(temp.shape)
     data_ok = np.concatenate((data_ok, temp), axis=0)
-    pf_data_ok = datadir + 'day_simu_test_7.npy'
+    pf_data_ok =G_datadir + 'day_simu_test_7.npy'
     temp = load_data_and_preproc(pf_data_ok)
     print(temp.shape)
     data_ok = np.concatenate((data_ok, temp), axis=0)
-    pf_data_ok = datadir + 'day_simu_test_8+.npy'
+    pf_data_ok =G_datadir + 'day_simu_test_8+.npy'
     temp = load_data_and_preproc(pf_data_ok)
     print(temp.shape)
     data_ok = np.concatenate((data_ok, temp), axis=0)
@@ -124,33 +127,45 @@ def get_separability(model, data_ok, data_nok, f_data_ok=""):
     dist_ok, bin_edges, _ = get_distrib(model, data_ok)
     dist_nok, bin_edges, _ = get_distrib(model, data_nok)
     index_sep = 1 - np.sqrt(np.sum(dist_ok * dist_nok))
+    print(dist_ok, dist_ok.shape)
+    print(dist_nok, dist_nok.shape)
+    tm= np.minimum(dist_ok,dist_nok )
+    # Rieman integration
+    index_sep_2 = 1- np.sum(tm)
+    # Simpson integration
+    index_sep_3 = 1- integrate.simpson(tm)
     #index_sep = 1 - np.sum(dist_ok * dist_nok)
+    print("nb dist_ok: ", data_ok.shape[0])
+    print("nb dist_Nok: ", data_nok.shape[0])
     print('index_sep=', index_sep)
+    print('index_sep2=', index_sep_2)
+    print('index_sep3=', index_sep_3)
     plt.figure()
-    plt.title(f"FLT CNN distrib proba, index separability: {index_sep:.3f}")
+    plt.title(f"FLT CNN distrib proba, index separability: {index_sep_3:.2f}")
     plt.semilogy(bin_edges[1:], dist_ok, label=f"shower {f_data_ok}")
     plt.semilogy(bin_edges[1:], dist_nok, label="background")
     plt.grid()
     plt.legend()
     plt.figure()
-    plt.title(f"FLT CNN distrib proba, index separability: {index_sep:.3f}")
+    plt.title(f"FLT CNN distrib proba, index separability: {index_sep_3:.2f}")
     plt.plot(bin_edges[1:], dist_ok, label=f"shower {f_data_ok}")
     plt.plot(bin_edges[1:], dist_nok, label="background")
     plt.grid()
     plt.legend()
-    return index_sep, dist_ok, dist_nok, bin_edges
+    return index_sep_3, dist_ok, dist_nok, bin_edges
 
 
 def icrc_perfo_all(file_model):
     pf_data_nok = G_datadir + 'day_backg_test.npy'
     f_model = G_datadir + file_model
-    #f_model = datadir + 'trigger_icrc_80_acc96.keras'
+    #f_model =G_datadir + 'trigger_icrc_80_acc96.keras'
     #
     model = load_model_cnn(f_model)
     data_ok = concatenate_test_ok()
     data_nok = load_data_and_preproc(pf_data_nok)
     get_separability(model, data_ok, data_nok)
     dist_nok, bin_edges, proba_nok = get_distrib(model, data_nok)
+    return
     idx=10
     print(proba_nok.shape)
     pba = proba_nok[idx,0]
@@ -174,13 +189,13 @@ def icrc_perfo_all(file_model):
         # plot_shower_trigged(data_ok, proba_ok[:, 0])
     
 def icrc_perfo():
-    pf_data_nok = datadir + 'day_backg_test.npy'
+    pf_data_nok =G_datadir + 'day_backg_test.npy'
     f_data_ok = 'day_simu_test_8+.npy'
     #f_data_ok = 'day_simu_test_3.npy'
-    pf_data_ok = datadir + f_data_ok
-    #f_model = datadir + "trigger_pulse256_512_120.keras"
-    f_model = datadir + 'trigger2l.keras'
-    #f_model = datadir + 'trigger_icrc_80_acc96.keras'
+    pf_data_ok =G_datadir + f_data_ok
+    #f_model =G_datadir + "trigger_pulse256_512_120.keras"
+    f_model = G_datadir + 'with_icrc_90.keras'
+    #f_model =G_datadir + 'trigger_icrc_80_acc96.keras'
     #
     model = load_model_cnn(f_model)
     data_ok = load_data_and_preproc(pf_data_ok)
@@ -252,8 +267,8 @@ def get_sepabability_template():
     
 if __name__ == '__main__':
     #tf.config.threading.set_intra_op_parallelism_threads(1)
-    #tf.config.threading.set_inter_op_parallelism_threads(1)
-    #icrc_perfo()
+    #tf.config.threading.set_inter_op_parallelis_m_threads(1)
+    #icrc_perfo_all( 'with_icrc_90.keras')
     #concatenate_test_ok()
     #icrc_perfo_all()
     #plot_critere_1()
