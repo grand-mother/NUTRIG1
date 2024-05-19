@@ -24,7 +24,7 @@ from keras import layers
 nbant = 3
 expsize = 1024
 # packdir='/sps/grand/slecoz/ICRC23pack/'
-traindir = '/home/jcolley/projet/grand_wk/data/npy/'
+traindir = '/home/jcolley/projet/grand_wk/data/npy/dataset_icrc/'
 testdir = traindir
 
 
@@ -72,6 +72,8 @@ def remove_pic_near_border(data, marge=100):
     :param data: float(nb_trace, nb_sample, nb_axis)
     :param marge: int
     '''
+    print(data.shape)
+    print(data[0,0])
     nb_in = data.shape[0]
     high_marge = data.shape[1] - marge 
     _, _, maxipossimu = stats(data)
@@ -177,7 +179,7 @@ def icrc_training():
     
     quant = 2 ** 13
     x_train = x_train / quant
-    
+    print("x_train.shape: ", x_train.shape)
     model = keras.Sequential(
         [
             keras.Input(shape=input_shape),

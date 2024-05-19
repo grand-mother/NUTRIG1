@@ -17,7 +17,8 @@ from sradio.basis.traces_event import Handling3dTracesOfEvent
 ## GLOBAL
 
 G_datadir = '/home/jcolley/projet/grand_wk/data/npy/' 
-
+G_datadir = "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_1.0/"
+quant = 2 ** 13
 
 def load_model_cnn(f_model):
     model = keras.models.load_model(f_model)
@@ -27,18 +28,44 @@ def load_model_cnn(f_model):
 def load_data_and_preproc(f_data):
     data_cnn = np.load(f_data)
     data_cnn = remove_pic_near_border(data_cnn)
-    quant = 2 ** 13
     data_cnn = data_cnn / quant
     return data_cnn
 
+def get_data_template(f_data):
+    data_cnn = np.load(f_data)["traces"]
+    data_cnn = np.swapaxes(data_cnn, 1,2)
+    data_cnn = data_cnn / quant
+    return data_cnn
+
+def write_prob_file(f_model, f_data, f_proba):
+    model = keras.models.load_model(f_model)
+    data_cnn = np.load(f_data)["traces"]
+    data_cnn = np.swapaxes(data_cnn, 1,2)
+    data_cnn = data_cnn / quant
+    proba = model.predict(data_cnn)
+    np.save(f_proba, proba)
+    # plot distrib
+    hist_ok, bin_edges = np.histogram(proba, 40)
+    dist_ok = hist_ok / hist_ok.sum()
+    print('sum dist=', dist_ok.sum())
+    plt.figure()
+    plt.title(f"Distribution {f_data.split('/')[-1]}")
+    plt.semilogy(bin_edges[1:], dist_ok)
+    plt.grid()
+    plt.legend()
+   
+    
+    
+    
+
 
 def get_distrib(model, data):
-    nb_bin = 42
+    nb_bin = 40
     # Load nok data
     t_cpu = time.process_time() 
     proba_ok = model.predict(data)
     duration_cpu = time.process_time() - t_cpu
-    print(f"CPU time= {duration_cpu} s")
+    print(f"Inference CPU time= {duration_cpu} s, for {data.shape[0]} traces")
     hist_ok, bin_edges = np.histogram(proba_ok, nb_bin)
     dist_ok = hist_ok / hist_ok.sum()
     print('sum dist=', dist_ok.sum())
@@ -100,13 +127,13 @@ def get_separability(model, data_ok, data_nok, f_data_ok=""):
     #index_sep = 1 - np.sum(dist_ok * dist_nok)
     print('index_sep=', index_sep)
     plt.figure()
-    plt.title("Distribution")
+    plt.title(f"FLT CNN distrib proba, index separability: {index_sep:.3f}")
     plt.semilogy(bin_edges[1:], dist_ok, label=f"shower {f_data_ok}")
     plt.semilogy(bin_edges[1:], dist_nok, label="background")
     plt.grid()
     plt.legend()
     plt.figure()
-    plt.title("Distribution")
+    plt.title(f"FLT CNN distrib proba, index separability: {index_sep:.3f}")
     plt.plot(bin_edges[1:], dist_ok, label=f"shower {f_data_ok}")
     plt.plot(bin_edges[1:], dist_nok, label="background")
     plt.grid()
@@ -202,7 +229,27 @@ def plot_critere_2():
     plt.ylabel("Hz\n taux d'événement à transmettre par seconde")
     plt.xlabel("Efficacité\nVaut 1 pour aucune perte d'événement gerbe cosmique")
 
+def get_proba_template_sig():
+    f_model =  G_datadir + "template_wpp_2l_150.keras"
+    f_data = G_datadir + "sig_dataset_nutrig_gp13_test_seed_300.npz"
+    f_proba = "sig_proba_cnn_nutrig_gp13_test_seed_300"
+    write_prob_file(f_model, f_data, f_proba)
 
+def get_proba_template_bkg():
+    f_model =  G_datadir + "template_wpp_2l_150.keras"
+    f_data = G_datadir + "bkg_dataset_nutrig_gp13_test_seed_300.npz"
+    f_proba = "bkg_proba_cnn_nutrig_gp13_test_seed_300"
+    write_prob_file(f_model, f_data, f_proba) 
+    
+def get_sepabability_template():
+    f_model =  G_datadir + "template_wpp_2l_150.keras"
+    f_data_ok = G_datadir + "sig_dataset_nutrig_gp13_test_seed_300.npz"
+    f_data_nok = G_datadir + "bkg_dataset_nutrig_gp13_test_seed_300.npz"
+    data_ok = get_data_template(f_data_ok)
+    data_nok = get_data_template(f_data_nok)
+    model = keras.models.load_model(f_model)
+    get_separability(model, data_ok, data_nok, f_data_ok.split("/")[-1])
+    
 if __name__ == '__main__':
     #tf.config.threading.set_intra_op_parallelism_threads(1)
     #tf.config.threading.set_inter_op_parallelism_threads(1)
@@ -210,6 +257,8 @@ if __name__ == '__main__':
     #concatenate_test_ok()
     #icrc_perfo_all()
     #plot_critere_1()
-    plot_critere_2()
+    #plot_critere_2()
+    #get_proba_template_sig()
+    get_sepabability_template()
     # 
     plt.show()
