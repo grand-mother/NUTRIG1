@@ -127,12 +127,15 @@ def plot_shower_trigged(data, proba_shower):
         pass
 
 
-def get_separability(model, data_ok, data_nok, f_data_ok=""):
+def aaget_separability(model, data_ok, data_nok, f_data_ok=""):
     dist_ok, bin_edges, _ = get_distrib(model, data_ok)
     dist_nok, bin_edges, _ = get_distrib(model, data_nok)
     index_sep = 1 - np.sqrt(np.sum(dist_ok * dist_nok))
     #index_sep = 1 - np.sum(dist_ok * dist_nok)
+    print("nb dist_ok: ", dist_ok.shape[0])
+    print("nb dist_Nok: ", dist_nok.shape[0])
     print('index_sep=', index_sep)
+    raise
     plt.figure()
     plt.title("Distribution")
     plt.semilogy(bin_edges[1:], dist_ok, label=f"shower {f_data_ok}")
@@ -148,7 +151,7 @@ def get_separability(model, data_ok, data_nok, f_data_ok=""):
     return index_sep, dist_ok, dist_nok, bin_edges
 
 
-def icrc_perfo_all(file_model):
+def aaicrc_perfo_all(file_model):
     pf_data_nok = G_datadir + 'day_backg_test.npy'
     f_model = G_datadir + file_model
     #f_model = G_datadir + 'trigger_icrc_80_acc96.keras'
@@ -157,6 +160,7 @@ def icrc_perfo_all(file_model):
     data_ok = concatenate_test_ok()
     data_nok = load_data_and_preproc(pf_data_nok)
     get_separability(model, data_ok, data_nok)
+    return
     dist_nok, bin_edges, proba_nok = get_distrib(model, data_nok)
     idx=10
     print(proba_nok.shape)
