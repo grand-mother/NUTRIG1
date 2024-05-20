@@ -97,8 +97,9 @@ def get_sepabability_snr_template():
     l_snr = [4,5,6,7,9,10]
     #l_snr = [4,10]
     l_is = []
+    sigma_noise = 10
     for snr in l_snr:
-        thresold = snr*10
+        thresold = snr*sigma_noise
         data_ok = get_data_template(f_data_ok, False)
         trok = Handling3dTraces("Signal")
         trok.init_traces(np.swapaxes(data_ok, 1, 2), f_samp_mhz=500)
