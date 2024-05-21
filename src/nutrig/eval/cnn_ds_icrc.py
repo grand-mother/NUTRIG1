@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from scipy import integrate
 
 from nutrig.flt.neural.cnn.ICRCNN_refact import remove_pic_near_border, save_trace
-from sradio.basis.traces_event import Handling3dTracesOfEvent
+
 
 
 ## GLOBAL
