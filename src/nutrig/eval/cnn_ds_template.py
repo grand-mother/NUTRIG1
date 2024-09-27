@@ -27,6 +27,14 @@ f_train_nok = G_datadir + "bkg_dataset_nutrig_gp13_train_seed_300.npz"
 
 
 def get_data_template(f_data, normalize=True):
+    '''
+    
+    :param f_data: (nb trace, 1024, 3)
+    :param normalize:
+    '''
+    
+    # data["traces"].shape
+    # (10000, 3, 1024)
     data_cnn = np.load(f_data)["traces"]
     data_cnn = np.swapaxes(data_cnn, 1, 2)
     if normalize:

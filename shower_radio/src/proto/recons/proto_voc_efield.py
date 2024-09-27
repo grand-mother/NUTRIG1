@@ -721,9 +721,9 @@ if __name__ == "__main__":
     # check_recons_with_white_noise()
     # deconv_with_polar_fit()
     # deconv_with_dir_polar_fit()
-    # deconv_with_polar_fit_all_event(1)
+    deconv_with_polar_fit_all_event(1)
     #master_fit_polar()
-    check_recons_all_no_noise()
+    #check_recons_all_no_noise()
     #
     #
     logger.info(mlg.string_end_script())

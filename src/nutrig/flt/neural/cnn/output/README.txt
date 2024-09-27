@@ -1,0 +1,1 @@
+output training: image, network file
