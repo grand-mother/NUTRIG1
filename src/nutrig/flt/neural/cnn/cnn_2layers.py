@@ -65,16 +65,15 @@ def trainin_cnn(x_train, y_train, traindir, tf_mod_file="flt_2l", epochs=100, re
         x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1
     )
     ####
-    array_loss_accu = np.empty((5,epochs), dtype=np.float32)
-    
+    array_loss_accu = np.empty((5, epochs), dtype=np.float32)
+
     array_loss_accu[0] = history.epoch
     array_loss_accu[1] = history.history["loss"]
     array_loss_accu[2] = history.history["val_loss"]
     array_loss_accu[3] = history.history["accuracy"]
     array_loss_accu[4] = history.history["val_accuracy"]
-    np.save( "perf_training",array_loss_accu)
-    
-    
+    np.save("perf_training", array_loss_accu)
+
     ####
     pnf_model = traindir + tf_mod_file + f"_{epochs}"
     pnf_model_keras = pnf_model + ".keras"
@@ -96,7 +95,7 @@ def trainin_cnn(x_train, y_train, traindir, tf_mod_file="flt_2l", epochs=100, re
     plt.legend()
     plt.xlabel("Epoch")
     plt.ylabel("Loss (binary crossentropy)")
-    #plt.savefig(f"CNN_2_layer_loss_{tf_mod_file}_{nb_trace}")
+    # plt.savefig(f"CNN_2_layer_loss_{tf_mod_file}_{nb_trace}")
     plt.figure()
     accuracy = history.history["accuracy"][-1] * 100
     plt.title(f"Accuracy value, CNN 2 layers for {nb_trace} traces. {accuracy:.1f}%")
@@ -107,7 +106,7 @@ def trainin_cnn(x_train, y_train, traindir, tf_mod_file="flt_2l", epochs=100, re
     # plt.title(str(int(np.ceil(history.history['accuracy'][-1] * 100))) + '%')
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
-    #plt.savefig(f"CNN_2_layer_accuracy_{tf_mod_file}_{nb_trace}")
+    # plt.savefig(f"CNN_2_layer_accuracy_{tf_mod_file}_{nb_trace}")
 
     score = model.evaluate(x_train, y_train, verbose=0)
 
@@ -289,7 +288,7 @@ def training_with_template():
 
     quant = 2**13
     x_train = x_train / quant
-    trainin_cnn(x_train, y_train, traindir, "flt_cnn_2l_240920", regul=0, epochs=150)
+    trainin_cnn(x_train, y_train, traindir, "flt_cnn_2l_240930", regul=0, epochs=150)
 
 
 if __name__ == "__main__":

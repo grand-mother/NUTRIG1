@@ -16,8 +16,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 G_datadir = "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_1.0/"
-G_model_tflite = G_datadir + "flt_2l_240920_150_ref.tflite"
-G_model_tflite_i8 = G_datadir + "flt_2l_240920_150_ref_i8.tflite"
+G_model_tflite = G_datadir + "flt_cnn_2l_240930_150.tflite"
+G_model_tflite_i8 = G_datadir + "flt_cnn_2l_240930_150_i8.tflite"
+
+G_pn_traces = dst.f_test_nok
+
+
+def get_traces(pn_file=""):
+    if pn_file == "":
+        return dst.get_data_template(G_pn_traces)
+    else:
+        raise
+        return dst.get_data_template(pn_file)
 
 
 def tflite_inference_fp16_REF(input_data, f_tf="converted_model.tflite"):
@@ -56,6 +66,17 @@ def tflite_inference_fp16(input_data, f_tf="converted_model.tflite"):
     interpreter_fp16.invoke()
     output = interpreter_fp16.get_tensor(output_index)
     return output
+
+
+def keras_inference(input_data, pn_keras):
+    model = keras.models.load_model(pn_keras)
+    print(input_data.shape)
+    t_cpu = time.process_time()
+    proba_ok = np.squeeze(model.predict(input_data))
+    duration_cpu = time.process_time() - t_cpu
+    print(f"CPU time= {duration_cpu} s")    
+    print(proba_ok.shape, proba_ok[:20])
+    return proba_ok
 
 
 def tflite_inference(input_data, pn_tf="converted_model.tflite"):
@@ -98,26 +119,35 @@ def tflite_inference(input_data, pn_tf="converted_model.tflite"):
 
 
 def test_no_quant():
-    data_tpl = dst.get_data_template(dst.f_test_nok)
+    data_tpl = get_traces()
     output_data = tflite_inference(data_tpl.astype(np.float32), G_model_tflite)
     print(output_data[:20])
     return output_data
 
 
 def test_quant_i8():
-    data_tpl = dst.get_data_template(dst.f_test_nok)
+    data_tpl = get_traces()
     output_data = tflite_inference(data_tpl.astype(np.float32), G_model_tflite_i8)
     print(output_data[:20])
     return output_data
 
 
 def compare_quant():
+    pn_keras = dst.f_model
+    out_ref = keras_inference(get_traces(), pn_keras)
     out_no_quant = test_no_quant()
     out_quant = test_quant_i8()
-    diff = out_no_quant - out_quant
+    diff = out_no_quant - out_ref
     plt.figure()
-    plt.title(f"Histo difference, std={diff.std():.4f} ")
+    plt.title(f"Histo difference (tflite - keras), std={diff.std():.4f} ")
     plt.hist(diff)
+    plt.xlabel(G_pn_traces.split('/')[-1])
+    plt.grid()
+    diff_i8 = out_quant - out_ref
+    plt.figure()
+    plt.title(f"Histo difference (tflite_i8 - keras), std={diff_i8.std():.4f} ")
+    plt.hist(diff_i8)
+    plt.xlabel(G_pn_traces.split('/')[-1])
     plt.grid()
 
 

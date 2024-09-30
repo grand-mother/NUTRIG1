@@ -27,9 +27,9 @@ def convert_tflite(pn_keras, kind="no"):
 
 if __name__ == "__main__":
     convert_tflite(
-        "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_1.0/flt_2l_240920_150_ref.keras"
+        "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_1.0/flt_cnn_2l_240930_150.keras"
     )
     convert_tflite(
-        "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_1.0/flt_2l_240920_150_ref.keras",
+        "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_1.0/flt_cnn_2l_240930_150.keras",
         "int8"
     )
