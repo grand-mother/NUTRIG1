@@ -232,6 +232,64 @@ def training_with_icrc_clean():
     trainin_cnn(x_train, y_train, traindir, "with_icrc", epochs=90)
 
 
+def datatset_template():
+    """
+    return:
+        x_train: trace (trace, sample, axis)
+        y_train: label 0 or 1
+    """
+    traindir = "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_1.0/"
+    #
+    # ============================ training_with_template
+    #
+    print("\n\n ============================ training_with_template")
+    backg_train = np.load(traindir + "bkg_dataset_nutrig_gp13_train_seed_300.npz")["traces"]
+    simu_train = np.load(traindir + "sig_dataset_nutrig_gp13_train_seed_300.npz")["traces"]
+    print(simu_train.shape)
+    # need move axis to have the same shape that ICRC
+    backg_train = np.moveaxis(backg_train, 1, 2)
+    simu_train = np.moveaxis(simu_train, 1, 2)
+    print(np.isnan(simu_train).any())
+    print(np.isnan(backg_train).any())
+    print(np.mean(simu_train))
+    print(np.std(simu_train))
+    print(np.mean(backg_train))
+    print(np.std(backg_train))
+    # preprocess
+    if False:
+        simu_train = ppd.remove_pic_near_border(simu_train)
+        stdsimu, maxistdsimu, maxipossimu = ppd.stats(simu_train)
+        backg_train = ppd.remove_pic_near_border(backg_train)
+        stdbackg, maxistdbackg, maxiposbackg = ppd.stats(backg_train)
+    #
+    print("==================== make dataset")
+    nb_sple = simu_train.shape[2]
+    nb_axis = simu_train.shape[1]
+    nb_train = simu_train.shape[0]
+    nb_back = backg_train.shape[0]
+    min_nb = np.min([nb_train, nb_back])
+    # min_nb = 4000
+    xdata = np.zeros((min_nb * 2, nb_axis, nb_sple))
+    xdata[:min_nb] = backg_train[:min_nb]
+    xdata[min_nb:] = simu_train[:min_nb]
+    ydata = np.zeros((min_nb * 2))
+    ydata[:min_nb] = 0
+    ydata[min_nb:] = 1
+    # shuffle
+    print("==================== shuffle")
+    liste = np.arange(min_nb * 2)
+    np.random.shuffle(liste)
+    x_train = xdata[liste]
+    y_train = ydata[liste]
+    print("x_train.shape: ", x_train.shape)
+    epochs = 100
+    # regul=0.002
+    regul = 0
+    quant = 2**13
+    x_train = x_train / quant
+    return x_train, y_train
+
+
 def training_with_template():
     traindir = "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_1.0/"
     #
