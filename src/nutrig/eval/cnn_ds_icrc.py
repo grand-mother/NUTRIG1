@@ -34,13 +34,13 @@ def load_data_and_preproc(f_data):
 
 
 def get_distrib(model, data):
-    nb_bin = 40
+    nb_bin = 100
     # Load nok data
     t_cpu = time.process_time()
     proba_ok = model.predict(data)
     duration_cpu = time.process_time() - t_cpu
     print(f"Inference CPU time= {duration_cpu} s, for {data.shape[0]} traces")
-    hist_ok, bin_edges = np.histogram(proba_ok, nb_bin)
+    hist_ok, bin_edges = np.histogram(proba_ok, nb_bin, (0,1))
     dist_ok = hist_ok / hist_ok.sum()
     print("sum dist=", dist_ok.sum())
     return dist_ok, bin_edges, proba_ok
@@ -96,7 +96,9 @@ def plot_shower_trigged(data, proba_shower):
 
 def get_separability(model, data_ok, data_nok, f_data_ok="", f_plot=True):
     dist_ok, bin_edges, _ = get_distrib(model, data_ok)
+    bin_edges_c = bin_edges.copy()
     dist_nok, bin_edges, _ = get_distrib(model, data_nok)
+    assert np.allclose(bin_edges, bin_edges_c)
     index_sep = 1 - np.sqrt(np.sum(dist_ok * dist_nok))
     print(dist_ok, dist_ok.shape)
     print(dist_nok, dist_nok.shape)

@@ -24,6 +24,7 @@ def trainin_cnn(x_train, y_train, traindir, tf_mod_file="flt_2l", epochs=100, re
     nb_trace = x_train.shape[0]
     nb_axis = x_train.shape[2]
     nb_sple = x_train.shape[1]
+    assert nb_axis == 3
     print(x_train.shape)
     model = keras.Sequential(
         [
@@ -346,7 +347,76 @@ def training_with_template():
 
     quant = 2**13
     x_train = x_train / quant
-    trainin_cnn(x_train, y_train, traindir, "flt_cnn_2l_240930", regul=0, epochs=150)
+    trainin_cnn(x_train, y_train, traindir, "flt_cnn_2l_240930", regul=0, epochs=100)
+
+
+def training_with_template_2():
+    traindir = "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_2.0/"
+    #
+    # ============================ training_with_template
+    #
+    print("\n\n ============================ training_with_template")
+    f_bkg = traindir + "bkg_database_nutrig_v2_FILTERED_UNIFORM.npz"
+    f_sig = traindir + "sig_database_nutrig_v2_FILTERED_UNIFORM.npz"
+    backg_train = np.load(f_bkg)["traces"]
+    simu_train = np.load(f_sig)["traces"]
+
+    # need move axis to have the same shape that ICRC
+
+    backg_train = np.swapaxes(backg_train, 1, 2)
+    simu_train = np.swapaxes(simu_train, 1, 2)
+    print("==================== shuffle")
+    np.random.shuffle(backg_train)
+    np.random.shuffle(simu_train)
+    print("simu: ", simu_train.shape)
+    print("back: ", backg_train.shape)
+
+    print(np.isnan(simu_train).any())
+    print(np.isnan(backg_train).any())
+    print(np.mean(simu_train))
+    print(np.std(simu_train))
+    print(np.mean(backg_train))
+    print(np.std(backg_train))
+
+    # preprocess
+    if False:
+        simu_train = ppd.remove_pic_near_border(simu_train)
+        stdsimu, maxistdsimu, maxipossimu = ppd.stats(simu_train)
+        backg_train = ppd.remove_pic_near_border(backg_train)
+        stdbackg, maxistdbackg, maxiposbackg = ppd.stats(backg_train)
+    #
+    print("==================== make dataset")
+    nb_sple = simu_train.shape[2]
+    nb_axis = simu_train.shape[1]
+    nb_train = simu_train.shape[0]
+    nb_back = backg_train.shape[0]
+    min_nb = np.min([nb_train, nb_back])
+    min_nb = 4000
+    # save split data
+    sig_test = f_sig.replace("nutrig_v2_FILTERED_UNIFORM", "shuffle_test")
+    sig_test = sig_test.replace(".npz", "")
+    print(sig_test)
+    np.save(sig_test, simu_train[min_nb:])
+    bkg_test = f_bkg.replace("nutrig_v2_FILTERED_UNIFORM", "shuffle_test")
+    bkg_test = bkg_test.replace(".npz", "")
+    np.save(bkg_test, backg_train[min_nb:])
+    ###
+    xdata = np.zeros((min_nb * 2, nb_axis, nb_sple))
+    xdata[:min_nb] = backg_train[:min_nb]
+    xdata[min_nb:] = simu_train[:min_nb]
+    ydata = np.zeros((min_nb * 2))
+    ydata[:min_nb] = 0
+    ydata[min_nb:] = 1
+
+    print("x_train.shape: ", ydata.shape)
+
+    n_ep = 20
+    # regul=0.002
+    v_reg = 0
+
+    quant = 2**13
+    xdata = xdata / quant
+    trainin_cnn(xdata, ydata, traindir, "flt_cnn_2l_2509_a", regul=v_reg, epochs=n_ep)
 
 
 if __name__ == "__main__":
@@ -367,6 +437,6 @@ if __name__ == "__main__":
     # tf.config.experimental.enable_op_determinism()
 
     # training_with_icrc_clean()
-    training_with_template()
+    training_with_template_2()
     #
     plt.show()

@@ -16,16 +16,14 @@ import nutrig.eval.dataset as dataset
 
 ## GLOBAL
 
-G_datadir = "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_1.0/"
+G_datadir = "/home/jcolley/projet/grand_wk/data/npy/dataset_tplate_2.0/"
 quant = 2**13
 
 # f_model = G_datadir + "template_wpp_2l_150.keras"
 # f_model = G_datadir + "flt_2l_240920_150_ref.keras"
-f_model = G_datadir + "flt_cnn_2l_240930_150.keras"
-f_test_ok = G_datadir + "sig_dataset_nutrig_gp13_test_seed_300.npz"
-f_test_nok = G_datadir + "bkg_dataset_nutrig_gp13_test_seed_300.npz"
-f_train_ok = G_datadir + "sig_dataset_nutrig_gp13_train_seed_300.npz"
-f_train_nok = G_datadir + "bkg_dataset_nutrig_gp13_train_seed_300.npz"
+f_model = G_datadir + "flt_cnn_2l_2509_a_20.keras"
+f_test_ok = G_datadir + "sig_database_shuffle_test.npy"
+f_test_nok = G_datadir + "bkg_database_shuffle_test.npy"
 
 
 def get_data_template(f_data, normalize=True, m_rg=[]):
@@ -37,8 +35,8 @@ def get_data_template(f_data, normalize=True, m_rg=[]):
 
     # data["traces"].shape
     # (10000, 3, 1024)
-    data_cnn = np.load(f_data)["traces"]
-    data_cnn = np.swapaxes(data_cnn, 1, 2)
+    data_cnn = np.load(f_data)
+    #data_cnn = np.swapaxes(data_cnn, 1, 2)
     if m_rg != []:
         data_cnn  = data_cnn[m_rg[0]:m_rg[1]]
     if normalize:
@@ -47,7 +45,8 @@ def get_data_template(f_data, normalize=True, m_rg=[]):
 
 
 def get_h3tr_template(f_data, name=""):
-    data = np.load(f_data)["traces"]
+    data = np.load(f_data)
+    data = np.swapaxes(data,1,2)
     h3tr = Handling3dTraces(name)
     h3tr.init_traces(data, f_samp_mhz=500)
     h3tr.info_shower = f_data.split("/")[-1]
@@ -57,8 +56,8 @@ def get_h3tr_template(f_data, name=""):
 
 def write_prob_file(f_model, f_data, f_proba):
     model = keras.models.load_model(f_model)
-    data_cnn = np.load(f_data)["traces"]
-    data_cnn = np.swapaxes(data_cnn, 1, 2)
+    data_cnn = np.load(f_data)
+    #data_cnn = np.swapaxes(data_cnn, 1, 2)
     data_cnn = data_cnn / quant
     proba = model.predict(data_cnn)
     np.save(f_proba, proba)
@@ -67,10 +66,10 @@ def write_prob_file(f_model, f_data, f_proba):
     dist_ok = hist_ok / hist_ok.sum()
     print("sum dist=", dist_ok.sum())
     plt.figure()
-    plt.title(f"Distribution {f_data.split('/')[-1]}")
+    plt.title(f"Distribution {f_data.split('/')[-1]}, {data_cnn.shape[0]} traces")
     plt.semilogy(bin_edges[1:], dist_ok)
+    plt.xlabel("Inference probability")
     plt.grid()
-    plt.legend()
 
 
 def get_distrib(model, data):
@@ -87,26 +86,20 @@ def get_distrib(model, data):
 
 
 def get_proba_template_sig():
-    f_data = G_datadir + "sig_dataset_nutrig_gp13_test_seed_300.npz"
-    f_proba = "sig_proba_cnn_nutrig_gp13_test_seed_300"
-    write_prob_file(f_model, f_data, f_proba)
+    f_proba = "sig_tplt_2_proba"
+    write_prob_file(f_model, f_test_ok, f_proba)
 
 
 def get_proba_template_bkg():
-    f_data = G_datadir + "bkg_dataset_nutrig_gp13_test_seed_300.npz"
-    f_data = G_datadir + "bkg_dataset_nutrig_gp13_th1_55_th2_35_test_seed_300.npz"
-    f_proba = "bkg_proba_cnn_nutrig_gp13_test_seed_300"
-    f_proba = "bkg_proba_cnn_nutrig_gp13_th1_55_th2_35_test_seed_300"
-    write_prob_file(f_model, f_data, f_proba)
+    f_proba = "bkg_tplt_2_proba"
+    write_prob_file(f_model, f_test_nok, f_proba)
 
 
 def get_sepabability_template():
-    f_data_ok = G_datadir + "sig_dataset_nutrig_gp13_test_seed_300.npz"
-    f_data_nok = G_datadir + "bkg_dataset_nutrig_gp13_test_seed_300.npz"
-    data_ok = get_data_template(f_data_ok)
-    data_nok = get_data_template(f_data_nok)
+    data_ok = get_data_template(f_test_ok)
+    data_nok = get_data_template(f_test_nok)
     model = keras.models.load_model(f_model)
-    cnn_ds_icrc.get_separability(model, data_ok, data_nok, f_data_ok.split("/")[-1])
+    cnn_ds_icrc.get_separability(model, data_ok, data_nok, f_test_ok.split("/")[-1])
 
 
 def plot_dataset_snr():
@@ -114,9 +107,9 @@ def plot_dataset_snr():
     hsig = get_h3tr_template(f_test_ok, "Signal test")
     hbkg = get_h3tr_template(f_test_nok, "Background test")
     dataset.get_histo_snr(hbkg, hsig, "Test Template", bins, sigma=10)
-    hsig = get_h3tr_template(f_train_ok, "Signal training")
-    hbkg = get_h3tr_template(f_train_nok, "Background training")
-    dataset.get_histo_snr(hbkg, hsig, "Training Template", bins, sigma=10)
+    # hsig = get_h3tr_template(f_train_ok, "Signal training")
+    # hbkg = get_h3tr_template(f_train_nok, "Background training")
+    # dataset.get_histo_snr(hbkg, hsig, "Training Template", bins, sigma=10)
     # dataset.get_histo_snr(hbkg, hsig, "Test Template2", sigma=10)
 
 
@@ -182,8 +175,9 @@ def get_sepabability_snr_template():
 
 if __name__ == "__main__":
 
-    # get_proba_template_sig()
-    # get_sepabability_template()
+    get_proba_template_sig()
+    get_proba_template_bkg()
+    get_sepabability_template()
     #get_sepabability_snr_template()
     plot_dataset_snr()
     #
